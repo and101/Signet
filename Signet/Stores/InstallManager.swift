@@ -29,6 +29,9 @@ final class InstallManager {
     private var progressWatch: Task<Void, Never>?
     /// The bundle ID of the app last installed, for the Open button.
     private(set) var installedBundleID: String?
+    /// The build iOS had installed under this bundle ID before the install; see `InstallWatch.confirmed`.
+    private var buildBefore: String??
+    private var expectedBuild = ""
 
     init() {
         InstallServer.shared.onProgress = { [weak self] token, sent, total in
@@ -63,6 +66,9 @@ final class InstallManager {
             let (token, url) = try await Task.detached { try InstallServer.shared.host(hosted) }.value
             self.token = token
             self.bundleID = app.bundleID
+            expectedBuild = app.build
+            let bundleID = app.bundleID
+            buildBefore = await Task.detached { InstallWatch.installedBuild(bundleID) }.value
             state = .waiting(appName: app.name)
             beginBackgroundTask()
             guard await UIApplication.shared.open(url) else {
@@ -109,7 +115,13 @@ final class InstallManager {
             watchdog?.cancel()
             watchInstall(appName: name)
         } else {
-            state = .transferring(appName: name, progress: Double(sent) / Double(max(total, 1)))
+            // A late or repeated request mustn't pull a finished transfer back.
+            switch state {
+            case .waiting, .manifestServed, .transferring:
+                state = .transferring(appName: name, progress: Double(sent) / Double(max(total, 1)))
+            default:
+                break
+            }
         }
     }
 
@@ -131,10 +143,11 @@ final class InstallManager {
                 case .installing(let progress):
                     self.state = .installing(appName: appName, progress: progress)
                 case .installed:
-                    // For a first install, double-check iOS really has it; an update was installed already.
-                    let check = await Task.detached { InstalledApps.workingSystemCheck()?(bundleID) }.value
+                    // Progress also disappears when an install fails, so only claim success with evidence.
+                    let after = await Task.detached { InstallWatch.installedBuild(bundleID) }.value
+                    let confirmed = InstallWatch.confirmed(before: self.buildBefore, after: after, expected: self.expectedBuild)
                     self.installedBundleID = bundleID
-                    self.finish(check == false ? .finished(appName: appName) : .installed(appName: appName))
+                    self.finish(confirmed ? .installed(appName: appName) : .finished(appName: appName))
                     return
                 case .unknown:
                     self.finish(.finished(appName: appName))
@@ -190,13 +203,19 @@ final class InstallManager {
     private func beginBackgroundTask() {
         endBackgroundTask()
         backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "Install") { [weak self] in
-            Task { @MainActor in self?.endBackgroundTask() }
+            // Only the UIKit task has run out; the silent audio is what keeps the install going from here.
+            Task { @MainActor in self?.endUIKitTask() }
         }
         KeepAlive.shared.start()
     }
 
+    /// Ends the install's background time: the UIKit task and the silent audio.
     private func endBackgroundTask() {
         KeepAlive.shared.stop()
+        endUIKitTask()
+    }
+
+    private func endUIKitTask() {
         guard backgroundTask != .invalid else { return }
         UIApplication.shared.endBackgroundTask(backgroundTask)
         backgroundTask = .invalid

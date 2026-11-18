@@ -64,6 +64,21 @@ struct InstallWatch {
         self.started = started
     }
 
+    /// The build (CFBundleVersion) iOS has installed under `bundleID`: `.some(nil)` if it isn't installed,
+    /// nil if Signet can't tell (iOS hides installed apps, or the build can't be read).
+    static func installedBuild(_ bundleID: String) -> String?? {
+        guard let check = InstalledApps.workingSystemCheck(), let installed = check(bundleID) else { return nil }
+        guard installed else { return .some(nil) }
+        return InstalledApps.installedBuild(bundleID).map { .some($0) } ?? nil
+    }
+
+    /// Whether the install demonstrably worked: before, iOS had something other than `expected` (or nothing),
+    /// and now it has `expected`. Reinstalling the same build can't be confirmed, since a failure looks the same.
+    static func confirmed(before: String??, after: String??, expected: String) -> Bool {
+        guard case .some(let old) = before, case .some(let new) = after else { return false }
+        return new == expected && old != expected
+    }
+
     mutating func step(progress: Double?, now: Date = Date()) -> Step {
         let elapsed = now.timeIntervalSince(started)
         if let progress {

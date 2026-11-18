@@ -85,6 +85,12 @@ enum InstalledApps {
         return callBool(proxy, "isInstalled")
     }
 
+    /// The installed build (`-[LSApplicationProxy bundleVersion]`), or nil if it can't be read.
+    static func installedBuild(_ bundleID: String) -> String? {
+        guard let proxy = classObject("LSApplicationProxy", call: "applicationProxyForIdentifier:", bundleID) else { return nil }
+        return callObject(proxy, "bundleVersion") as? String
+    }
+
     /// `+[LSBundleRecord bundleRecordWithBundleIdentifier:allowPlaceholder:error:]`: a record exists if installed.
     static func recordCheck(_ bundleID: String) -> Bool? {
         guard let recordClass = NSClassFromString("LSBundleRecord") as AnyObject? else { return nil }

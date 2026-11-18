@@ -35,4 +35,18 @@ final class InstallWatchTests: XCTestCase {
         _ = InstallProgress.isAvailable
         XCTAssertNil(InstallProgress.fraction(for: "com.example.not-installing.\(UUID().uuidString)"))
     }
+
+    func testConfirmedOnlyWithEvidence() {
+        // A new app appears, or an update changes the build: confirmed.
+        XCTAssertTrue(InstallWatch.confirmed(before: .some(nil), after: .some("42"), expected: "42"))
+        XCTAssertTrue(InstallWatch.confirmed(before: .some("41"), after: .some("42"), expected: "42"))
+        // The old build is still there, or nothing was installed: the install failed or can't be told apart.
+        XCTAssertFalse(InstallWatch.confirmed(before: .some("41"), after: .some("41"), expected: "42"))
+        XCTAssertFalse(InstallWatch.confirmed(before: .some(nil), after: .some(nil), expected: "42"))
+        // Reinstalling the same build looks the same whether or not it worked.
+        XCTAssertFalse(InstallWatch.confirmed(before: .some("42"), after: .some("42"), expected: "42"))
+        // iOS hides installed apps.
+        XCTAssertFalse(InstallWatch.confirmed(before: nil, after: .some("42"), expected: "42"))
+        XCTAssertFalse(InstallWatch.confirmed(before: .some(nil), after: nil, expected: "42"))
+    }
 }
