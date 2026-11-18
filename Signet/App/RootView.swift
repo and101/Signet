@@ -5,6 +5,7 @@ struct RootView: View {
     @Environment(LibraryStore.self) private var library
     @Environment(InstallManager.self) private var installer
     @Environment(GitHubStore.self) private var github
+    @Environment(SourceStore.self) private var sources
 
     var body: some View {
         @Bindable var router = router
@@ -40,6 +41,34 @@ struct RootView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(router.message ?? library.lastError ?? "")
+        }
+        .alert(
+            linkTitle(router.pendingLink),
+            isPresented: Binding(
+                get: { router.pendingLink != nil },
+                set: { if !$0 { router.pendingLink = nil } }
+            ),
+            presenting: router.pendingLink
+        ) { link in
+            Button(linkAction(link)) { router.confirm(link, library: library, sources: sources) }
+            Button("Cancel", role: .cancel) { router.pendingLink = nil }
+        } message: { link in
+            Text(link.url.absoluteString)
+        }
+    }
+
+    private func linkTitle(_ link: Router.PendingLink?) -> String {
+        switch link {
+        case .source: "Add This Source?"
+        case .download: "Download This App?"
+        case nil: ""
+        }
+    }
+
+    private func linkAction(_ link: Router.PendingLink) -> String {
+        switch link {
+        case .source: "Add"
+        case .download: "Download"
         }
     }
 }

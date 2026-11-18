@@ -52,6 +52,7 @@
 		CC9C4596590CCB75BFCD5D6C /* CertificatesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8BCF10D9D3DB5472A19ED4D /* CertificatesView.swift */; };
 		CD8503746CE03A0849D087D5 /* MachO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B8B5F747D0B8B6E798D4D55 /* MachO.swift */; };
 		CE95A33BE2C3EBD0C10700C5 /* Backup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E2A731FD2F3B7AC211895D2 /* Backup.swift */; };
+		D4F6B6549AC254D3E2ED5BF0 /* LinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 344EFBEA21360EC15A80F0B5 /* LinkTests.swift */; };
 		DA089E6C0CE210EC50A6EB24 /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5EBE5C2DFD5C955F4F20572 /* Keychain.swift */; };
 		DD84976F742B581EE6668593 /* NIOPosix in Frameworks */ = {isa = PBXBuildFile; productRef = 4320AC95D17523245BE6E9EF /* NIOPosix */; };
 		E0B4B740BCA28FECAB150A25 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC7070B3A5754283DA58F7D /* SettingsView.swift */; };
@@ -89,6 +90,7 @@
 		297D2A0C11CAAB9753BBD2A5 /* CertificateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CertificateStore.swift; sourceTree = "<group>"; };
 		2B8B5F747D0B8B6E798D4D55 /* MachO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MachO.swift; sourceTree = "<group>"; };
 		2DDA74E1437D8EDEF4867E7E /* SigningPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SigningPipelineTests.swift; sourceTree = "<group>"; };
+		344EFBEA21360EC15A80F0B5 /* LinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkTests.swift; sourceTree = "<group>"; };
 		35B7E211B0BB561DC9DB0DB1 /* SignedAppView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignedAppView.swift; sourceTree = "<group>"; };
 		3B88DC12756CED8975FCDEB8 /* SourceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceStore.swift; sourceTree = "<group>"; };
 		49AA1C5D6EAC89D37D61F4CF /* GitHubStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubStore.swift; sourceTree = "<group>"; };
@@ -213,6 +215,7 @@
 				4A79448263806321D0FC596E /* InstallServerTests.swift */,
 				A671260366594AE81BC9FF6C /* KeychainTests.swift */,
 				5045DDFAAE6576D6F14C4577 /* LibraryIndexTests.swift */,
+				344EFBEA21360EC15A80F0B5 /* LinkTests.swift */,
 				A7C9269E1748A1D5027C719C /* PPQTests.swift */,
 				2DDA74E1437D8EDEF4867E7E /* SigningPipelineTests.swift */,
 				5C06EDB4C94A4894262AD1F9 /* StorageCleanupTests.swift */,
@@ -463,6 +466,7 @@
 				ED1096787E75BD812E743E99 /* InstalledAppsTests.swift in Sources */,
 				59490D9452EDCCBB16F412AF /* KeychainTests.swift in Sources */,
 				A2E4BE457F8806E90827A732 /* LibraryIndexTests.swift in Sources */,
+				D4F6B6549AC254D3E2ED5BF0 /* LinkTests.swift in Sources */,
 				EBAA219750176192DEC70D81 /* PPQTests.swift in Sources */,
 				87199C0E1EE783803B908E3B /* SigningPipelineTests.swift in Sources */,
 				8E3BA70D585505BA50C89498 /* StorageCleanupTests.swift in Sources */,

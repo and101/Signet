@@ -47,7 +47,20 @@ final class Router {
     var showAddCertificate = false
     /// A backup opened from another app, waiting for its password in Settings.
     var pendingBackup: URL?
+    /// A `signet://` link waiting for the user to confirm it.
+    var pendingLink: PendingLink?
     var message: String?
+
+    enum PendingLink: Equatable {
+        case source(URL)
+        case download(URL)
+
+        var url: URL {
+            switch self {
+            case .source(let url), .download(let url): url
+            }
+        }
+    }
 
     func handle(_ url: URL, library: LibraryStore, sources: SourceStore) {
         if url.isFileURL {
@@ -58,19 +71,38 @@ final class Router {
         guard url.scheme == "signet",
               let target = URLComponents(url: url, resolvingAgainstBaseURL: false)?
                 .queryItems?.first(where: { $0.name == "url" })?.value else { return }
-        switch url.host {
-        case "source":
+        // Any web page can open these links, so nothing happens until the user confirms.
+        guard let link = Self.link(host: url.host, target: target) else {
+            message = "Signet can only open http and https links."
+            return
+        }
+        pendingLink = link
+    }
+
+    /// Parses a `signet://` link's target, accepting only web URLs. Returns nil for unknown hosts or other schemes.
+    nonisolated static func link(host: String?, target: String) -> PendingLink? {
+        let trimmed = target.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let remote = URL(string: trimmed),
+              let scheme = remote.scheme?.lowercased(), scheme == "http" || scheme == "https",
+              remote.host?.isEmpty == false else { return nil }
+        switch host {
+        case "source": return .source(remote)
+        case "install", "download": return .download(remote)
+        default: return nil
+        }
+    }
+
+    func confirm(_ link: PendingLink, library: LibraryStore, sources: SourceStore) {
+        pendingLink = nil
+        switch link {
+        case .source(let remote):
             tab = .sources
             Task {
-                do { try await sources.add(target) } catch { message = error.localizedDescription }
+                do { try await sources.add(remote.absoluteString) } catch { message = error.localizedDescription }
             }
-        case "install", "download":
-            if let remote = URL(string: target) {
-                tab = .library
-                library.download(from: remote)
-            }
-        default:
-            break
+        case .download(let remote):
+            tab = .library
+            library.download(from: remote)
         }
     }
 
