@@ -288,4 +288,34 @@ final class AppPatchingTests: XCTestCase {
         XCTAssertTrue(try MachO.linkedDylibs(of: app.appendingPathComponent("PlugIns/Widget.appex/Widget"))
             .contains("@rpath/FixtureTweak.dylib"))
     }
+
+    // MARK: - Icons
+
+    func testFindsLooseAlternateIcons() throws {
+        let fm = FileManager.default
+        let source = try AppImporter.importIPA(at: fixture("Fixture.ipa"))
+        defer { try? fm.removeItem(at: source.directory) }
+        let app = source.appURL
+        let primary = try XCTUnwrap(AppImporter.largestIcon(in: app)?.pngData())
+        try primary.write(to: app.appendingPathComponent("DarkIcon60x60@2x.png"))
+        try primary.write(to: app.appendingPathComponent("Retro@3x.png"))
+        let plistURL = app.appendingPathComponent("Info.plist")
+        let plist = try XCTUnwrap(NSMutableDictionary(contentsOf: plistURL))
+        var icons = plist["CFBundleIcons"] as? [String: Any] ?? [:]
+        icons["CFBundleAlternateIcons"] = [
+            "Dark": ["CFBundleIconFiles": ["DarkIcon60x60"]],
+            "Retro": [String: Any](),          // named only by its key
+            "Catalog": ["CFBundleIconName": "CatalogOnly"], // only in Assets.car, so skipped
+        ]
+        plist["CFBundleIcons"] = icons
+        plist.write(to: plistURL, atomically: true)
+
+        XCTAssertEqual(AppImporter.alternateIcons(in: app).map(\.name), ["Dark", "Retro"])
+    }
+
+    func testNoAlternateIcons() throws {
+        let source = try AppImporter.importIPA(at: fixture("Fixture.ipa"))
+        defer { try? FileManager.default.removeItem(at: source.directory) }
+        XCTAssertTrue(AppImporter.alternateIcons(in: source.appURL).isEmpty)
+    }
 }

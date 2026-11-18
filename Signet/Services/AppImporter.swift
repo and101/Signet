@@ -82,7 +82,31 @@ enum AppImporter {
         names += plist["CFBundleIconFiles"] as? [String] ?? []
         if let name = plist["CFBundleIconFile"] as? String { names.append(name) }
         names.append("AppIcon")
+        return largestPNG(in: appURL, matching: names)
+    }
 
+    /// The app's alternate icons that ship as loose PNGs, largest image of each, sorted by name.
+    /// Icons only inside the compiled Assets.car can't be read, so they're skipped.
+    static func alternateIcons(in appURL: URL) -> [(name: String, image: UIImage)] {
+        let plist = NSDictionary(contentsOf: appURL.appendingPathComponent("Info.plist")) as? [String: Any] ?? [:]
+        var files: [String: [String]] = [:]
+        for key in ["CFBundleIcons", "CFBundleIcons~ipad"] {
+            guard let icons = plist[key] as? [String: Any],
+                  let alternates = icons["CFBundleAlternateIcons"] as? [String: Any] else { continue }
+            for (name, value) in alternates {
+                let entry = value as? [String: Any] ?? [:]
+                var names = entry["CFBundleIconFiles"] as? [String] ?? []
+                if let iconName = entry["CFBundleIconName"] as? String { names.append(iconName) }
+                if names.isEmpty { names.append(name) }
+                files[name, default: []] += names
+            }
+        }
+        return files.keys.sorted().compactMap { name in
+            largestPNG(in: appURL, matching: files[name]!).map { (name, $0) }
+        }
+    }
+
+    private static func largestPNG(in appURL: URL, matching names: [String]) -> UIImage? {
         let files = (try? FileManager.default.contentsOfDirectory(atPath: appURL.path)) ?? []
         let candidates = files.filter { file in
             file.lowercased().hasSuffix(".png") && names.contains { file.hasPrefix($0) }

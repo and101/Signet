@@ -15,6 +15,9 @@ struct SignView: View {
     @State private var certificateID: UUID?
     @State private var automaticBundleID: String?
     @State private var iconItem: PhotosPickerItem?
+    @State private var showPhotoPicker = false
+    @State private var showIconFilePicker = false
+    @State private var alternateIcons: [(name: String, image: UIImage)] = []
     @State private var showTweakPicker = false
     @State private var existingDylibs: [String] = []
     @State private var removableItems: [Signer.RemovableItem] = []
@@ -94,17 +97,7 @@ struct SignView: View {
                     .keyboardType(.decimalPad)
                 field("Minimum iOS", text: $options.minimumOSVersion, placeholder: app.minimumOSVersion ?? "Unchanged")
                     .keyboardType(.decimalPad)
-                PhotosPicker(selection: $iconItem, matching: .images) {
-                    LabeledContent("Icon") {
-                        if let data = options.customIcon, let image = UIImage(data: data) {
-                            Image(uiImage: image).resizable().frame(width: 32, height: 32)
-                                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-                        } else {
-                            Text("Original").foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                .tint(.primary)
+                iconRow
                 if options.customIcon != nil {
                     Button("Reset Icon", role: .destructive) { options.customIcon = nil; iconItem = nil }
                 }
@@ -246,7 +239,13 @@ struct SignView: View {
             await findInstalledApp()
         }
         .onChange(of: iconItem) { _, item in
-            Task { options.customIcon = try? await item?.loadTransferable(type: Data.self) }
+            // Cleared when another source picks the icon; that choice must stand.
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self), iconItem == item {
+                    options.customIcon = data
+                }
+            }
         }
         .copyingFileImporter(isPresented: $showTweakPicker, allowedContentTypes: [.dylib, .zip, .data], allowsMultipleSelection: true) { urls in
             for url in urls {
@@ -257,6 +256,47 @@ struct SignView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(error ?? "")
+        }
+    }
+
+    private var iconRow: some View {
+        Menu {
+            Button { showPhotoPicker = true } label: { Label("Choose from Photos", systemImage: "photo") }
+            Button { showIconFilePicker = true } label: { Label("Choose from Files", systemImage: "folder") }
+            if !alternateIcons.isEmpty {
+                Section("The App's Own Icons") {
+                    ForEach(alternateIcons, id: \.name) { icon in
+                        Button {
+                            iconItem = nil
+                            options.customIcon = icon.image.pngData()
+                        } label: {
+                            Label { Text(icon.name) } icon: { Image(uiImage: icon.image) }
+                        }
+                    }
+                }
+            }
+        } label: {
+            LabeledContent("Icon") {
+                if let data = options.customIcon, let image = UIImage(data: data) {
+                    Image(uiImage: image).resizable().frame(width: 32, height: 32)
+                        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                } else {
+                    Text("Original").foregroundStyle(.secondary)
+                }
+            }
+        }
+        .tint(.primary)
+        .photosPicker(isPresented: $showPhotoPicker, selection: $iconItem, matching: .images)
+        // Attached here rather than to the form, which already has the tweak picker's sheet.
+        .copyingFileImporter(isPresented: $showIconFilePicker, allowedContentTypes: [.image]) { urls in
+            guard let url = urls.first else { return }
+            defer { Paths.removeIfTemporary(url) }
+            guard let data = try? Data(contentsOf: url), UIImage(data: data) != nil else {
+                error = "That file isn't an image Signet can read."
+                return
+            }
+            iconItem = nil
+            options.customIcon = data
         }
     }
 
@@ -392,6 +432,7 @@ struct SignView: View {
     private func loadDylibs() async {
         let appURL = app.appURL
         removableItems = await Task.detached { Signer.removableItems(in: appURL) }.value
+        alternateIcons = await Task.detached { AppImporter.alternateIcons(in: appURL) }.value
         existingDylibs = await Task.detached {
             guard let executable = AppImporter.mainExecutable(of: appURL) else { return [] }
             return Zsign.listDylibs(appExecutable: executable.path)
