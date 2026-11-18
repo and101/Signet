@@ -56,6 +56,7 @@
 		CD8503746CE03A0849D087D5 /* MachO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B8B5F747D0B8B6E798D4D55 /* MachO.swift */; };
 		CE95A33BE2C3EBD0C10700C5 /* Backup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E2A731FD2F3B7AC211895D2 /* Backup.swift */; };
 		D4F6B6549AC254D3E2ED5BF0 /* LinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 344EFBEA21360EC15A80F0B5 /* LinkTests.swift */; };
+		D9AEF20F4AB85CCEDCF6D531 /* KeepAlive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C088398ADED1B1F16E510D6 /* KeepAlive.swift */; };
 		DA089E6C0CE210EC50A6EB24 /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5EBE5C2DFD5C955F4F20572 /* Keychain.swift */; };
 		DD84976F742B581EE6668593 /* NIOPosix in Frameworks */ = {isa = PBXBuildFile; productRef = 4320AC95D17523245BE6E9EF /* NIOPosix */; };
 		E0B4B740BCA28FECAB150A25 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC7070B3A5754283DA58F7D /* SettingsView.swift */; };
@@ -97,6 +98,7 @@
 		344EFBEA21360EC15A80F0B5 /* LinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkTests.swift; sourceTree = "<group>"; };
 		35B7E211B0BB561DC9DB0DB1 /* SignedAppView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignedAppView.swift; sourceTree = "<group>"; };
 		3B88DC12756CED8975FCDEB8 /* SourceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceStore.swift; sourceTree = "<group>"; };
+		3C088398ADED1B1F16E510D6 /* KeepAlive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeepAlive.swift; sourceTree = "<group>"; };
 		43439FDD4FA6A48328482F63 /* AppPatchingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPatchingTests.swift; sourceTree = "<group>"; };
 		49AA1C5D6EAC89D37D61F4CF /* GitHubStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubStore.swift; sourceTree = "<group>"; };
 		4A79448263806321D0FC596E /* InstallServerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallServerTests.swift; sourceTree = "<group>"; };
@@ -268,6 +270,7 @@
 				8A7318A2E4ABB0409FA10A9B /* EntitlementsMerger.swift */,
 				AD77FFD51835080BE0CBB5D1 /* InstalledApps.swift */,
 				89BBF3E483DBA61AC8B186C2 /* InstallServer.swift */,
+				3C088398ADED1B1F16E510D6 /* KeepAlive.swift */,
 				C5EBE5C2DFD5C955F4F20572 /* Keychain.swift */,
 				2B8B5F747D0B8B6E798D4D55 /* MachO.swift */,
 				02B5E5AA5C9BCA0BF5C2A1AF /* Paths.swift */,
@@ -444,6 +447,7 @@
 				1C89FA8A0E70EC856C3D1775 /* InstallManager.swift in Sources */,
 				BBAAE29F4A9EBE2973E2838D /* InstallServer.swift in Sources */,
 				07547A4D763F5D74EADBF8F6 /* InstalledApps.swift in Sources */,
+				D9AEF20F4AB85CCEDCF6D531 /* KeepAlive.swift in Sources */,
 				DA089E6C0CE210EC50A6EB24 /* Keychain.swift in Sources */,
 				E4FE4575CE4BC4185E9843CB /* LibraryApp.swift in Sources */,
 				F1D7FE06B56033D618B68A58 /* LibraryStore.swift in Sources */,

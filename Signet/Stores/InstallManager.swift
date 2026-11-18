@@ -140,9 +140,11 @@ final class InstallManager {
         backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "Install") { [weak self] in
             Task { @MainActor in self?.endBackgroundTask() }
         }
+        KeepAlive.shared.start()
     }
 
     private func endBackgroundTask() {
+        KeepAlive.shared.stop()
         guard backgroundTask != .invalid else { return }
         UIApplication.shared.endBackgroundTask(backgroundTask)
         backgroundTask = .invalid

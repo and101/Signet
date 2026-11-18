@@ -9,6 +9,7 @@ struct SettingsView: View {
     @State private var backup = BackupFlow()
     @State private var hasSavedIndex = false
     @State private var confirmDeleteIndex = false
+    @AppStorage(KeepAlive.settingKey) private var keepAlive = true
 
     var body: some View {
         NavigationStack {
@@ -31,6 +32,14 @@ struct SettingsView: View {
                     }
                 } footer: {
                     Text("A one-time setup needed to install apps.")
+                }
+
+                Section {
+                    Toggle(isOn: $keepAlive) {
+                        Label { Text("Keep Running During Installs") } icon: { SettingsIcon("waveform", color: .orange) }
+                    }
+                } footer: {
+                    Text("Plays silence while an app installs, so the install can finish with Signet in the background. It doesn't stop your music.")
                 }
 
                 BackupSection(flow: backup)

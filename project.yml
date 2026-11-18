@@ -60,6 +60,8 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         UIFileSharingEnabled: true
+        # Silent audio keeps Signet's install server running in the background while iOS downloads an app.
+        UIBackgroundModes: [audio]
         # Opened files are copied into Documents/Inbox. Opening in place needs an access token tied to the signed
         # identity, which iOS refuses when the bundle ID doesn't match the profile.
         LSSupportsOpeningDocumentsInPlace: false
