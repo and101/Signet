@@ -204,4 +204,37 @@ final class AppPatchingTests: XCTestCase {
         }
         XCTAssertEqual(try Data(contentsOf: app.appendingPathComponent("en.lproj/InfoPlist.strings")), original)
     }
+
+    // MARK: - Info.plist switches
+
+    func testAppearanceAndDisplaySwitches() async throws {
+        var options = SigningOptions()
+        options.appearance = .dark
+        options.enableProMotion = true
+        options.enableGameMode = true
+        let plist = try infoPlist(try await sign(options))
+        XCTAssertEqual(plist["UIUserInterfaceStyle"] as? String, "Dark")
+        XCTAssertEqual(plist["CADisableMinimumFrameDurationOnPhone"] as? Bool, true)
+        XCTAssertEqual(plist["GCSupportsGameMode"] as? Bool, true)
+        XCTAssertEqual(options.asDefaults.appearance, .unchanged, "appearance is per app")
+        XCTAssertTrue(options.asDefaults.enableProMotion, "display switches are saved as defaults")
+    }
+
+    func testSwitchesOffLeavePlistAlone() async throws {
+        let plist = try infoPlist(try await sign(SigningOptions()))
+        XCTAssertNil(plist["UIUserInterfaceStyle"])
+        XCTAssertNil(plist["CADisableMinimumFrameDurationOnPhone"])
+        XCTAssertNil(plist["GCSupportsGameMode"])
+        XCTAssertNil(plist["UIDesignRequiresCompatibility"])
+    }
+
+    func testOlderSavedDefaultsStillDecode() {
+        let json = #"{"enableFileSharing": true, "ppqSuffix": "abc123"}"#
+        let options = SigningOptions.decodeDefaults(from: Data(json.utf8))
+        XCTAssertTrue(options.enableFileSharing)
+        XCTAssertEqual(options.ppqSuffix, "abc123")
+        XCTAssertFalse(options.enableProMotion)
+        XCTAssertEqual(options.interfaceStyle, .unchanged)
+        XCTAssertEqual(options.removePaths, [])
+    }
 }

@@ -214,6 +214,17 @@ actor Signer {
         if options.forceFullScreen {
             plist["UIRequiresFullScreen"] = true
         }
+        if options.enableProMotion {
+            plist["CADisableMinimumFrameDurationOnPhone"] = true
+        }
+        if options.enableGameMode {
+            plist["GCSupportsGameMode"] = true
+        }
+        switch options.appearance {
+        case .unchanged: break
+        case .light: plist["UIUserInterfaceStyle"] = "Light"
+        case .dark: plist["UIUserInterfaceStyle"] = "Dark"
+        }
         switch options.interfaceStyle {
         case .unchanged: break
         case .classic: plist["UIDesignRequiresCompatibility"] = true

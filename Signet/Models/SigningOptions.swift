@@ -10,6 +10,7 @@ struct SigningOptions: Codable, Equatable {
     var injectFiles: [URL] = []
     var removeLoadCommands: [String] = []
     var interfaceStyle = InterfaceStyle.unchanged
+    var appearance = Appearance.unchanged
     /// Paths inside the .app to delete, e.g. `PlugIns/Share.appex` or `Frameworks/Ads.framework`.
     var removePaths: [String] = []
 
@@ -20,6 +21,9 @@ struct SigningOptions: Codable, Equatable {
     var removePlugins = false
     var removeWatchApp = false
     var forceFullScreen = false
+    /// Lets the app run at 120 Hz on ProMotion iPhones.
+    var enableProMotion = false
+    var enableGameMode = false
     var removeProvisioningFile = false
     var weakInject = true
     var fixSubstratePaths = true
@@ -45,8 +49,14 @@ struct SigningOptions: Codable, Equatable {
         copy.injectFiles = []
         copy.removeLoadCommands = []
         copy.interfaceStyle = .unchanged
+        copy.appearance = .unchanged
         copy.removePaths = []
         return copy
+    }
+
+    /// Forces light or dark mode (`UIUserInterfaceStyle`).
+    enum Appearance: String, Codable, CaseIterable {
+        case unchanged, light, dark
     }
 
     /// iOS 26's design. Apps built with an older SDK get the classic look; ones built with iOS 26 get Liquid Glass.

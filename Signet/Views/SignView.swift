@@ -174,6 +174,11 @@ struct SignView: View {
                     Text("Classic").tag(SigningOptions.InterfaceStyle.classic)
                     Text("Liquid Glass").tag(SigningOptions.InterfaceStyle.liquidGlass)
                 }
+                Picker("Light or Dark", selection: $options.appearance) {
+                    Text("Unchanged").tag(SigningOptions.Appearance.unchanged)
+                    Text("Always Light").tag(SigningOptions.Appearance.light)
+                    Text("Always Dark").tag(SigningOptions.Appearance.dark)
+                }
             } header: {
                 Text("Appearance")
             } footer: {
@@ -454,6 +459,8 @@ struct SigningToggles: View {
         Toggle("Remove App Extensions", isOn: $options.removePlugins)
         Toggle("Remove Watch App", isOn: $options.removeWatchApp)
         Toggle("Force Full Screen (iPad)", isOn: $options.forceFullScreen)
+        Toggle("Enable ProMotion (120 Hz)", isOn: $options.enableProMotion)
+        Toggle("Enable Game Mode", isOn: $options.enableGameMode)
         Toggle("Don't Embed Provisioning Profile", isOn: $options.removeProvisioningFile)
         Toggle("Merge App Entitlements", isOn: $options.mergeEntitlements)
         Toggle("Compress IPA", isOn: $options.compressIPA)
