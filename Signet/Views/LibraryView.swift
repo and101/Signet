@@ -7,6 +7,9 @@ struct LibraryView: View {
     @Environment(SourceStore.self) private var sources
     @Environment(GitHubStore.self) private var github
     @State private var path = NavigationPath()
+    @State private var selection = Set<UUID>()
+    @State private var editMode = EditMode.inactive
+    @State private var confirmDeleteSelection = false
 
     @State private var showImporter = false
     @State private var showURLPrompt = false
@@ -23,12 +26,13 @@ struct LibraryView: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            List {
+            List(selection: $selection) {
                 let updates = sources.updates(for: library, github: github)
                 if !updates.isEmpty, search.isEmpty {
                     Section {
                         ForEach(updates) { update in
                             UpdateRow(update: update) { imported in path.append(imported) }
+                                .selectionDisabled()
                         }
                     } header: {
                         Text("Updates")
@@ -41,6 +45,7 @@ struct LibraryView: View {
                     Section("Downloads") {
                         ForEach(library.downloads) { download in
                             DownloadRow(download: download)
+                                .selectionDisabled()
                                 .swipeToDelete("Cancel", systemImage: "xmark") { downloadToCancel = download }
                         }
                     }
@@ -105,6 +110,21 @@ struct LibraryView: View {
                 cancel: "Keep Downloading",
                 perform: { library.cancel($0) }
             )
+            .environment(\.editMode, $editMode)
+            .onChange(of: editMode.isEditing) { _, editing in if !editing { selection = [] } }
+            .confirmationDialog(
+                "Delete \(selection.count) App\(selection.count == 1 ? "" : "s")?",
+                isPresented: $confirmDeleteSelection,
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) {
+                    for id in selection { library.delete(id) }
+                    selection = []
+                    editMode = .inactive
+                }
+            } message: {
+                Text("Installed apps stay on your iPhone.")
+            }
             .navigationTitle("Library")
             .searchable(text: $search)
             .refreshable { await sources.refreshAll() }
@@ -116,6 +136,21 @@ struct LibraryView: View {
                 }
             }
             .toolbar {
+                if !library.apps.isEmpty {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(editMode.isEditing ? "Done" : "Select") {
+                            withAnimation { editMode = editMode.isEditing ? .inactive : .active }
+                        }
+                    }
+                }
+                if editMode.isEditing {
+                    ToolbarItem(placement: .bottomBar) {
+                        Button(role: .destructive) { confirmDeleteSelection = true } label: {
+                            Text(selection.isEmpty ? "Delete" : "Delete (\(selection.count))")
+                        }
+                        .disabled(selection.isEmpty)
+                    }
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
                         Button { showImporter = true } label: { Label("Import from Files", systemImage: "folder") }
