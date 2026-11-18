@@ -1,5 +1,6 @@
 import XCTest
 import ZIPFoundation
+import Zsign
 @testable import Signet
 
 /// Tests for the options that change what's inside the app: interface style, removals, names and plist switches.
@@ -236,5 +237,55 @@ final class AppPatchingTests: XCTestCase {
         XCTAssertFalse(options.enableProMotion)
         XCTAssertEqual(options.interfaceStyle, .unchanged)
         XCTAssertEqual(options.removePaths, [])
+    }
+
+    // MARK: - Tweaks in extensions
+
+    func testAddRPathAppendsOnce() throws {
+        let fm = FileManager.default
+        let folder = try Paths.newTempDirectory()
+        defer { try? fm.removeItem(at: folder) }
+        let binary = folder.appendingPathComponent("Tweak.dylib")
+        try fm.copyItem(at: fixture("FixtureTweak.dylib"), to: binary)
+        let before = try MachO.linkedDylibs(of: binary)
+
+        XCTAssertTrue(try MachO.addRPath("@executable_path/../../Frameworks", to: binary))
+        XCTAssertFalse(try MachO.addRPath("@executable_path/../../Frameworks", to: binary), "already there")
+        XCTAssertEqual(try MachO.rpaths(of: binary).filter { $0 == "@executable_path/../../Frameworks" }.count, 1)
+        XCTAssertEqual(try MachO.linkedDylibs(of: binary), before, "other load commands are untouched")
+        XCTAssertEqual(Zsign.listDylibs(appExecutable: binary.path), before, "zsign still parses the file")
+    }
+
+    func testInjectsIntoExtensionsWhenAsked() async throws {
+        var options = SigningOptions()
+        options.injectFiles = [try fixture("FixtureTweak.dylib")]
+        options.injectIntoExtensions = true
+        let app = try await sign(options) { try self.addExtensions(to: $0) }
+        for path in ["PlugIns/Share.appex/Share", "PlugIns/Widget.appex/Widget", "Extensions/Intents.appex/Intents"] {
+            let executable = app.appendingPathComponent(path)
+            XCTAssertTrue(try MachO.linkedDylibs(of: executable).contains("@rpath/FixtureTweak.dylib"), path)
+            XCTAssertTrue(try MachO.rpaths(of: executable).contains("@executable_path/../../Frameworks"), path)
+            XCTAssertTrue(Zsign.checkSigned(appExecutable: executable.path), path)
+        }
+        XCTAssertTrue(try MachO.linkedDylibs(of: app.appendingPathComponent("Fixture")).contains("@rpath/FixtureTweak.dylib"))
+    }
+
+    func testExtensionsUntouchedByDefault() async throws {
+        var options = SigningOptions()
+        options.injectFiles = [try fixture("FixtureTweak.dylib")]
+        let app = try await sign(options) { try self.addExtensions(to: $0) }
+        let executable = app.appendingPathComponent("PlugIns/Share.appex/Share")
+        XCTAssertFalse(try MachO.linkedDylibs(of: executable).contains("@rpath/FixtureTweak.dylib"))
+    }
+
+    func testRemovedExtensionsAreNotInjected() async throws {
+        var options = SigningOptions()
+        options.injectFiles = [try fixture("FixtureTweak.dylib")]
+        options.injectIntoExtensions = true
+        options.removePaths = ["PlugIns/Share.appex"]
+        let app = try await sign(options) { try self.addExtensions(to: $0) }
+        XCTAssertFalse(FileManager.default.fileExists(atPath: app.appendingPathComponent("PlugIns/Share.appex").path))
+        XCTAssertTrue(try MachO.linkedDylibs(of: app.appendingPathComponent("PlugIns/Widget.appex/Widget"))
+            .contains("@rpath/FixtureTweak.dylib"))
     }
 }

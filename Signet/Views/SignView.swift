@@ -129,6 +129,7 @@ struct SignView: View {
                     Toggle("Weak Inject", isOn: $options.weakInject)
                     Toggle("Fix Jailbreak Paths", isOn: $options.fixSubstratePaths)
                     Toggle("Add ElleKit When Needed", isOn: $options.bundleElleKit)
+                    Toggle("Inject Into Extensions", isOn: $options.injectIntoExtensions)
                 }
             } header: {
                 Text("Inject Tweaks")

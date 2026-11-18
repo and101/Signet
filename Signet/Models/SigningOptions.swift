@@ -28,6 +28,8 @@ struct SigningOptions: Codable, Equatable {
     var weakInject = true
     var fixSubstratePaths = true
     var bundleElleKit = true
+    /// Also inject tweaks into the app's extensions (widgets, share extensions and so on).
+    var injectIntoExtensions = false
     var mergeEntitlements = false
     var compressIPA = true
     var installAfterSigning = false

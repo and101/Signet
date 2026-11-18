@@ -114,6 +114,56 @@ enum MachO {
         return changed
     }
 
+    // MARK: - Run paths
+
+    private static let lcRPath: UInt32 = 0x8000_001c
+
+    /// The LC_RPATH entries of a binary's preferred slice.
+    static func rpaths(of url: URL) throws -> [String] {
+        let file = try BinaryFile(url, writable: false)
+        guard let slice = preferredSlice(try slices(of: file)) else { return [] }
+        return try loadCommands(of: file, slice: slice).compactMap { command in
+            guard command.type == lcRPath, command.data.count >= 12 else { return nil }
+            let offset = Int(command.data.u32(8))
+            guard offset < command.data.count else { return nil }
+            return String(decoding: command.data[(command.data.startIndex + offset)...].prefix { $0 != 0 }, as: UTF8.self)
+        }
+    }
+
+    /// Appends an LC_RPATH to every slice that lacks it, using the padding after the load commands.
+    /// - Returns: true if the file was changed.
+    @discardableResult
+    static func addRPath(_ path: String, to url: URL) throws -> Bool {
+        let size = (12 + path.utf8.count + 1 + 7) & ~7
+        var command = Data(count: size)
+        command.setU32(lcRPath, at: 0)
+        command.setU32(UInt32(size), at: 4)
+        command.setU32(12, at: 8)
+        command.replaceSubrange(12..<(12 + path.utf8.count), with: Array(path.utf8))
+
+        let reader = try BinaryFile(url, writable: false)
+        var targets: [(slice: Slice, count: UInt32, size: Int)] = []
+        for slice in try slices(of: reader) {
+            guard try reader.u32(slice.offset) == magic64 else { continue }
+            let commands = try loadCommands(of: reader, slice: slice)
+            let existing = commands.contains { $0.type == lcRPath && $0.data.count >= 12
+                && String(decoding: $0.data[($0.data.startIndex + Int($0.data.u32(8)))...].prefix { $0 != 0 }, as: UTF8.self) == path }
+            if existing { continue }
+            let used = commands.reduce(0) { $0 + $1.data.count }
+            let available = try firstSectionOffset(of: reader, slice: slice, commands: commands) - (headerSize + used)
+            guard size <= available else { throw AppError("\(url.lastPathComponent) has no room to add a run path.") }
+            targets.append((slice, UInt32(commands.count), used))
+        }
+        guard !targets.isEmpty else { return false }
+        let file = try BinaryFile(url, writable: true)
+        for target in targets {
+            try file.write(command, at: target.slice.offset + headerSize + target.size)
+            try file.write(u32: target.count + 1, at: target.slice.offset + 16)
+            try file.write(u32: UInt32(target.size + size), at: target.slice.offset + 20)
+        }
+        return true
+    }
+
     // MARK: - SDK version
 
     /// LC_BUILD_VERSION, and LC_VERSION_MIN_IPHONEOS for binaries built before it existed.

@@ -107,6 +107,19 @@ struct TweakInjector {
             }
         }
 
+        if options.injectIntoExtensions {
+            for executable in extensionExecutables() {
+                log("Injecting into \(executable.deletingLastPathComponent().lastPathComponent)…")
+                // Extensions sit two levels down; this lets @rpath reach the app's Frameworks folder.
+                try MachO.addRPath(Self.extensionRPath, to: executable)
+                for (binary, loadPath) in plan.injected {
+                    guard Zsign.injectDyLib(appExecutable: executable.path, with: loadPath, weak: options.weakInject) else {
+                        throw AppError("Failed to inject \(binary.lastPathComponent) into \(executable.lastPathComponent).")
+                    }
+                }
+            }
+        }
+
         if options.bundleElleKit, try needsSubstrate(plan.added) {
             try installElleKit()
         }
@@ -170,6 +183,15 @@ struct TweakInjector {
             }
         }
         guard found > 0 else { throw AppError("\(file.lastPathComponent) doesn't contain any dylibs or frameworks to inject.") }
+    }
+
+    static let extensionRPath = "@executable_path/../../Frameworks"
+
+    /// Main executables of the app's extensions (PlugIns and Extensions).
+    func extensionExecutables() -> [URL] {
+        ["PlugIns", "Extensions"].flatMap { contents(of: appURL.appendingPathComponent($0), withExtension: "appex") }
+            .compactMap { AppImporter.mainExecutable(of: $0) }
+            .filter { fm.fileExists(atPath: $0.path) }
     }
 
     private func contents(of folder: URL, withExtension ext: String) -> [URL] {
