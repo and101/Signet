@@ -122,12 +122,14 @@ enum MachO {
     static func rpaths(of url: URL) throws -> [String] {
         let file = try BinaryFile(url, writable: false)
         guard let slice = preferredSlice(try slices(of: file)) else { return [] }
-        return try loadCommands(of: file, slice: slice).compactMap { command in
-            guard command.type == lcRPath, command.data.count >= 12 else { return nil }
-            let offset = Int(command.data.u32(8))
-            guard offset < command.data.count else { return nil }
-            return String(decoding: command.data[(command.data.startIndex + offset)...].prefix { $0 != 0 }, as: UTF8.self)
-        }
+        return try loadCommands(of: file, slice: slice).compactMap(rpath)
+    }
+
+    private static func rpath(in command: LoadCommand) -> String? {
+        guard command.type == lcRPath, command.data.count >= 12 else { return nil }
+        let offset = Int(command.data.u32(8))
+        guard offset >= 12, offset < command.data.count else { return nil }
+        return String(decoding: command.data[(command.data.startIndex + offset)...].prefix { $0 != 0 }, as: UTF8.self)
     }
 
     /// Appends an LC_RPATH to every slice that lacks it, using the padding after the load commands.
@@ -146,9 +148,7 @@ enum MachO {
         for slice in try slices(of: reader) {
             guard try reader.u32(slice.offset) == magic64 else { continue }
             let commands = try loadCommands(of: reader, slice: slice)
-            let existing = commands.contains { $0.type == lcRPath && $0.data.count >= 12
-                && String(decoding: $0.data[($0.data.startIndex + Int($0.data.u32(8)))...].prefix { $0 != 0 }, as: UTF8.self) == path }
-            if existing { continue }
+            if commands.contains(where: { rpath(in: $0) == path }) { continue }
             let used = commands.reduce(0) { $0 + $1.data.count }
             let available = try firstSectionOffset(of: reader, slice: slice, commands: commands) - (headerSize + used)
             guard size <= available else { throw AppError("\(url.lastPathComponent) has no room to add a run path.") }

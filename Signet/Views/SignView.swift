@@ -17,7 +17,7 @@ struct SignView: View {
     @State private var iconItem: PhotosPickerItem?
     @State private var showPhotoPicker = false
     @State private var showIconFilePicker = false
-    @State private var alternateIcons: [(name: String, image: UIImage)] = []
+    @State private var alternateIcons: [(name: String, image: UIImage, thumbnail: UIImage)] = []
     @State private var showTweakPicker = false
     @State private var existingDylibs: [String] = []
     @State private var removableItems: [Signer.RemovableItem] = []
@@ -270,7 +270,7 @@ struct SignView: View {
                             iconItem = nil
                             options.customIcon = icon.image.pngData()
                         } label: {
-                            Label { Text(icon.name) } icon: { Image(uiImage: icon.image) }
+                            Label { Text(icon.name) } icon: { Image(uiImage: icon.thumbnail) }
                         }
                     }
                 }
@@ -432,7 +432,12 @@ struct SignView: View {
     private func loadDylibs() async {
         let appURL = app.appURL
         removableItems = await Task.detached { Signer.removableItems(in: appURL) }.value
-        alternateIcons = await Task.detached { AppImporter.alternateIcons(in: appURL) }.value
+        alternateIcons = await Task.detached {
+            // Menus draw images at their own size, so shrink them to row height.
+            AppImporter.alternateIcons(in: appURL).map { icon in
+                (icon.name, icon.image, icon.image.preparingThumbnail(of: CGSize(width: 30, height: 30)) ?? icon.image)
+            }
+        }.value
         existingDylibs = await Task.detached {
             guard let executable = AppImporter.mainExecutable(of: appURL) else { return [] }
             return Zsign.listDylibs(appExecutable: executable.path)
