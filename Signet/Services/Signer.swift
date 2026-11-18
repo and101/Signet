@@ -7,6 +7,8 @@ import ZIPFoundation
 /// zsign keeps global state, so signing is serialized through this actor.
 actor Signer {
     static let shared = Signer()
+    /// The first SDK whose apps get Liquid Glass.
+    static let liquidGlassSDK = "26.0"
 
     func sign(
         _ source: LibraryApp,
@@ -71,6 +73,10 @@ actor Signer {
 
             try TweakInjector(appURL: appURL, options: options, log: log).run()
             try fixLegacyARM64ESlices(in: appURL, log: log)
+            if options.interfaceStyle == .liquidGlass, let executable = AppImporter.mainExecutable(of: appURL) {
+                log("Enabling Liquid Glass…")
+                try MachO.setSDKVersion(in: executable, to: Self.liquidGlassSDK)
+            }
 
             var entitlementsPath = ""
             if options.mergeEntitlements, let executable = AppImporter.mainExecutable(of: source.appURL) {
@@ -151,6 +157,11 @@ actor Signer {
         }
         if options.forceFullScreen {
             plist["UIRequiresFullScreen"] = true
+        }
+        switch options.interfaceStyle {
+        case .unchanged: break
+        case .classic: plist["UIDesignRequiresCompatibility"] = true
+        case .liquidGlass: plist["UIDesignRequiresCompatibility"] = false
         }
         let minOS = options.minimumOSVersion.trimmingCharacters(in: .whitespaces)
         if !minOS.isEmpty {

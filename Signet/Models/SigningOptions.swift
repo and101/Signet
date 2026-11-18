@@ -9,6 +9,7 @@ struct SigningOptions: Codable, Equatable {
     var customIcon: Data?
     var injectFiles: [URL] = []
     var removeLoadCommands: [String] = []
+    var interfaceStyle = InterfaceStyle.unchanged
 
     // Behaviour (saved as defaults)
     var removeSupportedDevices = true
@@ -41,7 +42,17 @@ struct SigningOptions: Codable, Equatable {
         copy.customIcon = nil
         copy.injectFiles = []
         copy.removeLoadCommands = []
+        copy.interfaceStyle = .unchanged
         return copy
+    }
+
+    /// iOS 26's design. Apps built with an older SDK get the classic look; ones built with iOS 26 get Liquid Glass.
+    enum InterfaceStyle: String, Codable, CaseIterable {
+        case unchanged
+        /// Keeps the pre-iOS 26 look (`UIDesignRequiresCompatibility`).
+        case classic
+        /// Marks the app as built with the iOS 26 SDK so UIKit uses Liquid Glass. Can break apps that check the SDK.
+        case liquidGlass
     }
 
     private static let key = "defaultSigningOptions"

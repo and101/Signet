@@ -13,6 +13,7 @@
 		163ED458A192391AC6B4E93D /* SignetApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99B8AE239425932B7D1B6CFD /* SignetApp.swift */; };
 		188C32E2FCCBF6013C49ED5F /* SignView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D1BD62AE8584730490E140 /* SignView.swift */; };
 		1C89FA8A0E70EC856C3D1775 /* InstallManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79D5CB622C29F818A4BCF2B8 /* InstallManager.swift */; };
+		1E5D3CDDA65031FC7CB5149A /* AppPatchingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43439FDD4FA6A48328482F63 /* AppPatchingTests.swift */; };
 		20E2F7141296FA5A93E7FD54 /* AppImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E674667AB2C3E3ADE88164 /* AppImporter.swift */; };
 		354C3FD26F372D7CC2917278 /* NIOSSL in Frameworks */ = {isa = PBXBuildFile; productRef = DE8984E5703468375736DA7C /* NIOSSL */; };
 		369A6B102C0334889F7D37C8 /* Signer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD10DD94FA0CFBB8744584D /* Signer.swift */; };
@@ -93,6 +94,7 @@
 		344EFBEA21360EC15A80F0B5 /* LinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkTests.swift; sourceTree = "<group>"; };
 		35B7E211B0BB561DC9DB0DB1 /* SignedAppView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignedAppView.swift; sourceTree = "<group>"; };
 		3B88DC12756CED8975FCDEB8 /* SourceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceStore.swift; sourceTree = "<group>"; };
+		43439FDD4FA6A48328482F63 /* AppPatchingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPatchingTests.swift; sourceTree = "<group>"; };
 		49AA1C5D6EAC89D37D61F4CF /* GitHubStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubStore.swift; sourceTree = "<group>"; };
 		4A79448263806321D0FC596E /* InstallServerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallServerTests.swift; sourceTree = "<group>"; };
 		5045DDFAAE6576D6F14C4577 /* LibraryIndexTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryIndexTests.swift; sourceTree = "<group>"; };
@@ -208,6 +210,7 @@
 		50021F037ECE27D2FB40FF16 /* SignetTests */ = {
 			isa = PBXGroup;
 			children = (
+				43439FDD4FA6A48328482F63 /* AppPatchingTests.swift */,
 				23D14ABAC97E087BD623A707 /* BackupTests.swift */,
 				B3828F398572870E570106D1 /* Fixtures */,
 				DAF5608369595D271FEB3CA5 /* GitHubReleasesTests.swift */,
@@ -460,6 +463,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1E5D3CDDA65031FC7CB5149A /* AppPatchingTests.swift in Sources */,
 				C12D56DACCEC7554638CD1BF /* BackupTests.swift in Sources */,
 				88743095CECCDC313C13D595 /* GitHubReleasesTests.swift in Sources */,
 				E3DF5AFBD51051E649723E6E /* InstallServerTests.swift in Sources */,

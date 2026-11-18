@@ -155,6 +155,22 @@ struct SignView: View {
                 }
             }
 
+            Section {
+                Picker("Interface", selection: $options.interfaceStyle) {
+                    Text("Unchanged").tag(SigningOptions.InterfaceStyle.unchanged)
+                    Text("Classic").tag(SigningOptions.InterfaceStyle.classic)
+                    Text("Liquid Glass").tag(SigningOptions.InterfaceStyle.liquidGlass)
+                }
+            } header: {
+                Text("Appearance")
+            } footer: {
+                switch options.interfaceStyle {
+                case .unchanged: EmptyView()
+                case .classic: Text("Keeps the look from before iOS 26. Only affects apps built for iOS 26.")
+                case .liquidGlass: Text("Marks the app as built for iOS 26 so it uses Liquid Glass. Some apps look wrong or crash.")
+                }
+            }
+
             Section("Options") {
                 SigningToggles(options: $options)
             }

@@ -114,6 +114,67 @@ enum MachO {
         return changed
     }
 
+    // MARK: - SDK version
+
+    /// LC_BUILD_VERSION, and LC_VERSION_MIN_IPHONEOS for binaries built before it existed.
+    private static let lcBuildVersion: UInt32 = 0x32
+    private static let lcVersionMinIPhoneOS: UInt32 = 0x25
+
+    /// Packs "26.0" or "18.4.1" as Mach-O's xxxx.yy.zz nibbles.
+    static func packVersion(_ version: String) -> UInt32? {
+        let parts = version.split(separator: ".").map { UInt32($0) }
+        guard (1...3).contains(parts.count), parts.allSatisfy({ $0 != nil }) else { return nil }
+        let numbers = parts.map { $0! } + Array(repeating: 0, count: 3 - parts.count)
+        guard numbers[0] <= 0xffff, numbers[1] <= 0xff, numbers[2] <= 0xff else { return nil }
+        return numbers[0] << 16 | numbers[1] << 8 | numbers[2]
+    }
+
+    static func unpackVersion(_ packed: UInt32) -> String {
+        let patch = packed & 0xff
+        return "\(packed >> 16).\((packed >> 8) & 0xff)" + (patch == 0 ? "" : ".\(patch)")
+    }
+
+    /// The SDK a binary was built against, from its preferred slice, e.g. "18.2".
+    static func sdkVersion(of url: URL) throws -> String? {
+        let file = try BinaryFile(url, writable: false)
+        guard let slice = preferredSlice(try slices(of: file)) else { return nil }
+        for command in try loadCommands(of: file, slice: slice) {
+            if command.type == lcBuildVersion, command.data.count >= 24 { return unpackVersion(command.data.u32(16)) }
+            if command.type == lcVersionMinIPhoneOS, command.data.count >= 16 { return unpackVersion(command.data.u32(12)) }
+        }
+        return nil
+    }
+
+    /// Sets the SDK version in every slice. With `onlyRaise`, slices already built with a newer SDK are left alone.
+    /// UIKit picks some behaviour (like iOS 26's Liquid Glass) from the main executable's SDK version.
+    /// - Returns: true if the file was changed.
+    @discardableResult
+    static func setSDKVersion(in url: URL, to version: String, onlyRaise: Bool = true) throws -> Bool {
+        guard let packed = packVersion(version) else { throw AppError("\(version) isn't a valid SDK version.") }
+        let reader = try BinaryFile(url, writable: false)
+        var writes: [Int] = []
+        for slice in try slices(of: reader) {
+            guard try reader.u32(slice.offset) == magic64 else { continue }
+            var cursor = slice.offset + headerSize
+            for command in try loadCommands(of: reader, slice: slice) {
+                defer { cursor += command.data.count }
+                let field: Int
+                switch command.type {
+                case lcBuildVersion where command.data.count >= 24: field = 16
+                case lcVersionMinIPhoneOS where command.data.count >= 16: field = 12
+                default: continue
+                }
+                let current = command.data.u32(field)
+                if current == packed || (onlyRaise && current > packed) { continue }
+                writes.append(cursor + field)
+            }
+        }
+        guard !writes.isEmpty else { return false }
+        let file = try BinaryFile(url, writable: true)
+        for offset in writes { try file.write(u32: packed, at: offset) }
+        return true
+    }
+
     // MARK: - Entitlements
 
     /// The entitlements embedded in a binary's code signature, from its preferred slice.
