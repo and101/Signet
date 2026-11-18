@@ -17,6 +17,7 @@ struct SignView: View {
     @State private var iconItem: PhotosPickerItem?
     @State private var showTweakPicker = false
     @State private var existingDylibs: [String] = []
+    @State private var removableItems: [Signer.RemovableItem] = []
     @State private var detection: InstalledApps.Detection?
     @State private var signing = false
     @State private var log: [String] = []
@@ -152,6 +153,18 @@ struct SignView: View {
                     Text("Remove Load Commands")
                 } footer: {
                     Text("Removes dylibs from the app, like tweaks already injected.")
+                }
+            }
+
+            if !removableItems.isEmpty {
+                Section {
+                    ForEach(removableItems, id: \.path) { item in
+                        removalRow(item)
+                    }
+                } header: {
+                    Text("Remove From App")
+                } footer: {
+                    Text("Removing a framework the app uses makes it crash when it opens.")
                 }
             }
 
@@ -335,6 +348,33 @@ struct SignView: View {
         detection = await Task.detached { InstalledApps.detect(for: app, in: apps) }.value
     }
 
+    @ViewBuilder private func removalRow(_ item: Signer.RemovableItem) -> some View {
+        let removedByToggle = item.kind == .appExtension && options.removePlugins
+        Toggle(isOn: Binding(
+            get: { removedByToggle || options.removePaths.contains(item.path) },
+            set: { remove in
+                options.removePaths.removeAll { $0 == item.path }
+                if remove { options.removePaths.append(item.path) }
+            }
+        )) {
+            Label {
+                Text(URL(fileURLWithPath: item.path).lastPathComponent).lineLimit(1)
+                if removedByToggle {
+                    Text("Removed by Remove App Extensions")
+                } else if item.isLinked {
+                    Text("Used by the app").foregroundStyle(.orange)
+                }
+            } icon: {
+                switch item.kind {
+                case .appExtension: Image(systemName: "puzzlepiece.extension")
+                case .framework: Image(systemName: "shippingbox")
+                case .library: Image(systemName: "doc")
+                }
+            }
+        }
+        .disabled(removedByToggle)
+    }
+
     private func tweakIcon(for file: URL) -> String {
         switch file.pathExtension.lowercased() {
         case "framework": "shippingbox"
@@ -345,6 +385,7 @@ struct SignView: View {
 
     private func loadDylibs() async {
         let appURL = app.appURL
+        removableItems = await Task.detached { Signer.removableItems(in: appURL) }.value
         existingDylibs = await Task.detached {
             guard let executable = AppImporter.mainExecutable(of: appURL) else { return [] }
             return Zsign.listDylibs(appExecutable: executable.path)

@@ -64,6 +64,13 @@ actor Signer {
                     try? fm.removeItem(at: appURL.appendingPathComponent(folder))
                 }
             }
+            for path in options.removePaths {
+                guard let url = Self.removableURL(path, in: appURL) else {
+                    throw AppError("Can't remove \(path): it isn't inside the app.")
+                }
+                log("Removing \(path)…")
+                try? fm.removeItem(at: url)
+            }
             if options.removeWatchApp {
                 log("Removing Watch app…")
                 for folder in ["Watch", "com.apple.WatchPlaceholder"] {
@@ -135,6 +142,51 @@ actor Signer {
             try? fm.removeItem(at: result.directory)
             throw error
         }
+    }
+
+    // MARK: - Removing parts
+
+    struct RemovableItem: Hashable {
+        enum Kind { case appExtension, framework, library }
+        /// Relative to the .app, e.g. `PlugIns/Share.appex`.
+        let path: String
+        let kind: Kind
+        /// The main executable links it, so removing it makes the app crash at launch.
+        let isLinked: Bool
+    }
+
+    /// App extensions, frameworks and loose dylibs that can be removed one by one.
+    static func removableItems(in appURL: URL) -> [RemovableItem] {
+        let fm = FileManager.default
+        let linked = AppImporter.mainExecutable(of: appURL).flatMap { try? MachO.linkedDylibs(of: $0) } ?? []
+        func isLinked(_ name: String) -> Bool {
+            linked.contains { $0.hasPrefix("@rpath/\(name)/") || $0 == "@rpath/\(name)"
+                || $0.hasSuffix("/Frameworks/\(name)") || $0.contains("/Frameworks/\(name)/") }
+        }
+        var items: [RemovableItem] = []
+        for folder in ["PlugIns", "Extensions"] {
+            let names = (try? fm.contentsOfDirectory(atPath: appURL.appendingPathComponent(folder).path)) ?? []
+            for name in names.sorted() where name.hasSuffix(".appex") {
+                items.append(RemovableItem(path: "\(folder)/\(name)", kind: .appExtension, isLinked: false))
+            }
+        }
+        let frameworks = (try? fm.contentsOfDirectory(atPath: appURL.appendingPathComponent("Frameworks").path)) ?? []
+        for name in frameworks.sorted() {
+            if name.hasSuffix(".framework") {
+                items.append(RemovableItem(path: "Frameworks/\(name)", kind: .framework, isLinked: isLinked(name)))
+            } else if name.hasSuffix(".dylib") {
+                items.append(RemovableItem(path: "Frameworks/\(name)", kind: .library, isLinked: isLinked(name)))
+            }
+        }
+        return items
+    }
+
+    /// Resolves a path chosen for removal, refusing anything that escapes the app or is the app itself.
+    static func removableURL(_ path: String, in appURL: URL) -> URL? {
+        let base = appURL.standardizedFileURL.path
+        let url = appURL.appendingPathComponent(path).standardizedFileURL
+        guard !path.isEmpty, !path.hasPrefix("/"), url.path.hasPrefix(base + "/") else { return nil }
+        return url
     }
 
     // MARK: - Info.plist

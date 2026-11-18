@@ -10,6 +10,8 @@ struct SigningOptions: Codable, Equatable {
     var injectFiles: [URL] = []
     var removeLoadCommands: [String] = []
     var interfaceStyle = InterfaceStyle.unchanged
+    /// Paths inside the .app to delete, e.g. `PlugIns/Share.appex` or `Frameworks/Ads.framework`.
+    var removePaths: [String] = []
 
     // Behaviour (saved as defaults)
     var removeSupportedDevices = true
@@ -43,6 +45,7 @@ struct SigningOptions: Codable, Equatable {
         copy.injectFiles = []
         copy.removeLoadCommands = []
         copy.interfaceStyle = .unchanged
+        copy.removePaths = []
         return copy
     }
 

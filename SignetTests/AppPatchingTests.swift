@@ -103,4 +103,65 @@ final class AppPatchingTests: XCTestCase {
         options.interfaceStyle = .liquidGlass
         XCTAssertEqual(options.asDefaults.interfaceStyle, .unchanged)
     }
+
+    // MARK: - Removing parts
+
+    private func addExtensions(to app: URL) throws {
+        let fm = FileManager.default
+        for path in ["PlugIns/Share.appex", "PlugIns/Widget.appex", "Extensions/Intents.appex"] {
+            let appex = app.appendingPathComponent(path, isDirectory: true)
+            try fm.createDirectory(at: appex, withIntermediateDirectories: true)
+            let name = appex.deletingPathExtension().lastPathComponent
+            let plist: [String: Any] = ["CFBundleIdentifier": "com.example.fixture.\(name)", "CFBundleExecutable": name]
+            (plist as NSDictionary).write(to: appex.appendingPathComponent("Info.plist"), atomically: true)
+            try fm.copyItem(at: app.appendingPathComponent("Fixture"), to: appex.appendingPathComponent(name))
+        }
+        try fm.copyItem(at: fixture("FixtureTweak.dylib"), to: app.appendingPathComponent("Frameworks/Loose.dylib"))
+    }
+
+    func testListsRemovableItems() throws {
+        let fm = FileManager.default
+        let source = try AppImporter.importIPA(at: fixture("Fixture.ipa"))
+        defer { try? fm.removeItem(at: source.directory) }
+        try addExtensions(to: source.appURL)
+
+        let items = Signer.removableItems(in: source.appURL)
+        XCTAssertEqual(items.map(\.path), ["PlugIns/Share.appex", "PlugIns/Widget.appex", "Extensions/Intents.appex",
+                                           "Frameworks/Helper.framework", "Frameworks/Loose.dylib"])
+        XCTAssertEqual(items.map(\.kind), [.appExtension, .appExtension, .appExtension, .framework, .library])
+        XCTAssertFalse(items.contains(where: \.isLinked), "the fixture executable links neither")
+    }
+
+    func testRemovesChosenItemsOnly() async throws {
+        var options = SigningOptions()
+        options.removePaths = ["PlugIns/Share.appex", "Frameworks/Helper.framework"]
+        let app = try await sign(options) { try self.addExtensions(to: $0) }
+        let fm = FileManager.default
+        XCTAssertFalse(fm.fileExists(atPath: app.appendingPathComponent("PlugIns/Share.appex").path))
+        XCTAssertFalse(fm.fileExists(atPath: app.appendingPathComponent("Frameworks/Helper.framework").path))
+        XCTAssertTrue(fm.fileExists(atPath: app.appendingPathComponent("PlugIns/Widget.appex").path))
+        XCTAssertTrue(fm.fileExists(atPath: app.appendingPathComponent("Extensions/Intents.appex").path))
+        XCTAssertTrue(fm.fileExists(atPath: app.appendingPathComponent("Frameworks/Loose.dylib").path))
+    }
+
+    func testRemovalPathsCantEscapeTheApp() {
+        let app = URL(fileURLWithPath: "/tmp/x/Payload/A.app")
+        XCTAssertNotNil(Signer.removableURL("PlugIns/Share.appex", in: app))
+        XCTAssertNil(Signer.removableURL("../../Documents", in: app))
+        XCTAssertNil(Signer.removableURL("PlugIns/../..", in: app))
+        XCTAssertNil(Signer.removableURL("/etc", in: app))
+        XCTAssertNil(Signer.removableURL("", in: app))
+        XCTAssertNil(Signer.removableURL(".", in: app))
+    }
+
+    func testEscapingRemovalPathFailsSigning() async throws {
+        var options = SigningOptions()
+        options.removePaths = ["../../escape"]
+        do {
+            _ = try await sign(options)
+            XCTFail("signing should fail")
+        } catch let error as AppError {
+            XCTAssertTrue(error.localizedDescription.contains("isn't inside the app"))
+        }
+    }
 }
