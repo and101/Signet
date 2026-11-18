@@ -1,0 +1,153 @@
+name: Signet
+options:
+  bundleIdPrefix: ember.wax
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+
+packages:
+  Zsign:
+    path: Vendor/Zsign
+  OpenSSL:
+    url: https://github.com/krzyzanowskim/OpenSSL
+    from: "3.3.3001"
+  ZIPFoundation:
+    url: https://github.com/weichsel/ZIPFoundation
+    from: "0.9.19"
+  SwiftCertificates:
+    url: https://github.com/apple/swift-certificates
+    from: "1.21.0"
+  SwiftNIO:
+    url: https://github.com/apple/swift-nio
+    from: "2.65.0"
+  SwiftNIOSSL:
+    url: https://github.com/apple/swift-nio-ssl
+    from: "2.27.0"
+  SWCompression:
+    # 4.9 requires iOS 18; stay on 4.8.x while the deployment target is iOS 17.
+    url: https://github.com/tsolomko/SWCompression
+    minorVersion: "4.8.6"
+
+targets:
+  Signet:
+    type: application
+    platform: iOS
+    sources:
+      - path: Signet
+    info:
+      path: Signet/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: Signet
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UIApplicationSupportsIndirectInputEvents: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIFileSharingEnabled: true
+        # Opened files are copied into Documents/Inbox. Opening in place needs an access token tied to the signed
+        # identity, which iOS refuses when the bundle ID doesn't match the profile.
+        LSSupportsOpeningDocumentsInPlace: false
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+        CFBundleURLTypes:
+          - CFBundleURLName: ember.wax.signet
+            CFBundleURLSchemes: [signet]
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: ember.wax.signet.backup
+            UTTypeDescription: Signet Backup
+            UTTypeConformsTo: [public.data, public.archive]
+            UTTypeTagSpecification:
+              public.filename-extension: [signetbackup]
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: com.apple.itunes.ipa
+            UTTypeDescription: iOS App Archive
+            UTTypeConformsTo: [public.data, public.archive, public.zip-archive]
+            UTTypeTagSpecification:
+              public.filename-extension: [ipa]
+          - UTTypeIdentifier: com.apple.mobileprovision
+            UTTypeDescription: Provisioning Profile
+            UTTypeConformsTo: [public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [mobileprovision]
+          - UTTypeIdentifier: ember.wax.signet.dylib
+            UTTypeDescription: Dynamic Library
+            UTTypeConformsTo: [public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [dylib]
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: iOS App Archive
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [com.apple.itunes.ipa]
+          - CFBundleTypeName: Signet Backup
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Owner
+            LSItemContentTypes: [ember.wax.signet.backup]
+          - CFBundleTypeName: Certificate
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [com.rsa.pkcs-12, com.apple.mobileprovision]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ember.wax.signet
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ENABLE_USER_SCRIPT_SANDBOXING: YES
+    dependencies:
+      - package: Zsign
+        product: Zsign
+      - package: OpenSSL
+      - package: ZIPFoundation
+      - package: SwiftNIO
+        product: NIOCore
+      - package: SwiftNIO
+        product: NIOPosix
+      - package: SwiftNIO
+        product: NIOHTTP1
+      - package: SwiftNIOSSL
+        product: NIOSSL
+      - package: SwiftCertificates
+        product: X509
+      - package: SWCompression
+
+  SignetTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: SignetTests
+        excludes: [Fixtures]
+      - path: SignetTests/Fixtures
+        type: folder
+        buildPhase: resources
+        optional: true
+    dependencies:
+      - target: Signet
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: ember.wax.signet.tests
+
+schemes:
+  Signet:
+    build:
+      targets:
+        Signet: all
+        SignetTests: [test]
+    test:
+      targets: [SignetTests]

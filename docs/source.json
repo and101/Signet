@@ -1,0 +1,36 @@
+{
+  "name": "Signet",
+  "identifier": "ember.wax.signet.source",
+  "subtitle": "On-device app signer",
+  "description": "Sign IPAs with your own certificate, customise them, inject tweaks and install them, all on your iPhone. Track GitHub releases, back up your setup, and update Signet with Signet.",
+  "iconURL": "https://and101.github.io/Signet/icon.png",
+  "website": "https://github.com/and101/Signet",
+  "tintColor": "#C8382A",
+  "apps": [
+    {
+      "name": "Signet",
+      "bundleIdentifier": "ember.wax.signet",
+      "developerName": "and101",
+      "subtitle": "Sign and install apps on your iPhone",
+      "localizedDescription": "Sign IPAs with your own certificate, customise them, inject tweaks and install them, all on your iPhone. Track GitHub releases, back up your setup, and update Signet with Signet.",
+      "iconURL": "https://and101.github.io/Signet/icon.png",
+      "tintColor": "#C8382A",
+      "category": "utilities",
+      "versions": [
+        {
+          "version": "1.0",
+          "buildVersion": "1",
+          "date": "2026-11-18",
+          "size": 9819941,
+          "downloadURL": "https://github.com/and101/Signet/releases/download/v1.0/Signet.ipa",
+          "minOSVersion": "17.0"
+        }
+      ],
+      "appPermissions": {
+        "entitlements": [],
+        "privacy": {}
+      }
+    }
+  ],
+  "news": []
+}
