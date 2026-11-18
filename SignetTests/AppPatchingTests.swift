@@ -318,4 +318,55 @@ final class AppPatchingTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: source.directory) }
         XCTAssertTrue(AppImporter.alternateIcons(in: source.appURL).isEmpty)
     }
+
+    // MARK: - Remembered options
+
+    func testSignedAppRemembersItsOptions() async throws {
+        let fm = FileManager.default
+        let source = try AppImporter.importIPA(at: fixture("Fixture.ipa"))
+        let cert = try CertificateImporter.importCertificate(
+            p12: fixture("test.p12"), profile: fixture("test.mobileprovision"), password: "fixture", nickname: "")
+        defer {
+            try? fm.removeItem(at: source.directory)
+            try? fm.removeItem(at: cert.directory)
+            Keychain.delete(cert.id.uuidString)
+        }
+        var options = SigningOptions()
+        options.appName = "Renamed"
+        options.bundleID = "com.example.renamed"
+        options.interfaceStyle = .classic
+        options.removePaths = ["Frameworks/Helper.framework"]
+        options.injectFiles = [try fixture("FixtureTweak.dylib")]
+        options.customIcon = UIImage(contentsOfFile: source.iconURL.path)?.pngData()
+
+        let signed = try await Signer.shared.sign(source, with: cert, options: options) { _ in }
+        defer { try? fm.removeItem(at: signed.directory) }
+
+        // Round-trip through the library index, as a relaunch would.
+        let decoded = try JSONDecoder().decode(LibraryApp.self, from: JSONEncoder().encode(signed))
+        let remembered = try XCTUnwrap(decoded.rememberedOptions)
+        XCTAssertEqual(remembered.appName, "Renamed")
+        XCTAssertEqual(remembered.bundleID, "com.example.renamed")
+        XCTAssertEqual(remembered.interfaceStyle, .classic)
+        XCTAssertEqual(remembered.removePaths, ["Frameworks/Helper.framework"])
+        XCTAssertEqual(remembered.injectFiles.map(\.lastPathComponent), ["FixtureTweak.dylib"])
+        XCTAssertEqual(remembered.injectFiles.first?.deletingLastPathComponent().lastPathComponent, "Tweaks",
+                       "tweaks are kept with the signed app, not in temporary storage")
+        XCTAssertEqual(remembered.customIcon, options.customIcon)
+        XCTAssertFalse(String(decoding: try XCTUnwrap(signed.signingOptionsData), as: UTF8.self).contains("customIcon\":\""),
+                       "the icon isn't stored in the library index")
+    }
+
+    func testImportedAppsHaveNoRememberedOptions() throws {
+        let source = try AppImporter.importIPA(at: fixture("Fixture.ipa"))
+        defer { try? FileManager.default.removeItem(at: source.directory) }
+        XCTAssertNil(source.rememberedOptions)
+    }
+
+    func testLibraryEntriesFromOlderVersionsStillDecode() throws {
+        let json = #"{"id":"6F9619FF-8B86-D011-B42D-00C04FC964FF","kind":"signed","name":"A","bundleID":"com.a","version":"1","build":"1","appFolderName":"A.app","size":0,"dateAdded":0}"#
+        let app = try JSONDecoder().decode(LibraryApp.self, from: Data(json.utf8))
+        XCTAssertNil(app.signingOptionsData)
+        XCTAssertNil(app.rememberedOptions)
+    }
 }

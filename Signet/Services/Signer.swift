@@ -139,6 +139,7 @@ actor Signer {
             )
             try fm.removeItem(at: result.payloadURL)
             if !entitlementsPath.isEmpty { try? fm.removeItem(atPath: entitlementsPath) }
+            result.signingOptionsData = try Self.remember(options, for: result)
             result.size = fm.fileSize(at: result.ipaURL)
             log("Done — \(result.size.formattedBytes)")
             return result
@@ -146,6 +147,30 @@ actor Signer {
             try? fm.removeItem(at: result.directory)
             throw error
         }
+    }
+
+    // MARK: - Remembering options
+
+    /// Keeps the options next to the signed app so an update can be signed the same way:
+    /// tweaks are copied into its Tweaks folder and a custom icon into custom-icon.png.
+    static func remember(_ options: SigningOptions, for app: LibraryApp) throws -> Data {
+        let fm = FileManager.default
+        if !options.injectFiles.isEmpty {
+            try fm.createDirectory(at: app.tweaksURL, withIntermediateDirectories: true)
+            for file in options.injectFiles {
+                // Same-named tweaks overwrite each other in Frameworks too, so the last one wins here as well.
+                let destination = app.tweaksURL.appendingPathComponent(file.lastPathComponent)
+                try? fm.removeItem(at: destination)
+                try fm.copyItem(at: file, to: destination)
+            }
+        }
+        if let icon = options.customIcon {
+            try icon.write(to: app.customIconURL)
+        }
+        var stored = options
+        stored.customIcon = nil
+        stored.injectFiles = []
+        return try JSONEncoder().encode(stored)
     }
 
     // MARK: - Removing parts

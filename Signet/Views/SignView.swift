@@ -28,6 +28,8 @@ struct SignView: View {
     @State private var signedApp: LibraryApp?
     /// The tracked GitHub repo whose signing defaults were applied, set once on first appearance.
     @State private var repoDefaults: TrackedRepo?
+    /// The earlier signed copy of this app whose options were applied, set once on first appearance.
+    @State private var previousSigning: LibraryApp?
     @State private var appliedRepoDefaults = false
     @FocusState private var isEditing: Bool
 
@@ -104,7 +106,13 @@ struct SignView: View {
             } header: {
                 Text("Customize")
             } footer: {
-                if let repoDefaults {
+                if let previousSigning {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Using the settings from when you signed version \(previousSigning.version), so this installs over it.")
+                        Button("Use My Defaults Instead") { useDefaults() }
+                            .font(.footnote)
+                    }
+                } else if let repoDefaults {
                     Text("Using defaults from \(repoDefaults.fullName).")
                 }
             }
@@ -227,7 +235,7 @@ struct SignView: View {
             // onAppear fires again when coming back from the signed app; only apply repo defaults once.
             if !appliedRepoDefaults {
                 appliedRepoDefaults = true
-                applyRepoDefaults()
+                if !applyPreviousSigning() { applyRepoDefaults() }
             }
             if certificateID == nil { certificateID = certificates.defaultCertificate?.id }
             updateSuggestedBundleID()
@@ -443,6 +451,30 @@ struct SignView: View {
             return Zsign.listDylibs(appExecutable: executable.path)
                 .filter { !$0.hasPrefix("/System/") && !$0.hasPrefix("/usr/lib/") }
         }.value
+    }
+
+    /// Signs an update the way the last version was signed: same certificate, bundle ID, tweaks, icon and options.
+    /// - Returns: false if this app hasn't been signed here before.
+    private func applyPreviousSigning() -> Bool {
+        let key = SourceUpdates.key(for: app)
+        guard let previous = library.signedApps.first(where: { SourceUpdates.key(for: $0) == key && $0.signingOptionsData != nil }),
+              var remembered = previous.rememberedOptions else { return false }
+        remembered.version = "" // the new version's own
+        options = remembered
+        previousSigning = previous
+        if let id = previous.certificateID, certificates.certificate(id) != nil { certificateID = id }
+        useBundleID(previous.bundleID)
+        return true
+    }
+
+    private func useDefaults() {
+        options = SigningOptions.defaults
+        previousSigning = nil
+        iconItem = nil
+        automaticBundleID = nil
+        certificateID = certificates.defaultCertificate?.id
+        applyRepoDefaults()
+        updateSuggestedBundleID()
     }
 
     /// Uses the certificate and bundle ID set for the GitHub repo this app was downloaded from.
