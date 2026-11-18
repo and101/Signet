@@ -164,4 +164,44 @@ final class AppPatchingTests: XCTestCase {
             XCTAssertTrue(error.localizedDescription.contains("isn't inside the app"))
         }
     }
+
+    // MARK: - Localized names
+
+    func testRenameUpdatesLocalizedNames() async throws {
+        var options = SigningOptions()
+        options.appName = "Renamed"
+        let app = try await sign(options) { app in
+            let fm = FileManager.default
+            for language in ["en", "fr", "ja", "de"] {
+                try fm.createDirectory(at: app.appendingPathComponent("\(language).lproj"), withIntermediateDirectories: true)
+            }
+            // Text .strings as Xcode writes them, UTF-16 as older projects use, a binary plist, and a broken file.
+            try Data("/* Name */\n\"CFBundleDisplayName\" = \"Fixture\";\n\"NSCameraUsageDescription\" = \"Camera\";\n".utf8)
+                .write(to: app.appendingPathComponent("en.lproj/InfoPlist.strings"))
+            try XCTUnwrap("\"CFBundleName\" = \"Fixture FR\";".data(using: .utf16))
+                .write(to: app.appendingPathComponent("fr.lproj/InfoPlist.strings"))
+            try PropertyListSerialization.data(fromPropertyList: ["CFBundleDisplayName": "フィクスチャ"], format: .binary, options: 0)
+                .write(to: app.appendingPathComponent("ja.lproj/InfoPlist.strings"))
+            try Data("not = valid = strings".utf8).write(to: app.appendingPathComponent("de.lproj/InfoPlist.strings"))
+        }
+
+        func strings(_ language: String) throws -> [String: String]? {
+            let data = try Data(contentsOf: app.appendingPathComponent("\(language).lproj/InfoPlist.strings"))
+            return try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: String]
+        }
+        XCTAssertEqual(try strings("en"), ["CFBundleDisplayName": "Renamed", "NSCameraUsageDescription": "Camera"])
+        XCTAssertEqual(try strings("fr"), ["CFBundleName": "Renamed", "CFBundleDisplayName": "Renamed"])
+        XCTAssertEqual(try strings("ja"), ["CFBundleDisplayName": "Renamed"])
+        XCTAssertEqual(try Data(contentsOf: app.appendingPathComponent("de.lproj/InfoPlist.strings")),
+                       Data("not = valid = strings".utf8), "unreadable files are left alone")
+    }
+
+    func testLocalizedNamesUntouchedWithoutRename() async throws {
+        let original = Data("\"CFBundleDisplayName\" = \"Fixture\";".utf8)
+        let app = try await sign(SigningOptions()) { app in
+            try FileManager.default.createDirectory(at: app.appendingPathComponent("en.lproj"), withIntermediateDirectories: true)
+            try original.write(to: app.appendingPathComponent("en.lproj/InfoPlist.strings"))
+        }
+        XCTAssertEqual(try Data(contentsOf: app.appendingPathComponent("en.lproj/InfoPlist.strings")), original)
+    }
 }

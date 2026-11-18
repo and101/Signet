@@ -52,6 +52,10 @@ actor Signer {
 
             log("Patching Info.plist…")
             try patchInfoPlist(at: appURL, options: options)
+            let newName = options.appName.trimmingCharacters(in: .whitespaces)
+            if !newName.isEmpty {
+                Self.renameLocalizations(in: appURL, to: newName)
+            }
 
             if let icon = options.customIcon {
                 log("Applying custom icon…")
@@ -226,6 +230,24 @@ actor Signer {
         }
         guard plist.write(to: url, atomically: true) else {
             throw AppError("Couldn't write Info.plist.")
+        }
+    }
+
+    /// Sets the name in every language's InfoPlist.strings, which iOS shows instead of Info.plist's.
+    /// Files that can't be read are left alone; CFBundleName is only replaced where the file already sets it.
+    static func renameLocalizations(in appURL: URL, to name: String) {
+        let fm = FileManager.default
+        let folders = (try? fm.contentsOfDirectory(at: appURL, includingPropertiesForKeys: nil)) ?? []
+        for folder in folders where folder.pathExtension == "lproj" {
+            let url = folder.appendingPathComponent("InfoPlist.strings")
+            guard let data = try? Data(contentsOf: url),
+                  var strings = (try? PropertyListSerialization.propertyList(from: data, format: nil)) as? [String: Any]
+            else { continue }
+            strings["CFBundleDisplayName"] = name
+            if strings["CFBundleName"] != nil { strings["CFBundleName"] = name }
+            if let output = try? PropertyListSerialization.data(fromPropertyList: strings, format: .binary, options: 0) {
+                try? output.write(to: url, options: .atomic)
+            }
         }
     }
 
