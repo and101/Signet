@@ -27,16 +27,16 @@ final class AppPatchingTests: XCTestCase {
         let cert = try CertificateImporter.importCertificate(
             p12: fixture("test.p12"), profile: fixture("test.mobileprovision"), password: "fixture", nickname: "")
         addTeardownBlock {
-            try? fm.removeItem(at: source.directory)
-            try? fm.removeItem(at: cert.directory)
+            try? FileManager.default.removeItem(at: source.directory)
+            try? FileManager.default.removeItem(at: cert.directory)
             Keychain.delete(cert.id.uuidString)
         }
         try prepare(source.appURL)
         let signed = try await Signer.shared.sign(source, with: cert, options: options) { _ in }
         let out = try Paths.newTempDirectory()
         addTeardownBlock {
-            try? fm.removeItem(at: signed.directory)
-            try? fm.removeItem(at: out)
+            try? FileManager.default.removeItem(at: signed.directory)
+            try? FileManager.default.removeItem(at: out)
         }
         try fm.unzipItem(at: signed.ipaURL, to: out)
         return out.appendingPathComponent("Payload/Fixture.app")
