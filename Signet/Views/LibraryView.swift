@@ -4,6 +4,9 @@ import UniformTypeIdentifiers
 struct LibraryView: View {
     @Environment(LibraryStore.self) private var library
     @Environment(InstallManager.self) private var installer
+    @Environment(SourceStore.self) private var sources
+    @Environment(GitHubStore.self) private var github
+    @State private var path = NavigationPath()
 
     @State private var showImporter = false
     @State private var showURLPrompt = false
@@ -19,8 +22,21 @@ struct LibraryView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             List {
+                let updates = sources.updates(for: library, github: github)
+                if !updates.isEmpty, search.isEmpty {
+                    Section {
+                        ForEach(updates) { update in
+                            UpdateRow(update: update) { imported in path.append(imported) }
+                        }
+                    } header: {
+                        Text("Updates")
+                    } footer: {
+                        Text("Downloads the new version, then opens it for signing.")
+                    }
+                }
+
                 if !library.downloads.isEmpty {
                     Section("Downloads") {
                         ForEach(library.downloads) { download in
@@ -91,6 +107,7 @@ struct LibraryView: View {
             )
             .navigationTitle("Library")
             .searchable(text: $search)
+            .refreshable { await sources.refreshAll() }
             .navigationDestination(for: LibraryApp.self) { app in
                 if app.kind == .signed {
                     SignedAppView(appID: app.id)
@@ -143,6 +160,35 @@ struct LibraryView: View {
     private func filtered(_ apps: [LibraryApp]) -> [LibraryApp] {
         guard !search.isEmpty else { return apps }
         return apps.filter { $0.name.localizedCaseInsensitiveContains(search) || $0.bundleID.localizedCaseInsensitiveContains(search) }
+    }
+}
+
+private struct UpdateRow: View {
+    let update: SourceUpdate
+    let onImported: (LibraryApp) -> Void
+    @Environment(LibraryStore.self) private var library
+
+    var body: some View {
+        HStack(spacing: 12) {
+            RemoteIcon(url: update.iconURL, size: 44)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(update.name).lineLimit(1)
+                Text("\(update.localVersion) → \(update.remoteVersion) · \(update.sourceName)")
+                    .font(.footnote).foregroundStyle(.secondary).lineLimit(1)
+            }
+            Spacer()
+            if let download = library.download(for: update.downloadURL) {
+                DownloadRing(download: download).frame(minWidth: 56)
+            } else {
+                Button("Update") {
+                    library.download(from: update.downloadURL, name: "\(update.name) \(update.remoteVersion)",
+                                     onImported: onImported)
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.capsule)
+                .font(.subheadline.bold())
+            }
+        }
     }
 }
 

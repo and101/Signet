@@ -40,12 +40,14 @@
 		8F47930E7BFF27AA2E2FB5BF /* SignedAppView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35B7E211B0BB561DC9DB0DB1 /* SignedAppView.swift */; };
 		974C1DCF3D35FA11CB30C143 /* GitHubRepo.swift in Sources */ = {isa = PBXBuildFile; fileRef = E66D359B5CF7CB9B757A78B7 /* GitHubRepo.swift */; };
 		98B30093B7251DEC2A9AF347 /* EntitlementsMerger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A7318A2E4ABB0409FA10A9B /* EntitlementsMerger.swift */; };
+		9D085603DC79007E13211297 /* SourceUpdatesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F334D71B414618C7758430 /* SourceUpdatesTests.swift */; };
 		9E44E414E2D031C52E842F1E /* CertificateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 297D2A0C11CAAB9753BBD2A5 /* CertificateStore.swift */; };
 		A2E4BE457F8806E90827A732 /* LibraryIndexTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5045DDFAAE6576D6F14C4577 /* LibraryIndexTests.swift */; };
 		A7FA635BD25C5835E2507C9F /* SourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF5AA7721A8F8B70A76D3EF5 /* SourcesView.swift */; };
 		A9FEA8FD97EBB6CB143DDE3A /* TweakSupportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55F7B27BFA81444467EC62D2 /* TweakSupportTests.swift */; };
 		AA57C3942804408F3D5EB279 /* Certificate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1869B439031756F054DAE63E /* Certificate.swift */; };
 		AC9374CBBD478B005C0D0C5F /* ServerCertificate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA84AA949F6ECE68E28875A /* ServerCertificate.swift */; };
+		B524C5C5CB9EDB46E723471A /* SourceUpdates.swift in Sources */ = {isa = PBXBuildFile; fileRef = A78D6D59B0C70D82414ADEFA /* SourceUpdates.swift */; };
 		B7F0BC8E1035ACB94661E4BD /* BackupViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A16CD9DCD04D27B2D110D43 /* BackupViews.swift */; };
 		BBAAE29F4A9EBE2973E2838D /* InstallServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89BBF3E483DBA61AC8B186C2 /* InstallServer.swift */; };
 		BEBA52C6B05825C81E3B0223 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DC8A76F85DE0CC08F85782C0 /* Assets.xcassets */; };
@@ -83,6 +85,7 @@
 		02B5E5AA5C9BCA0BF5C2A1AF /* Paths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Paths.swift; sourceTree = "<group>"; };
 		06E674667AB2C3E3ADE88164 /* AppImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppImporter.swift; sourceTree = "<group>"; };
 		0A16CD9DCD04D27B2D110D43 /* BackupViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupViews.swift; sourceTree = "<group>"; };
+		17F334D71B414618C7758430 /* SourceUpdatesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceUpdatesTests.swift; sourceTree = "<group>"; };
 		1869B439031756F054DAE63E /* Certificate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Certificate.swift; sourceTree = "<group>"; };
 		1B20DAA11E6393102E0D5107 /* LibraryApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryApp.swift; sourceTree = "<group>"; };
 		1E2A731FD2F3B7AC211895D2 /* Backup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Backup.swift; sourceTree = "<group>"; };
@@ -112,6 +115,7 @@
 		915C559E3CB3B706AAFE9AEC /* Zsign */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Zsign; path = Vendor/Zsign; sourceTree = SOURCE_ROOT; };
 		99B8AE239425932B7D1B6CFD /* SignetApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignetApp.swift; sourceTree = "<group>"; };
 		A671260366594AE81BC9FF6C /* KeychainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTests.swift; sourceTree = "<group>"; };
+		A78D6D59B0C70D82414ADEFA /* SourceUpdates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceUpdates.swift; sourceTree = "<group>"; };
 		A7C9269E1748A1D5027C719C /* PPQTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PPQTests.swift; sourceTree = "<group>"; };
 		A8BCF10D9D3DB5472A19ED4D /* CertificatesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CertificatesView.swift; sourceTree = "<group>"; };
 		AD77FFD51835080BE0CBB5D1 /* InstalledApps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledApps.swift; sourceTree = "<group>"; };
@@ -181,6 +185,7 @@
 				1B20DAA11E6393102E0D5107 /* LibraryApp.swift */,
 				B2D0AD137C26ECF7070F15D9 /* SigningOptions.swift */,
 				C3AD454BB0127FE1F43E845F /* Source.swift */,
+				A78D6D59B0C70D82414ADEFA /* SourceUpdates.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -221,6 +226,7 @@
 				344EFBEA21360EC15A80F0B5 /* LinkTests.swift */,
 				A7C9269E1748A1D5027C719C /* PPQTests.swift */,
 				2DDA74E1437D8EDEF4867E7E /* SigningPipelineTests.swift */,
+				17F334D71B414618C7758430 /* SourceUpdatesTests.swift */,
 				5C06EDB4C94A4894262AD1F9 /* StorageCleanupTests.swift */,
 				55F7B27BFA81444467EC62D2 /* TweakSupportTests.swift */,
 				7D87FB44953AFD7C5CF0C984 /* ZsignMappingTests.swift */,
@@ -454,6 +460,7 @@
 				74A20C7ED24363A6A79D8CE5 /* SigningOptions.swift in Sources */,
 				670B1E205FC3A75AEACE3A83 /* Source.swift in Sources */,
 				FE2A66F457E15B527626DC71 /* SourceStore.swift in Sources */,
+				B524C5C5CB9EDB46E723471A /* SourceUpdates.swift in Sources */,
 				A7FA635BD25C5835E2507C9F /* SourcesView.swift in Sources */,
 				65A626C2D1967D93063BEAE9 /* TweakInjector.swift in Sources */,
 			);
@@ -473,6 +480,7 @@
 				D4F6B6549AC254D3E2ED5BF0 /* LinkTests.swift in Sources */,
 				EBAA219750176192DEC70D81 /* PPQTests.swift in Sources */,
 				87199C0E1EE783803B908E3B /* SigningPipelineTests.swift in Sources */,
+				9D085603DC79007E13211297 /* SourceUpdatesTests.swift in Sources */,
 				8E3BA70D585505BA50C89498 /* StorageCleanupTests.swift in Sources */,
 				A9FEA8FD97EBB6CB143DDE3A /* TweakSupportTests.swift in Sources */,
 				FF9C78C53C60DA5A541919CF /* ZsignMappingTests.swift in Sources */,

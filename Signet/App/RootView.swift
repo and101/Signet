@@ -13,6 +13,7 @@ struct RootView: View {
         TabView(selection: $router.tab) {
             LibraryView()
                 .tabItem { Label("Library", systemImage: "square.grid.2x2") }
+                .badge(sources.updates(for: library, github: github).count)
                 .tag(Router.Tab.library)
             SourcesView()
                 .tabItem { Label("Sources", systemImage: "globe") }
@@ -27,6 +28,7 @@ struct RootView: View {
         }
         // Scene phase changes cover returning to the app; this covers a cold launch. Checks are throttled.
         .task { await github.refreshAll(library: library) }
+        .task { await sources.refreshIfStale() }
         .sheet(isPresented: Binding(
             get: { installer.state != .idle },
             set: { if !$0 { installer.dismiss() } }

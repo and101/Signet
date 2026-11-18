@@ -7,6 +7,10 @@ final class SourceStore {
     private(set) var repositories: [UUID: SourceRepository] = [:]
     private(set) var errors: [UUID: String] = [:]
     private(set) var loading: Set<UUID> = []
+    private var lastRefresh: Date?
+
+    /// Sources are checked for updates when Signet opens, at most this often.
+    static let automaticRefreshInterval: TimeInterval = 15 * 60
 
     private let file = JSONFile<[SavedSource]>("sources.json")
 
@@ -56,7 +60,14 @@ final class SourceStore {
         }
     }
 
+    /// Refreshes every source unless that was done within `automaticRefreshInterval`.
+    func refreshIfStale() async {
+        if let lastRefresh, Date().timeIntervalSince(lastRefresh) < Self.automaticRefreshInterval { return }
+        await refreshAll()
+    }
+
     func refreshAll() async {
+        lastRefresh = Date()
         await withTaskGroup(of: Void.self) { group in
             for source in sources {
                 group.addTask { await self.refresh(source) }
@@ -68,6 +79,15 @@ final class SourceStore {
         sources.flatMap { source in
             (repositories[source.id]?.apps ?? []).map { (source, $0) }
         }
+    }
+
+    /// Newer versions of library apps offered by these sources, sorted by name. Apps tracked through a
+    /// GitHub repo are left out; the repo reports their updates.
+    func updates(for library: LibraryStore, github: GitHubStore) -> [SourceUpdate] {
+        let tracked = Set(library.apps.filter { github.repo(for: $0) != nil }.map(SourceUpdates.key(for:)))
+        let offers = allApps.map { (sourceName: $0.source.name, app: $0.app) }
+        return SourceUpdates.find(library: library.apps, offers: offers, excluded: tracked).values
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
     private static func fetch(_ url: URL) async throws -> SourceRepository {

@@ -31,6 +31,7 @@ struct SignetApp: App {
             if phase == .active {
                 installer.appBecameActive()
                 Task { await github.refreshAll(library: library) }
+                Task { await sources.refreshIfStale() }
             }
         }
     }
