@@ -12,6 +12,11 @@ final class InstallManager {
         /// iOS fetched the manifest; waiting for the user to confirm and installd to request the IPA.
         case manifestServed(appName: String)
         case transferring(appName: String, progress: Double)
+        /// The IPA is with iOS, which is installing it. Progress is nil until iOS reports a fraction.
+        case installing(appName: String, progress: Double?)
+        /// iOS finished installing the app.
+        case installed(appName: String)
+        /// The IPA reached iOS, but Signet can't tell whether the install worked.
         case finished(appName: String)
         case failed(String)
     }
@@ -21,6 +26,9 @@ final class InstallManager {
     private var bundleID: String?
     private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
     private var watchdog: Task<Void, Never>?
+    private var progressWatch: Task<Void, Never>?
+    /// The bundle ID of the app last installed, for the Open button.
+    private(set) var installedBundleID: String?
 
     init() {
         InstallServer.shared.onProgress = { [weak self] token, sent, total in
@@ -71,7 +79,7 @@ final class InstallManager {
         switch state {
         case .idle, .finished, .failed:
             Task { try? await InstallServer.shared.ensureResponsive() }
-        case .waiting, .manifestServed, .transferring:
+        case .waiting, .manifestServed, .transferring, .installing, .installed:
             break
         }
     }
@@ -80,6 +88,7 @@ final class InstallManager {
         state = .idle
         token = nil
         watchdog?.cancel()
+        progressWatch?.cancel()
         endBackgroundTask()
     }
 
@@ -91,13 +100,55 @@ final class InstallManager {
     private func update(token: String, sent: Int64, total: Int64) {
         guard token == self.token, let name = state.appName else { return }
         if sent >= total {
-            state = .finished(appName: name)
+            // Only the first completion counts; a small IPA can finish before any progress was reported.
+            switch state {
+            case .waiting, .manifestServed, .transferring: break
+            default: return
+            }
             if let bundleID { InstallHistory.record(bundleID) }
             watchdog?.cancel()
-            endBackgroundTask()
+            watchInstall(appName: name)
         } else {
             state = .transferring(appName: name, progress: Double(sent) / Double(max(total, 1)))
         }
+    }
+
+    /// Follows iOS's own install after the transfer, keeping Signet awake until it ends.
+    private func watchInstall(appName: String) {
+        guard let bundleID, InstallProgress.isAvailable else {
+            finish(.finished(appName: appName))
+            return
+        }
+        state = .installing(appName: appName, progress: nil)
+        let token = token
+        progressWatch?.cancel()
+        progressWatch = Task { [weak self] in
+            var watch = InstallWatch()
+            while !Task.isCancelled {
+                let fraction = await Task.detached { InstallProgress.fraction(for: bundleID) }.value
+                guard let self, self.token == token, !Task.isCancelled else { return }
+                switch watch.step(progress: fraction) {
+                case .installing(let progress):
+                    self.state = .installing(appName: appName, progress: progress)
+                case .installed:
+                    // For a first install, double-check iOS really has it; an update was installed already.
+                    let check = await Task.detached { InstalledApps.workingSystemCheck()?(bundleID) }.value
+                    self.installedBundleID = bundleID
+                    self.finish(check == false ? .finished(appName: appName) : .installed(appName: appName))
+                    return
+                case .unknown:
+                    self.finish(.finished(appName: appName))
+                    return
+                }
+                try? await Task.sleep(for: .milliseconds(500))
+            }
+        }
+    }
+
+    private func finish(_ final: State) {
+        state = final
+        progressWatch?.cancel()
+        endBackgroundTask()
     }
 
     /// Turns a silent failure into an explanation instead of an endless spinner.
@@ -131,6 +182,7 @@ final class InstallManager {
     private func fail(_ message: String) {
         state = .failed(message)
         watchdog?.cancel()
+        progressWatch?.cancel()
         endBackgroundTask()
     }
 
@@ -154,7 +206,8 @@ final class InstallManager {
 extension InstallManager.State {
     var appName: String? {
         switch self {
-        case .waiting(let name), .manifestServed(let name), .transferring(let name, _), .finished(let name): name
+        case .waiting(let name), .manifestServed(let name), .transferring(let name, _), .installing(let name, _),
+             .installed(let name), .finished(let name): name
         case .idle, .failed: nil
         }
     }

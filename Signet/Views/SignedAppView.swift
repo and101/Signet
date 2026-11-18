@@ -100,6 +100,27 @@ struct InstallProgressView: View {
             Text("Installing \(name)").font(.headline)
             ProgressView(value: progress)
             Text("\(Int(progress * 100))% transferred").foregroundStyle(.secondary)
+        case .installing(let name, let progress):
+            Text("Installing \(name)").font(.headline)
+            if let progress {
+                ProgressView(value: progress)
+                Text("\(Int(progress * 100))% installed").foregroundStyle(.secondary)
+            } else {
+                ProgressView().controlSize(.large)
+                Text("iOS is installing the app…").foregroundStyle(.secondary)
+            }
+        case .installed(let name):
+            Image(systemName: "checkmark.circle.fill").font(.largeTitle).imageScale(.large).foregroundStyle(.green)
+            Text("\(name) Installed").font(.headline)
+            Text("If it won't open, trust the developer in Settings → General → VPN & Device Management.")
+                .multilineTextAlignment(.center).font(.callout).foregroundStyle(.secondary)
+            if let bundleID = installer.installedBundleID, InstallProgress.canOpenApps {
+                Button("Open") {
+                    InstallProgress.open(bundleID)
+                    installer.dismiss()
+                }
+                .buttonStyle(.borderedProminent)
+            }
         case .finished(let name):
             Image(systemName: "checkmark.circle.fill").font(.largeTitle).imageScale(.large).foregroundStyle(.green)
             Text("\(name) Sent to iOS").font(.headline)
