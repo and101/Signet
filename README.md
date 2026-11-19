@@ -22,9 +22,10 @@ later.
 
 ### Updates
 
-In Signet, go to **Sources → + → Track GitHub Repo** and enter `and101/Signet`. New versions get an **Update**
-badge. Download one, sign it and install it over the current Signet, which closes while it installs. Signet fills in
-its own bundle ID for this repo, so your data carries over.
+From 1.1, new versions appear in **Library → Updates**, since Signet's own source is added by default. Tap
+**Update**, sign it with the bundle ID Signet is installed with, and install it over the current Signet, which closes
+while it installs. Later updates reuse those settings. Or track `and101/Signet` in **Sources → + → Track GitHub
+Repo**, which fills in Signet's bundle ID for you.
 
 Switching to a certificate with a different bundle ID makes iOS treat Signet as a new app. Back up first in
 **Settings → Back Up…** and restore in the new copy.
@@ -32,24 +33,29 @@ Switching to a certificate with a different bundle ID makes iOS treat Signet as 
 ## Features
 
 - **Certificates.** Import `.p12` and provisioning profile pairs. See expiry, devices and entitlements, and check
-  for revocation. Passwords stay in the keychain.
-- **Library.** Import IPAs from Files, other apps, a URL, a source or a GitHub release.
-- **Signing.** Change the name, bundle ID, version, minimum iOS and icon. Remove device limits, URL schemes,
-  extensions or the Watch app, enable file sharing, and merge the app's entitlements with your profile's. Apps keep
-  their bundle ID unless you change it.
+  for revocation. Passwords stay in the keychain. Send a certificate to LiveContainer.
+- **Library.** Import IPAs from Files, other apps, a URL, a source or a GitHub release. Updates from your sources
+  appear at the top. Select several apps to delete them.
+- **Signing.** Change the name (in every language), bundle ID, version, minimum iOS and icon, including the app's
+  own alternate icons. Remove device limits, URL schemes, the Watch app or individual extensions and frameworks.
+  Turn on file sharing, ProMotion or Game Mode, force light or dark mode, and choose Liquid Glass or the classic
+  look. Merge the app's entitlements with your profile's, or use your own entitlements file.
+- **Updates.** Signing a new version reuses the last version's settings, tweaks and icon, so it installs over it.
+- **Rename rules.** Give apps a bundle ID or name automatically whenever they're signed.
 - **PPQ protection.** For profiles that have Apple check apps at launch, Signet adds a short suffix to bundle IDs
   so they never match an App Store app.
-- **Tweaks.** Inject `.dylib`, `.deb` and zipped `.framework` files. Jailbreak paths are fixed and ElleKit is added
-  when a tweak needs it.
-- **Install.** Install signed apps over the air from the phone, or directly through a pairing file (beta), or share
-  the IPA.
-- **Sources.** Browse AltStore-compatible sources. Signet's own source is added by default, so its updates appear in
-  the Library.
+- **Tweaks.** Inject `.dylib`, `.deb` and zipped `.framework` files, into extensions too. Jailbreak paths are
+  fixed and ElleKit is added when a tweak needs it.
+- **Install.** Over the air from the phone, or directly through a pairing file (beta). Signet keeps running in the
+  background and shows iOS's install progress. Or export the IPA, signed or unsigned.
+- **Sources.** Browse AltStore-compatible sources, with news, featured apps and screenshots. Signet's own source is
+  added by default, so its updates appear in the Library.
 - **GitHub releases.** Track a repo to see new IPAs, download them automatically, and set a bundle ID and
   certificate for its apps.
 - **Backup.** Save certificates, sources, repos and settings to one file. Certificate passwords are encrypted with
   a backup password.
-- **Links.** `signet://source?url=…` adds a source and `signet://install?url=…` downloads an IPA.
+- **Links.** `signet://source?url=…` adds a source and `signet://install?url=…` downloads an IPA, after you
+  confirm.
 
 Only sign apps you have the right to use, with certificates you own.
 
@@ -121,4 +127,5 @@ Signet is released under the [MIT License](LICENSE). It includes
 [zsign](https://github.com/khcrysalis/Zsign-Package) (MIT, patches in `Vendor/Zsign/PATCHES.md`) and
 [ElleKit](https://github.com/tealbathingsuit/ellekit) (BSD-3-Clause) and
 [idevice](https://github.com/jkcoxson/idevice) (MIT), and uses OpenSSL, SwiftNIO,
-swift-certificates, ZIPFoundation and SWCompression under their own licences.
+swift-certificates, ZIPFoundation and SWCompression under their own licences. **Settings → Acknowledgements** lists
+every component, including idevice's Rust dependencies (`scripts/make-acknowledgements.py` regenerates it).
