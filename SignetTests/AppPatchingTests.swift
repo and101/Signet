@@ -433,4 +433,41 @@ final class AppPatchingTests: XCTestCase {
             XCTAssertTrue(error.localizedDescription.contains("isn't an entitlements file"))
         }
     }
+
+    // MARK: - Export without signing
+
+    func testExportsModifiedUnsignedIPA() async throws {
+        let fm = FileManager.default
+        let source = try AppImporter.importIPA(at: fixture("Fixture.ipa"))
+        defer { try? fm.removeItem(at: source.directory) }
+        try addExtensions(to: source.appURL)
+        var options = SigningOptions()
+        options.appName = "Modded"
+        options.bundleID = "com.me.modded"
+        options.version = "5.0"
+        options.removePaths = ["PlugIns/Widget.appex"]
+
+        let url = try await Signer.shared.exportModified(source, options: options) { _ in }
+        defer { try? fm.removeItem(at: url) }
+        XCTAssertEqual(url.deletingLastPathComponent().standardizedFileURL, Paths.exports.standardizedFileURL)
+        XCTAssertEqual(url.lastPathComponent, "Modded_5.0_unsigned.ipa")
+
+        let out = try Paths.newTempDirectory()
+        defer { try? fm.removeItem(at: out) }
+        try fm.unzipItem(at: url, to: out)
+        let app = out.appendingPathComponent("Payload/Fixture.app")
+        let plist = try infoPlist(app)
+        XCTAssertEqual(plist["CFBundleIdentifier"] as? String, "com.me.modded")
+        XCTAssertEqual(plist["CFBundleDisplayName"] as? String, "Modded")
+        XCTAssertEqual(plist["CFBundleVersion"] as? String, "5.0")
+        XCTAssertEqual(plist["CFBundleShortVersionString"] as? String, "5.0")
+        let share = try XCTUnwrap(NSDictionary(contentsOf: app.appendingPathComponent("PlugIns/Share.appex/Info.plist")) as? [String: Any])
+        XCTAssertEqual(share["CFBundleIdentifier"] as? String, "com.me.modded.Share", "extensions follow the new prefix")
+        XCTAssertFalse(fm.fileExists(atPath: app.appendingPathComponent("PlugIns/Widget.appex").path))
+
+        // Nothing is added to the library, and a second export doesn't overwrite the first.
+        let second = try await Signer.shared.exportModified(source, options: options) { _ in }
+        defer { try? fm.removeItem(at: second) }
+        XCTAssertEqual(second.lastPathComponent, "Modded_5.0_unsigned 2.ipa")
+    }
 }

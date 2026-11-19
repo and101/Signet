@@ -8,6 +8,8 @@ enum Paths {
     static let library = documents.appendingPathComponent("Library", isDirectory: true)
     static let server = documents.appendingPathComponent("Server", isDirectory: true)
     static let metadata = documents.appendingPathComponent(".metadata", isDirectory: true)
+    /// Unsigned IPAs exported from the sign screen, for signing somewhere else.
+    static let exports = documents.appendingPathComponent("Exports", isDirectory: true)
     static let temp = FileManager.default.temporaryDirectory.appendingPathComponent("Signet", isDirectory: true)
 
     static func prepare() {

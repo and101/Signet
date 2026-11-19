@@ -22,6 +22,7 @@ struct SignView: View {
     @State private var existingDylibs: [String] = []
     @State private var removableItems: [Signer.RemovableItem] = []
     @State private var showEntitlementsPicker = false
+    @State private var exported: ExportedIPA?
     @State private var detection: InstalledApps.Detection?
     @State private var signing = false
     @State private var log = ActivityLog()
@@ -247,6 +248,20 @@ struct SignView: View {
                 Spacer()
                 Button("Done") { isEditing = false }
             }
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Button { Task { await exportUnsigned() } } label: {
+                        Label("Export Without Signing", systemImage: "square.and.arrow.up")
+                    }
+                } label: {
+                    Label("More", systemImage: "ellipsis.circle")
+                }
+                .disabled(signing)
+            }
+        }
+        .sheet(item: $exported) { file in
+            ExportedIPASheet(file: file)
+                .presentationDetents([.medium])
         }
         .bottomActionBar {
             // Hidden while typing so it can't cover the field being edited.
@@ -571,6 +586,25 @@ struct SignView: View {
         options.bundleID = suggestion ?? ""
     }
 
+    /// Applies the changes without signing, for signing the IPA somewhere else.
+    private func exportUnsigned() async {
+        signing = true
+        log.start()
+        defer { signing = false }
+        let options = options
+        let source = app
+        do {
+            let url = try await Signer.shared.exportModified(source, options: options) { line in
+                Task { @MainActor in log.append(line) }
+            }
+            log.finish(.succeeded, "Exported \(url.lastPathComponent)")
+            exported = ExportedIPA(url: url)
+        } catch {
+            log.finish(.failed, error.localizedDescription)
+            self.error = error.localizedDescription
+        }
+    }
+
     private func sign() async {
         guard let certificate else { return }
         signing = true
@@ -597,6 +631,36 @@ struct SignView: View {
         } catch {
             log.finish(.failed, error.localizedDescription)
             self.error = error.localizedDescription
+        }
+    }
+}
+
+struct ExportedIPA: Identifiable {
+    let url: URL
+    var id: URL { url }
+}
+
+/// Shown after exporting an unsigned IPA: where it is, and a way to send it on.
+private struct ExportedIPASheet: View {
+    let file: ExportedIPA
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 14) {
+                Image(systemName: "checkmark.circle.fill").font(.largeTitle).imageScale(.large).foregroundStyle(.green)
+                Text("Exported Without Signing").font(.headline)
+                Text(file.url.lastPathComponent).font(.callout.monospaced()).multilineTextAlignment(.center)
+                Text("Saved in Files → On My iPhone → Signet → Exports. Sign it with another tool before installing it.")
+                    .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                ShareLink(item: file.url) { Label("Share", systemImage: "square.and.arrow.up") }
+                    .buttonStyle(.borderedProminent)
+            }
+            .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { SheetCloseButton { dismiss() } }
+            }
         }
     }
 }

@@ -16,22 +16,56 @@ actor Signer {
         options: SigningOptions,
         log: @escaping @Sendable (String) -> Void
     ) throws -> LibraryApp {
+        try run(source, certificate: certificate, options: options, log: log)
+    }
+
+    /// Applies every change except signing and saves the IPA to Documents/Exports, for signing somewhere else.
+    /// Custom and merged entitlements need a signature, so they're skipped.
+    func exportModified(
+        _ source: LibraryApp,
+        options: SigningOptions,
+        log: @escaping @Sendable (String) -> Void
+    ) throws -> URL {
+        let fm = FileManager.default
+        let result = try run(source, certificate: nil, options: options, log: log)
+        defer { try? fm.removeItem(at: result.directory) }
+        try fm.createDirectory(at: Paths.exports, withIntermediateDirectories: true)
+        let safeName = result.name.replacingOccurrences(of: "/", with: "-")
+        var destination = Paths.exports.appendingPathComponent("\(safeName)_\(result.version)_unsigned.ipa")
+        var copy = 2
+        while fm.fileExists(atPath: destination.path) {
+            destination = Paths.exports.appendingPathComponent("\(safeName)_\(result.version)_unsigned \(copy).ipa")
+            copy += 1
+        }
+        try fm.moveItem(at: result.ipaURL, to: destination)
+        return destination
+    }
+
+    /// The pipeline. With no certificate it modifies the app but doesn't sign it.
+    private func run(
+        _ source: LibraryApp,
+        certificate: CertificateRecord?,
+        options: SigningOptions,
+        log: @escaping @Sendable (String) -> Void
+    ) throws -> LibraryApp {
         let fm = FileManager.default
         guard fm.fileExists(atPath: source.appURL.path) else {
             throw AppError("The original app files are missing. Re-import the IPA.")
         }
-        guard fm.fileExists(atPath: certificate.p12URL.path), fm.fileExists(atPath: certificate.profileURL.path) else {
-            throw AppError("The certificate files are missing. Re-import the certificate.")
+        if let certificate {
+            guard fm.fileExists(atPath: certificate.p12URL.path), fm.fileExists(atPath: certificate.profileURL.path) else {
+                throw AppError("The certificate files are missing. Re-import the certificate.")
+            }
         }
         let requestedID = options.bundleID.trimmingCharacters(in: .whitespacesAndNewlines)
         // With no bundle ID chosen, keep the app's own, moved into a wildcard profile's namespace if needed and
         // with the PPQ suffix for profiles that have Apple check apps at launch.
         let effectiveID = requestedID.isEmpty
-            ? (certificate.bundleID(for: source.bundleID, options: options) ?? source.bundleID)
+            ? (certificate?.bundleID(for: source.bundleID, options: options) ?? source.bundleID)
             : requestedID
         // zsign fails on a wildcard mismatch, so block those. Exact App IDs are applied as the profile's
         // entitlements while the app keeps the chosen bundle ID, matching Feather.
-        guard !certificate.rejects(bundleID: effectiveID) else {
+        if let certificate, certificate.rejects(bundleID: effectiveID) {
             throw AppError("The bundle ID must match your profile: \(certificate.bundleIDPattern).")
         }
 
@@ -41,8 +75,8 @@ actor Signer {
         result.dateAdded = Date()
         result.originalAppID = source.id
         result.originalBundleID = source.kind == .signed ? (source.originalBundleID ?? source.bundleID) : source.bundleID
-        result.certificateID = certificate.id
-        result.certificateName = certificate.nickname
+        result.certificateID = certificate?.id
+        result.certificateName = certificate?.nickname
 
         do {
             try fm.createDirectory(at: result.payloadURL, withIntermediateDirectories: true)
@@ -91,37 +125,44 @@ actor Signer {
 
             var entitlementsPath = ""
             var mergedFile = false
-            if let custom = options.entitlementsFile {
-                _ = try EntitlementsMerger.read(custom) // fail early with a clear message
-                log("Using custom entitlements from \(custom.lastPathComponent)…")
-                entitlementsPath = custom.path
-            } else if options.mergeEntitlements, let executable = AppImporter.mainExecutable(of: source.appURL) {
-                if let url = try mergedEntitlements(for: executable, certificate: certificate, into: result.directory) {
-                    log("Merging the app's entitlements…")
-                    entitlementsPath = url.path
-                    mergedFile = true
-                } else {
-                    log("The app has no entitlements to merge; using the profile's.")
+            if let certificate {
+                if let custom = options.entitlementsFile {
+                    _ = try EntitlementsMerger.read(custom) // fail early with a clear message
+                    log("Using custom entitlements from \(custom.lastPathComponent)…")
+                    entitlementsPath = custom.path
+                } else if options.mergeEntitlements, let executable = AppImporter.mainExecutable(of: source.appURL) {
+                    if let url = try mergedEntitlements(for: executable, certificate: certificate, into: result.directory) {
+                        log("Merging the app's entitlements…")
+                        entitlementsPath = url.path
+                        mergedFile = true
+                    } else {
+                        log("The app has no entitlements to merge; using the profile's.")
+                    }
                 }
-            }
 
-            try Self.replaceNestedProfiles(in: appURL, with: certificate.profileURL,
-                                           remove: options.removeProvisioningFile)
-            log("Signing with \(certificate.nickname)…")
-            let ok = Zsign.sign(
-                appPath: appURL.path,
-                provisionPath: certificate.profileURL.path,
-                p12Path: certificate.p12URL.path,
-                p12Password: certificate.password,
-                entitlementsPath: entitlementsPath,
-                // Empty keeps the app's own ID; otherwise zsign renames the app (and its extensions) to it.
-                customIdentifier: effectiveID == source.bundleID ? "" : effectiveID,
-                customName: options.appName.trimmingCharacters(in: .whitespaces),
-                customVersion: options.version.trimmingCharacters(in: .whitespaces),
-                removeProvision: options.removeProvisioningFile
-            )
-            guard ok else {
-                throw AppError("Signing failed. Check the certificate's password and that it isn't revoked.")
+                try Self.replaceNestedProfiles(in: appURL, with: certificate.profileURL,
+                                               remove: options.removeProvisioningFile)
+                log("Signing with \(certificate.nickname)…")
+                let ok = Zsign.sign(
+                    appPath: appURL.path,
+                    provisionPath: certificate.profileURL.path,
+                    p12Path: certificate.p12URL.path,
+                    p12Password: certificate.password,
+                    entitlementsPath: entitlementsPath,
+                    // Empty keeps the app's own ID; otherwise zsign renames the app (and its extensions) to it.
+                    customIdentifier: effectiveID == source.bundleID ? "" : effectiveID,
+                    customName: options.appName.trimmingCharacters(in: .whitespaces),
+                    customVersion: options.version.trimmingCharacters(in: .whitespaces),
+                    removeProvision: options.removeProvisioningFile
+                )
+                guard ok else {
+                    throw AppError("Signing failed. Check the certificate's password and that it isn't revoked.")
+                }
+            } else {
+                log("Applying changes without signing…")
+                try Self.applyIdentity(in: appURL, from: source.bundleID, to: effectiveID,
+                                       name: options.appName.trimmingCharacters(in: .whitespaces),
+                                       version: options.version.trimmingCharacters(in: .whitespaces))
             }
 
             let info = try BundleInfo(appURL: appURL)
@@ -145,13 +186,55 @@ actor Signer {
             )
             try fm.removeItem(at: result.payloadURL)
             if mergedFile { try? fm.removeItem(atPath: entitlementsPath) } // never the user's own file
-            result.signingOptionsData = try Self.remember(options, for: result)
+            if certificate != nil { result.signingOptionsData = try Self.remember(options, for: result) }
             result.size = fm.fileSize(at: result.ipaURL)
             log("Done — \(result.size.formattedBytes)")
             return result
         } catch {
             try? fm.removeItem(at: result.directory)
             throw error
+        }
+    }
+
+    // MARK: - Unsigned changes
+
+    /// What zsign does to Info.plist files when it signs: a new bundle ID for the app and, by prefix, its
+    /// extensions and Watch app; a new display name; a new version. Used when exporting without signing.
+    static func applyIdentity(in appURL: URL, from oldID: String, to newID: String, name: String, version: String) throws {
+        let fm = FileManager.default
+        func update(_ plistURL: URL, isMain: Bool) throws {
+            guard let plist = NSMutableDictionary(contentsOf: plistURL) else { return }
+            if newID != oldID {
+                func renamed(_ value: Any?) -> String? {
+                    guard let value = value as? String, value.hasPrefix(oldID) else { return nil }
+                    return newID + value.dropFirst(oldID.count)
+                }
+                if let id = renamed(plist["CFBundleIdentifier"]) { plist["CFBundleIdentifier"] = id }
+                if let id = renamed(plist["WKCompanionAppBundleIdentifier"]) { plist["WKCompanionAppBundleIdentifier"] = id }
+                if let ext = (plist["NSExtension"] as? NSDictionary)?.mutableCopy() as? NSMutableDictionary,
+                   let attributes = (ext["NSExtensionAttributes"] as? NSDictionary)?.mutableCopy() as? NSMutableDictionary,
+                   let id = renamed(attributes["WKAppBundleIdentifier"]) {
+                    attributes["WKAppBundleIdentifier"] = id
+                    ext["NSExtensionAttributes"] = attributes
+                    plist["NSExtension"] = ext
+                }
+            }
+            if isMain, !name.isEmpty {
+                plist["CFBundleDisplayName"] = name
+                plist["CFBundleName"] = name
+            }
+            if isMain, !version.isEmpty {
+                plist["CFBundleVersion"] = version
+                plist["CFBundleShortVersionString"] = version
+            }
+            guard plist.write(to: plistURL, atomically: true) else {
+                throw AppError("Couldn't write \(plistURL.deletingLastPathComponent().lastPathComponent)/Info.plist.")
+            }
+        }
+        try update(appURL.appendingPathComponent("Info.plist"), isMain: true)
+        guard let walker = fm.enumerator(at: appURL, includingPropertiesForKeys: nil) else { return }
+        for case let url as URL in walker where ["appex", "app"].contains(url.pathExtension) {
+            try update(url.appendingPathComponent("Info.plist"), isMain: false)
         }
     }
 
