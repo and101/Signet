@@ -188,32 +188,126 @@ struct SourceAppsView: View {
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
+    /// The source's own page (news, featured apps) when showing a single source and not searching.
+    private var repository: SourceRepository? {
+        guard search.isEmpty, let ids = sourceIDs, ids.count == 1, let id = ids.first else { return nil }
+        return store.repositories[id]
+    }
+
     var body: some View {
-        List(apps) { app in
-            NavigationLink {
-                SourceAppDetailView(app: app)
-            } label: {
-                HStack(spacing: 12) {
-                    RemoteIcon(url: app.iconURL, size: 48)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(app.name).lineLimit(1)
-                        Text(app.subtitle ?? app.developerName ?? app.bundleIdentifier ?? "")
-                            .font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
-                        if let version = app.latestVersion {
-                            Text(version).font(.footnote).foregroundStyle(.secondary)
-                        }
+        List {
+            if let repository {
+                if let about = repository.subtitle ?? repository.description {
+                    Section {
+                        Text(about).font(.callout).foregroundStyle(.secondary)
+                        if let website = repository.website { Link("Website", destination: website) }
                     }
-                    Spacer()
-                    GetButton(app: app)
+                }
+                if !repository.news.isEmpty {
+                    Section("News") {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            LazyHStack(spacing: 12) {
+                                ForEach(repository.news) { item in
+                                    NewsCard(item: item, app: repository.apps.first { $0.bundleIdentifier == item.appID },
+                                             fallbackTint: Color(hex: repository.tintColor))
+                                }
+                            }
+                            .padding(.horizontal)
+                            .scrollTargetLayout()
+                        }
+                        .scrollTargetBehavior(.viewAligned)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                    }
+                }
+                let featured = repository.featured
+                if !featured.isEmpty {
+                    Section("Featured") {
+                        ForEach(featured) { app in appRow(app) }
+                    }
                 }
             }
-            .hidesNavigationIndicator()
+            Section(repository == nil ? "" : "All Apps") {
+                ForEach(apps) { app in appRow(app) }
+            }
         }
+        .tint(repository.flatMap { Color(hex: $0.tintColor) } ?? .accentColor)
         .overlay {
             if apps.isEmpty { ContentUnavailableView.search(text: search) }
         }
         .searchable(text: $search)
         .navigationTitle(title)
+    }
+}
+
+extension SourceAppsView {
+    private func appRow(_ app: SourceApp) -> some View {
+        NavigationLink {
+            SourceAppDetailView(app: app)
+        } label: {
+            HStack(spacing: 12) {
+                RemoteIcon(url: app.iconURL, size: 48)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(app.name).lineLimit(1)
+                    Text(app.subtitle ?? app.developerName ?? app.bundleIdentifier ?? "")
+                        .font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
+                    if let version = app.latestVersion {
+                        Text(version).font(.footnote).foregroundStyle(.secondary)
+                    }
+                }
+                Spacer()
+                GetButton(app: app)
+            }
+        }
+        .hidesNavigationIndicator()
+    }
+}
+
+/// A source's news item: an image with its title, opening the app it's about or its link.
+private struct NewsCard: View {
+    let item: SourceNews
+    let app: SourceApp?
+    let fallbackTint: Color?
+    @Environment(\.openURL) private var openURL
+
+    private var tint: Color { Color(hex: item.tintColor) ?? fallbackTint ?? .accentColor }
+
+    var body: some View {
+        Group {
+            if let app {
+                NavigationLink { SourceAppDetailView(app: app) } label: { card }
+            } else if let url = item.url {
+                Button { openURL(url) } label: { card }
+            } else {
+                card
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var card: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if let image = item.imageURL {
+                AsyncImage(url: image) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    tint.opacity(0.3)
+                }
+                .frame(width: 280, height: 140)
+                .clipped()
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.title).font(.headline).foregroundStyle(.white).lineLimit(2)
+                if let caption = item.caption {
+                    Text(caption).font(.footnote).foregroundStyle(.white.opacity(0.85)).lineLimit(3)
+                }
+            }
+            .padding(12)
+            .frame(width: 280, alignment: .leading)
+            .frame(minHeight: 70, alignment: .topLeading)
+        }
+        .background(tint)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -241,6 +335,7 @@ struct GetButton: View {
 
 struct SourceAppDetailView: View {
     let app: SourceApp
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
         List {
@@ -252,6 +347,27 @@ struct SourceAppDetailView: View {
                         if let developer = app.developerName { Text(developer).foregroundStyle(.secondary) }
                         GetButton(app: app)
                     }
+                }
+            }
+            let screenshots = app.screenshotList(iPad: sizeClass == .regular)
+            if !screenshots.isEmpty {
+                Section("Screenshots") {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        LazyHStack(spacing: 10) {
+                            ForEach(screenshots, id: \.self) { url in
+                                AsyncImage(url: url) { image in
+                                    image.resizable().scaledToFit()
+                                } placeholder: {
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.quaternary)
+                                        .aspectRatio(9 / 19.5, contentMode: .fit)
+                                }
+                                .frame(height: 360)
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                 }
             }
             if let description = app.localizedDescription {
@@ -272,6 +388,7 @@ struct SourceAppDetailView: View {
         }
         .navigationTitle(app.name)
         .navigationBarTitleDisplayMode(.inline)
+        .tint(Color(hex: app.tintColor) ?? .accentColor)
     }
 }
 
