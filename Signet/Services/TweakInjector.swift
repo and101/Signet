@@ -98,7 +98,7 @@ struct TweakInjector {
 
         // Picked frameworks can contain links of their own; check before patching anything they point to.
         if let link = AppImporter.escapingSymlinks(in: appURL).first {
-            throw AppError("A tweak contains a link that points outside the app (\(link)), so it wasn't injected.")
+            throw AppError("A tweak has a link pointing outside the app (\(link)), so it wasn't injected.")
         }
         if options.fixSubstratePaths {
             for binary in plan.added { try rewritePaths(in: binary, extra: plan.rewrites) }
@@ -120,7 +120,7 @@ struct TweakInjector {
             do {
                 try MachO.addRPath(Self.mainRPath, to: executable)
             } catch {
-                log(String(localized: "Couldn't add a Frameworks run path to the app (\(error.localizedDescription)); tweaks may not load."))
+                log(String(localized: "Couldn't add a Frameworks run path (\(error.localizedDescription)). Tweaks may not load."))
             }
         }
 

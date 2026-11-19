@@ -59,7 +59,7 @@ struct BackupSection: View {
         } header: {
             Text("Backup")
         } footer: {
-            Text("Save certificates, sources, repos and settings to one file. Keep a copy outside Signet, like in iCloud Drive.")
+            Text("Saves certificates, sources, repos and settings to one file. Keep it somewhere safe, like iCloud Drive.")
         }
     }
 }

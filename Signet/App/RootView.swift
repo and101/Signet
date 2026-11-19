@@ -64,7 +64,7 @@ struct RootView: View {
             Button("Cancel", role: .cancel) { router.pendingCertificateRequest = nil }
         } message: {
             let destination = router.pendingCertificateRequest.map(CertificateSharing.destination(of:)) ?? ""
-            Text("An app is asking for \(certificates.defaultCertificate?.nickname ?? "your certificate") and its password, to be sent to \(destination). Anyone with them can sign apps as you, so only send it to apps you trust.")
+            Text("An app wants \(certificates.defaultCertificate?.nickname ?? "your certificate") and its password, sent to \(destination). Anyone with them can sign apps as you. Only send to apps you trust.")
         }
         .alert("Add This Certificate?", isPresented: Binding(
             get: { router.pendingIncomingCertificate != nil },
@@ -73,7 +73,7 @@ struct RootView: View {
             Button("Review") { router.addIncomingCertificate() }
             Button("Cancel", role: .cancel) { router.pendingIncomingCertificate = nil }
         } message: {
-            Text("A link sent a certificate and provisioning profile. You can check them before saving.")
+            Text("A link sent a certificate and profile. You can review them before saving.")
         }
         .alert(
             linkTitle(router.pendingLink),

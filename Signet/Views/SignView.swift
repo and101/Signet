@@ -109,7 +109,7 @@ struct SignView: View {
             } footer: {
                 if let previousSigning {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Using the settings from when you signed version \(previousSigning.version), so this installs over it.")
+                        Text("Using version \(previousSigning.version)'s settings, so this installs over it.")
                         Button("Use My Defaults Instead") { useDefaults() }
                             .font(.footnote)
                     }
@@ -138,7 +138,7 @@ struct SignView: View {
             } header: {
                 Text("Inject Tweaks")
             } footer: {
-                Text("To add a .framework, compress it in Files first. ElleKit is added when a tweak needs it.")
+                Text("Zip a .framework in Files before adding it. ElleKit is added when needed.")
             }
 
             if !existingDylibs.isEmpty {
@@ -190,7 +190,7 @@ struct SignView: View {
                 switch options.interfaceStyle {
                 case .unchanged: EmptyView()
                 case .classic: Text("Keeps the look from before iOS 26. Only affects apps built for iOS 26.")
-                case .liquidGlass: Text("Marks the app as built for iOS 26 so it uses Liquid Glass. Some apps look wrong or crash.")
+                case .liquidGlass: Text("Marks the app as built for iOS 26 so it gets Liquid Glass. Some apps may break.")
                 }
             }
 
@@ -221,13 +221,13 @@ struct SignView: View {
                 if options.entitlementsFile != nil {
                     let missing = ungrantedEntitlements
                     if missing.isEmpty {
-                        Text("Signs with this file instead of the profile's entitlements. Merge App Entitlements is ignored.")
+                        Text("Used instead of the profile's entitlements. Merge App Entitlements is ignored.")
                     } else {
                         Text("Your profile doesn't grant \(missing.joined(separator: ", ")), so iOS will refuse to install the app.")
                             .foregroundStyle(.orange)
                     }
                 } else {
-                    Text("Optional. By default the app gets your profile's entitlements, or merged ones if Merge App Entitlements is on.")
+                    Text("Optional. By default, apps get the profile's entitlements, or merged ones if that's on.")
                 }
             }
 
@@ -659,7 +659,7 @@ private struct ExportedIPASheet: View {
                 Image(systemName: "checkmark.circle.fill").font(.largeTitle).imageScale(.large).foregroundStyle(.green)
                 Text("Exported Without Signing").font(.headline)
                 Text(file.url.lastPathComponent).font(.callout.monospaced()).multilineTextAlignment(.center)
-                Text("Saved in Files → On My iPhone → Signet → Exports. Sign it with another tool before installing it.")
+                Text("Saved in Files → On My iPhone → Signet → Exports. Sign it elsewhere before installing.")
                     .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 ShareLink(item: file.url) { Label("Share", systemImage: "square.and.arrow.up") }
                     .buttonStyle(.borderedProminent)

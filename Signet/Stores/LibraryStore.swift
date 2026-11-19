@@ -56,7 +56,7 @@ final class LibraryStore {
         guard add(app) else {
             apps.removeAll { $0.id == app.id }
             try? FileManager.default.removeItem(at: app.directory)
-            throw AppError("Couldn't save the library list, so \(app.name) wasn't added. Free up some space and try again.")
+            throw AppError("Couldn't save the library, so \(app.name) wasn't added. Free up space and try again.")
         }
     }
 

@@ -42,8 +42,8 @@ struct SettingsView: View {
                     }
                 } footer: {
                     Text(installMethod == InstallMethod.direct.rawValue
-                         ? "Direct install doesn't need the certificate; it's used if you switch back to the install server."
-                         : "The certificate is a one-time setup needed to install apps.")
+                         ? "Not needed for direct install. Used if you switch back to the install server."
+                         : "A one-time setup needed to install apps.")
                 }
 
                 Section {
@@ -51,7 +51,7 @@ struct SettingsView: View {
                         Label { Text("Keep Running During Installs") } icon: { SettingsIcon("waveform", color: .orange) }
                     }
                 } footer: {
-                    Text("Plays silence while an app installs, so the install can finish with Signet in the background. It doesn't stop your music.")
+                    Text("Plays silence while installing so installs finish in the background. Your music keeps playing.")
                 }
 
                 BackupSection(flow: backup)
@@ -81,7 +81,7 @@ struct SettingsView: View {
                     Section {
                         Button("Delete Saved Library List", role: .destructive) { confirmDeleteIndex = true }
                     } footer: {
-                        Text("Your library list was damaged and a copy was saved. Until you delete it, Clean Up leaves unknown folders alone.")
+                        Text("Your library list was damaged and a copy was saved. Until you delete it, Clean Up keeps unknown folders.")
                     }
                 }
 
@@ -121,7 +121,7 @@ struct SettingsView: View {
     }
 
     private var storageFooter: String {
-        let base = String(localized: "Clears temporary files and leftovers. To free more space, delete old apps in Library.")
+        let base = String(localized: "Clears temporary files and leftovers. Delete old apps in Library to free more.")
         guard let cleanupResult else { return base }
         return cleanupResult + "\n\n" + base
     }
@@ -174,20 +174,20 @@ private struct DefaultOptionsView: View {
             Section {
                 SigningToggles(options: $options)
             } footer: {
-                Text("Used each time you sign. Changes on the Sign screen are saved here too.")
+                Text("Used each time you sign. Changes on the Sign screen are saved here.")
             }
             Section {
                 NavigationLink {
                     RenameRulesView(title: "Bundle ID Rules", rules: $options.bundleIDRules,
                                     matchPrompt: "com.example.app", replacementPrompt: "com.me.app",
-                                    footer: "When an app with this bundle ID is signed, Signet uses the new one. Rules don't apply when an app is signed with an earlier version's settings.")
+                                    footer: "Apps with this bundle ID are signed with the new one. Updates reusing earlier settings keep theirs.")
                 } label: {
                     LabeledContent("Bundle ID Rules", value: options.bundleIDRules.isEmpty ? "None" : "\(options.bundleIDRules.count)")
                 }
                 NavigationLink {
                     RenameRulesView(title: "Name Rules", rules: $options.nameRules,
                                     matchPrompt: "App name", replacementPrompt: "New name",
-                                    footer: "When an app with this name is signed, Signet renames it. Matching ignores upper and lower case.")
+                                    footer: "Apps with this name are renamed when signed. Case doesn't matter.")
                 } label: {
                     LabeledContent("Name Rules", value: options.nameRules.isEmpty ? "None" : "\(options.nameRules.count)")
                 }
@@ -257,7 +257,7 @@ struct InstallCertificateView: View {
                 }
                 Button("Create New Certificate", role: .destructive) { confirmReset = true }
             } footer: {
-                Text("This certificate only works for Signet on this iPhone. It can't be used for any website.")
+                Text("This certificate only works for Signet on this iPhone, never for websites.")
             }
 
             if let error {

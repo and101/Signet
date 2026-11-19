@@ -147,10 +147,10 @@ struct InstallProgressView: View {
         case .confirmingSelfUpdate(let name, let differentTeam):
             Image(systemName: "arrow.triangle.2.circlepath").font(.largeTitle).imageScale(.large).foregroundStyle(.tint)
             Text("Update to \(name)?").font(.headline)
-            Text("Signet will close while iOS installs the update. Open it again in a few seconds.")
+            Text("Signet will close while iOS installs it. Reopen it in a few seconds.")
                 .multilineTextAlignment(.center).font(.callout).foregroundStyle(.secondary)
             if differentTeam {
-                Text("This update is signed by a different team than this copy of Signet, so saved certificate passwords may not be readable afterwards. Back up first in Settings → Back Up.")
+                Text("This update is signed by a different team, so saved certificate passwords may be lost. Back up first in Settings → Back Up.")
                     .multilineTextAlignment(.center).font(.callout).foregroundStyle(.orange)
             }
             Button("Update Signet") { installer.confirmSelfUpdate() }
@@ -158,7 +158,7 @@ struct InstallProgressView: View {
         case .closingForUpdate:
             ProgressView().controlSize(.large)
             Text("Updating Signet").font(.headline)
-            Text("Signet is closing so iOS can finish. Open it again in a few seconds.")
+            Text("Signet is closing so iOS can finish. Reopen it in a few seconds.")
                 .multilineTextAlignment(.center).font(.callout).foregroundStyle(.secondary)
         }
     }

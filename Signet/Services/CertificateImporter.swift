@@ -111,7 +111,7 @@ enum CertificateImporter {
         guard status == errSecSuccess,
               let first = (items as? [[String: Any]])?.first,
               let identityRef = first[kSecImportItemIdentity as String] else {
-            throw AppError("Security framework could not read the p12 (\(status)).")
+            throw AppError("Couldn't read the .p12 (\(status)).")
         }
         let identity = identityRef as! SecIdentity
         var certificate: SecCertificate?

@@ -43,7 +43,7 @@ enum AppImporter {
         }
         let appURL = payload.appendingPathComponent(appFolder, isDirectory: true)
         if let link = escapingSymlinks(in: appURL).first {
-            throw AppError("This IPA contains a link that points outside the app (\(link)), so it wasn't imported.")
+            throw AppError("This IPA has a link pointing outside the app (\(link)), so it wasn't imported.")
         }
         let info = try BundleInfo(appURL: appURL)
 
@@ -157,7 +157,7 @@ enum AppImporter {
     /// CFBundleExecutable itself, so this has to hold for every nested bundle, not only for Signet's own lookups.
     static func validateForSigning(_ appURL: URL) throws {
         if let link = escapingSymlinks(in: appURL).first {
-            throw AppError("The app contains a link that points outside it (\(link)), so it can't be signed safely.")
+            throw AppError("The app has a link pointing outside it (\(link)), so it can't be signed safely.")
         }
         let fm = FileManager.default
         var bundles = [appURL]
@@ -171,7 +171,7 @@ enum AppImporter {
             guard let name = plist?["CFBundleExecutable"] as? String else { continue }
             guard file(named: name, in: bundle) != nil else {
                 let relative = bundle == appURL ? appURL.lastPathComponent : String(bundle.path.dropFirst(appURL.path.count + 1))
-                throw AppError("\(relative) names its executable \"\(name)\", which isn't inside it, so the app can't be signed safely.")
+                throw AppError("\(relative) points its executable outside itself (\"\(name)\"), so it can't be signed safely.")
             }
         }
     }

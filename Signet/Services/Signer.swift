@@ -138,7 +138,7 @@ actor Signer {
                         entitlementsPath = url.path
                         mergedFile = true
                     } else {
-                        log(String(localized: "The app has no entitlements to merge; using the profile's."))
+                        log(String(localized: "The app has no entitlements to merge. Using the profile's."))
                     }
                 }
 

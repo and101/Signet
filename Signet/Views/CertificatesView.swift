@@ -323,7 +323,7 @@ struct CertificateDetailView: View {
                         Label("Send to LiveContainer", systemImage: "square.and.arrow.up.on.square")
                     }
                 } footer: {
-                    Text("LiveContainer uses it to sign the apps it runs. Anyone with the certificate and password can sign apps as you.")
+                    Text("LiveContainer uses it to sign the apps it runs. Anyone with it can sign apps as you.")
                 }
 
                 Section {

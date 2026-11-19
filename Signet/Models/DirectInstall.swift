@@ -52,9 +52,9 @@ enum DirectInstall {
     static func importPairingFile(from url: URL) throws {
         guard DirectInstaller.isRemotePairingFile(url) else {
             if DirectInstaller.isLockdownPairingFile(url) {
-                throw AppError("That's an older lockdown pairing file, which current iOS doesn't accept over the network. Export the remote-pairing file from iloader instead (PairingFile_RemoteRP.plist).")
+                throw AppError("That's an older lockdown pairing file, which current iOS rejects. Export PairingFile_RemoteRP.plist from iloader instead.")
             }
-            throw AppError("That isn't a pairing file. Export the remote-pairing file from iloader.")
+            throw AppError("That isn't a pairing file. Export PairingFile_RemoteRP.plist from iloader.")
         }
         let data = try Data(contentsOf: url)
         try FileManager.default.createDirectory(at: pairingFileURL.deletingLastPathComponent(), withIntermediateDirectories: true)

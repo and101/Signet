@@ -39,9 +39,9 @@ struct InstallMethodView: View {
                 .labelsHidden()
             } footer: {
                 if method == InstallMethod.direct.rawValue {
-                    Text("Installs straight to this iPhone's installer, like a computer does. Faster and more reliable, with no install certificate. Needs a pairing file made once on a computer, and LocalDevVPN.")
+                    Text("Installs the way a computer does: faster, more reliable, and no install certificate. Needs LocalDevVPN and a pairing file made once on a computer.")
                 } else {
-                    Text("Serves the app from Signet and installs it over the air. Needs the install certificate from Settings.")
+                    Text("Installs over the air from Signet's own server. Needs the install certificate in Settings.")
                 }
             }
 
@@ -99,7 +99,7 @@ struct InstallMethodView: View {
                 Button("Remove Pairing File", role: .destructive) { confirmRemove = true }
             }
         } footer: {
-            Text("On a Mac or PC, install iloader, connect this iPhone with a cable and choose Manage Pairing File. Export the remote-pairing file (PairingFile_RemoteRP.plist), send it to this iPhone and import it here. Make a new one after updating or resetting the iPhone.")
+            Text("On a computer, connect this iPhone, open iloader and choose Manage Pairing File. Export PairingFile_RemoteRP.plist and import it here. Make a new one after an iOS update or reset.")
         }
     }
 
@@ -117,7 +117,7 @@ struct InstallMethodView: View {
             }
             Button("Check Again") { Task { await refreshVPN() } }
         } footer: {
-            Text("LocalDevVPN lets Signet reach this iPhone's installer. Install it from the App Store, connect it, and keep it on while installing. Wi-Fi needs to be on.")
+            Text("Lets Signet reach this iPhone's installer. Get it from the App Store and keep it connected while installing, with Wi-Fi on.")
         }
     }
 
@@ -139,7 +139,7 @@ struct InstallMethodView: View {
             if case .failed(let reason) = testResult {
                 Text(reason).foregroundStyle(.red)
             } else {
-                Text("Checks the pairing file and the VPN together. Installs use direct install once this works.")
+                Text("Checks the pairing file and VPN. Once it works, installs use direct install.")
             }
         }
     }

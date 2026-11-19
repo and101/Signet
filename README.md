@@ -43,7 +43,8 @@ Switching to a certificate with a different bundle ID makes iOS treat Signet as 
   when a tweak needs it.
 - **Install.** Install signed apps over the air from the phone, or directly through a pairing file (beta), or share
   the IPA.
-- **Sources.** Browse AltStore-compatible sources.
+- **Sources.** Browse AltStore-compatible sources. Signet's own source is added by default, so its updates appear in
+  the Library.
 - **GitHub releases.** Track a repo to see new IPAs, download them automatically, and set a bundle ID and
   certificate for its apps.
 - **Backup.** Save certificates, sources, repos and settings to one file. Certificate passwords are encrypted with
