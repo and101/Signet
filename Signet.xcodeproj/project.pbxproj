@@ -10,6 +10,7 @@
 		07547A4D763F5D74EADBF8F6 /* InstalledApps.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD77FFD51835080BE0CBB5D1 /* InstalledApps.swift */; };
 		0F6AB3C4C185DB9BC7F2B195 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 20AF128BC5072450153025AD /* ZIPFoundation */; };
 		10C8F3763423D8389295A27F /* ElleKit.zip in Resources */ = {isa = PBXBuildFile; fileRef = B504DC4C346ADBF6E0AA7A09 /* ElleKit.zip */; };
+		11392443788421F3C6F9DBCB /* ActivityLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8166ACC195C185F6EF5F046B /* ActivityLog.swift */; };
 		163ED458A192391AC6B4E93D /* SignetApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99B8AE239425932B7D1B6CFD /* SignetApp.swift */; };
 		188C32E2FCCBF6013C49ED5F /* SignView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D1BD62AE8584730490E140 /* SignView.swift */; };
 		1C89FA8A0E70EC856C3D1775 /* InstallManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79D5CB622C29F818A4BCF2B8 /* InstallManager.swift */; };
@@ -26,6 +27,7 @@
 		59490D9452EDCCBB16F412AF /* KeychainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A671260366594AE81BC9FF6C /* KeychainTests.swift */; };
 		65A626C2D1967D93063BEAE9 /* TweakInjector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEA7DD5D112B523E319FC0FA /* TweakInjector.swift */; };
 		670B1E205FC3A75AEACE3A83 /* Source.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3AD454BB0127FE1F43E845F /* Source.swift */; };
+		695828DB3C9E36DF9D2CD55F /* ActivityLogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BA9A4C53798C55795FCDCA /* ActivityLogTests.swift */; };
 		74A20C7ED24363A6A79D8CE5 /* SigningOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D0AD137C26ECF7070F15D9 /* SigningOptions.swift */; };
 		78F260958DE4E889B93FF14B /* X509 in Frameworks */ = {isa = PBXBuildFile; productRef = F6EE8A072E48015C81A4512D /* X509 */; };
 		7ADB72C38485251D3A1E872E /* Fixtures in Resources */ = {isa = PBXBuildFile; fileRef = B3828F398572870E570106D1 /* Fixtures */; };
@@ -88,6 +90,7 @@
 		02B5E5AA5C9BCA0BF5C2A1AF /* Paths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Paths.swift; sourceTree = "<group>"; };
 		06E674667AB2C3E3ADE88164 /* AppImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppImporter.swift; sourceTree = "<group>"; };
 		0A16CD9DCD04D27B2D110D43 /* BackupViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupViews.swift; sourceTree = "<group>"; };
+		11BA9A4C53798C55795FCDCA /* ActivityLogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityLogTests.swift; sourceTree = "<group>"; };
 		17F334D71B414618C7758430 /* SourceUpdatesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceUpdatesTests.swift; sourceTree = "<group>"; };
 		1869B439031756F054DAE63E /* Certificate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Certificate.swift; sourceTree = "<group>"; };
 		1B20DAA11E6393102E0D5107 /* LibraryApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryApp.swift; sourceTree = "<group>"; };
@@ -115,6 +118,7 @@
 		7D87FB44953AFD7C5CF0C984 /* ZsignMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZsignMappingTests.swift; sourceTree = "<group>"; };
 		7F9EA75E3B4C73F1FF9EAE05 /* InstallWatchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallWatchTests.swift; sourceTree = "<group>"; };
 		80E99E461133439B04A22C8A /* Signet.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Signet.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8166ACC195C185F6EF5F046B /* ActivityLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityLog.swift; sourceTree = "<group>"; };
 		89BBF3E483DBA61AC8B186C2 /* InstallServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallServer.swift; sourceTree = "<group>"; };
 		8A7318A2E4ABB0409FA10A9B /* EntitlementsMerger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntitlementsMerger.swift; sourceTree = "<group>"; };
 		915C559E3CB3B706AAFE9AEC /* Zsign */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Zsign; path = Vendor/Zsign; sourceTree = SOURCE_ROOT; };
@@ -170,6 +174,7 @@
 		007C04DA9CCA7D5369849DE3 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				8166ACC195C185F6EF5F046B /* ActivityLog.swift */,
 				0A16CD9DCD04D27B2D110D43 /* BackupViews.swift */,
 				A8BCF10D9D3DB5472A19ED4D /* CertificatesView.swift */,
 				B52EE5B717EFA86B0A446963 /* Components.swift */,
@@ -221,6 +226,7 @@
 		50021F037ECE27D2FB40FF16 /* SignetTests */ = {
 			isa = PBXGroup;
 			children = (
+				11BA9A4C53798C55795FCDCA /* ActivityLogTests.swift */,
 				43439FDD4FA6A48328482F63 /* AppPatchingTests.swift */,
 				23D14ABAC97E087BD623A707 /* BackupTests.swift */,
 				B3828F398572870E570106D1 /* Fixtures */,
@@ -436,6 +442,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				11392443788421F3C6F9DBCB /* ActivityLog.swift in Sources */,
 				20E2F7141296FA5A93E7FD54 /* AppImporter.swift in Sources */,
 				CE95A33BE2C3EBD0C10700C5 /* Backup.swift in Sources */,
 				B7F0BC8E1035ACB94661E4BD /* BackupViews.swift in Sources */,
@@ -481,6 +488,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				695828DB3C9E36DF9D2CD55F /* ActivityLogTests.swift in Sources */,
 				1E5D3CDDA65031FC7CB5149A /* AppPatchingTests.swift in Sources */,
 				C12D56DACCEC7554638CD1BF /* BackupTests.swift in Sources */,
 				88743095CECCDC313C13D595 /* GitHubReleasesTests.swift in Sources */,

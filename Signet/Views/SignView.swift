@@ -23,7 +23,7 @@ struct SignView: View {
     @State private var removableItems: [Signer.RemovableItem] = []
     @State private var detection: InstalledApps.Detection?
     @State private var signing = false
-    @State private var log: [String] = []
+    @State private var log = ActivityLog()
     @State private var error: String?
     @State private var signedApp: LibraryApp?
     /// The tracked GitHub repo whose signing defaults were applied, set once on first appearance.
@@ -49,9 +49,6 @@ struct SignView: View {
     var body: some View {
         ScrollViewReader { proxy in
             form
-                .onChange(of: log.count) { _, count in
-                    if count > 0 { proxy.scrollTo(count - 1, anchor: .bottom) }
-                }
                 .onChange(of: bundleIDRequirement != nil) { _, blocked in
                     // The row grows with its error; keep the value clear of the keyboard's Done button.
                     if blocked { withAnimation { proxy.scrollTo(bundleIDRow, anchor: .center) } }
@@ -195,11 +192,10 @@ struct SignView: View {
                 SigningToggles(options: $options)
             }
 
-            if !log.isEmpty {
-                Section("Log") {
-                    ForEach(Array(log.enumerated()), id: \.offset) { index, line in
-                        Text(line).font(.caption.monospaced()).id(index)
-                    }
+            if !log.isEmpty, !signing {
+                Section("Last Signing") {
+                    ActivityStatusRow(log: log)
+                    ActivityDetails(log: log)
                 }
             }
         }
@@ -213,17 +209,26 @@ struct SignView: View {
         .bottomActionBar {
             // Hidden while typing so it can't cover the field being edited.
             if !isEditing {
-                Button {
-                    Task { await sign() }
-                } label: {
-                    HStack(spacing: 8) {
-                        if signing { ProgressView() }
-                        Text(signing ? "Signing…" : "Sign")
+                VStack(spacing: 6) {
+                    Button {
+                        Task { await sign() }
+                    } label: {
+                        HStack(spacing: 8) {
+                            if signing { ProgressView() }
+                            Text(signing ? "Signing…" : "Sign")
+                        }
+                        .frame(maxWidth: .infinity)
                     }
-                    .frame(maxWidth: .infinity)
+                    .prominentAction()
+                    .disabled(signing || certificate == nil || bundleIDRequirement != nil)
+                    // The current step, in place, instead of a log growing at the bottom of the form.
+                    if signing, let step = log.latest {
+                        Text(step)
+                            .font(.footnote).foregroundStyle(.secondary).lineLimit(1)
+                            .contentTransition(.opacity)
+                            .animation(.default, value: step)
+                    }
                 }
-                .prominentAction()
-                .disabled(signing || certificate == nil || bundleIDRequirement != nil)
             }
         }
         .navigationTitle("Sign")
@@ -502,7 +507,7 @@ struct SignView: View {
     private func sign() async {
         guard let certificate else { return }
         signing = true
-        log = []
+        log.start()
         defer { signing = false }
 
         let options = options
@@ -511,6 +516,7 @@ struct SignView: View {
             let result = try await Signer.shared.sign(source, with: certificate, options: options) { line in
                 Task { @MainActor in log.append(line) }
             }
+            log.finish(.succeeded, "Signed \(result.name) \(result.version)")
             let saved = library.add(result)
             SigningOptions.defaults = options
             // Only remove the original once the signed copy is safely recorded.
@@ -522,6 +528,7 @@ struct SignView: View {
                 await installer.install(result)
             }
         } catch {
+            log.finish(.failed, error.localizedDescription)
             self.error = error.localizedDescription
         }
     }
