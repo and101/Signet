@@ -6,7 +6,7 @@ Sign, customise and install iOS apps right on your iPhone, with your own certifi
 
 ## Install
 
-Signet needs to be signed before it can sign anything, so the first install uses another tool. Requires iOS 17 or
+Signet needs to be signed before it can sign anything, so the first install uses another tool. It needs iOS 17 or
 later.
 
 - **From a sideloading app.** Add this source in AltStore, SideStore, Feather, Ksign or ESign, then install Signet:
@@ -22,10 +22,10 @@ later.
 
 ### Updates
 
-From 1.1, new versions appear in **Library → Updates**, since Signet's own source is added by default. Tap
-**Update**, sign it with the bundle ID Signet is installed with, and install it over the current Signet, which closes
-while it installs. Later updates reuse those settings. Or track `and101/Signet` in **Sources → + → Track GitHub
-Repo**, which fills in Signet's bundle ID for you.
+From 1.1, new versions appear in **Library → Updates** because Signet's own source is added by default. Tap
+**Update**, sign it with the bundle ID Signet is installed with, and install it over the current Signet. Signet closes
+while it installs, and later updates reuse the same settings. You can also track `and101/Signet` in **Sources → + →
+Track GitHub Repo**, which fills in Signet's bundle ID for you.
 
 Switching to a certificate with a different bundle ID makes iOS treat Signet as a new app. Back up first in
 **Settings → Back Up…** and restore in the new copy.
@@ -46,16 +46,16 @@ Switching to a certificate with a different bundle ID makes iOS treat Signet as 
   so they never match an App Store app.
 - **Tweaks.** Inject `.dylib`, `.deb` and zipped `.framework` files, into extensions too. Jailbreak paths are
   fixed and ElleKit is added when a tweak needs it.
-- **Install.** Over the air from the phone, or directly through a pairing file (beta). Signet keeps running in the
-  background and shows iOS's install progress. Or export the IPA, signed or unsigned.
-- **Sources.** Browse AltStore-compatible sources, with news, featured apps and screenshots. Signet's own source is
+- **Install.** Install over the air from the phone, or directly through a pairing file (beta). Signet keeps running
+  in the background and shows iOS's install progress. You can also export the IPA, signed or unsigned.
+- **Sources.** Browse AltStore sources, with news, featured apps and screenshots. Signet's own source is
   added by default, so its updates appear in the Library.
 - **GitHub releases.** Track a repo to see new IPAs, download them automatically, and set a bundle ID and
   certificate for its apps.
 - **Backup.** Save certificates, sources, repos and settings to one file. Certificate passwords are encrypted with
   a backup password.
-- **Links.** `signet://source?url=…` adds a source and `signet://install?url=…` downloads an IPA, after you
-  confirm.
+- **Links.** `signet://source?url=…` adds a source and `signet://install?url=…` downloads an IPA. Signet asks
+  first.
 
 Only sign apps you have the right to use, with certificates you own.
 
@@ -78,25 +78,24 @@ If installs fail:
 ## Direct install (beta)
 
 Direct install sends apps straight to the iPhone's installer, the way a computer does. It's faster, doesn't need the
-install certificate, and lets Signet update itself. Set it up in **Settings → Install Method → Direct**:
+install certificate and lets Signet update itself. Set it up in **Settings → Install Method → Direct**:
 
-1. **Pairing file.** On a Mac or PC, install [iloader](https://github.com/nab138/iloader/releases/latest), connect
-   the iPhone with a cable and choose **Manage Pairing File**. Export the remote-pairing file
-   (`PairingFile_RemoteRP.plist`), send it to the iPhone and import it in Signet. Make a new one after updating or
-   resetting the iPhone.
-2. **LocalDevVPN.** Install [LocalDevVPN](https://apps.apple.com/app/id6755608044) and connect it. Wi-Fi needs to be
-   on.
+1. **Pairing file.** On a computer, install [iloader](https://github.com/nab138/iloader/releases/latest), connect the
+   iPhone with a cable and choose **Manage Pairing File**. Export `PairingFile_RemoteRP.plist` and import it in
+   Signet. Make a new one after an iOS update or reset.
+2. **LocalDevVPN.** Install [LocalDevVPN](https://apps.apple.com/app/id6755608044) and keep it connected while
+   installing. Wi-Fi must be on.
 3. **Test Connection** in the same screen.
 
-If direct install can't connect, Signet offers to use the install server instead. When Signet installs an update of
-itself, it closes so iOS can replace it; open it again a few seconds later.
+If direct install can't connect, Signet offers the install server instead. When Signet updates itself, it closes so
+iOS can replace it. Open it again a few seconds later.
 
 ## Building
 
 Requires Xcode 26 and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
 
 ```sh
-./scripts/fetch-idevice.sh   # once: downloads the idevice library used by direct install
+./scripts/fetch-idevice.sh   # once, downloads the idevice library for direct install
 xcodegen generate
 open Signet.xcodeproj
 ```
@@ -111,21 +110,23 @@ xcodebuild test -project Signet.xcodeproj -scheme Signet -destination 'platform=
 ```
 
 **Translations.** All text is in `Signet/Resources/Localizable.xcstrings`. After changing text in the code, run
-`./scripts/sync-strings.sh` to update it (building in Xcode does the same), then add a language in Xcode's string
-catalog editor.
+`./scripts/sync-strings.sh` to update it. Building in Xcode does the same. Add languages in Xcode's string catalogue
+editor.
 
-**Releases.** Set the version in `project.yml` and run `./scripts/release.sh`. It builds an unsigned
-`build/Signet.ipa` and updates the source in `docs/`. Commit, push, then attach the IPA to a release:
+**Releases.** Set the version and build in `project.yml`, write `docs/release-notes/<version>.md` and run
+`./scripts/release.sh`. It builds an unsigned `build/Signet.ipa` and updates the source in `docs/`. Commit, push, then
+create the release:
 
 ```sh
-gh release create v<version> build/Signet.ipa --title "Signet <version>"
+gh release create v<version> build/Signet.ipa --title "Signet <version>" --notes-file docs/release-notes/<version>.md
 ```
 
 ## Licence
 
 Signet is released under the [MIT License](LICENSE). It includes
-[zsign](https://github.com/khcrysalis/Zsign-Package) (MIT, patches in `Vendor/Zsign/PATCHES.md`) and
-[ElleKit](https://github.com/tealbathingsuit/ellekit) (BSD-3-Clause) and
-[idevice](https://github.com/jkcoxson/idevice) (MIT), and uses OpenSSL, SwiftNIO,
-swift-certificates, ZIPFoundation and SWCompression under their own licences. **Settings → Acknowledgements** lists
-every component, including idevice's Rust dependencies (`scripts/make-acknowledgements.py` regenerates it).
+[zsign](https://github.com/khcrysalis/Zsign-Package) (MIT, with patches listed in `Vendor/Zsign/PATCHES.md`),
+[ElleKit](https://github.com/tealbathingsuit/ellekit) (BSD-3-Clause) and [idevice](https://github.com/jkcoxson/idevice)
+(MIT). It also uses OpenSSL, SwiftNIO, swift-certificates, ZIPFoundation and SWCompression under their own licences.
+
+**Settings → Acknowledgements** lists every component, including idevice's Rust dependencies.
+`scripts/make-acknowledgements.py` regenerates the list.
