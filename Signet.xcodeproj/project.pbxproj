@@ -60,6 +60,7 @@
 		AA57C3942804408F3D5EB279 /* Certificate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1869B439031756F054DAE63E /* Certificate.swift */; };
 		AC9374CBBD478B005C0D0C5F /* ServerCertificate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA84AA949F6ECE68E28875A /* ServerCertificate.swift */; };
 		B524C5C5CB9EDB46E723471A /* SourceUpdates.swift in Sources */ = {isa = PBXBuildFile; fileRef = A78D6D59B0C70D82414ADEFA /* SourceUpdates.swift */; };
+		B656218500E43C8D68172189 /* HardeningTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29254E315EEA01BE75DFE853 /* HardeningTests.swift */; };
 		B7F0BC8E1035ACB94661E4BD /* BackupViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A16CD9DCD04D27B2D110D43 /* BackupViews.swift */; };
 		BBAAE29F4A9EBE2973E2838D /* InstallServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89BBF3E483DBA61AC8B186C2 /* InstallServer.swift */; };
 		BEBA52C6B05825C81E3B0223 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DC8A76F85DE0CC08F85782C0 /* Assets.xcassets */; };
@@ -108,6 +109,7 @@
 		1E2A731FD2F3B7AC211895D2 /* Backup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Backup.swift; sourceTree = "<group>"; };
 		23D14ABAC97E087BD623A707 /* BackupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupTests.swift; sourceTree = "<group>"; };
 		26E2A630477415C73C593E7F /* InstalledAppsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledAppsTests.swift; sourceTree = "<group>"; };
+		29254E315EEA01BE75DFE853 /* HardeningTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardeningTests.swift; sourceTree = "<group>"; };
 		297D2A0C11CAAB9753BBD2A5 /* CertificateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CertificateStore.swift; sourceTree = "<group>"; };
 		2B8B5F747D0B8B6E798D4D55 /* MachO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MachO.swift; sourceTree = "<group>"; };
 		2DDA74E1437D8EDEF4867E7E /* SigningPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SigningPipelineTests.swift; sourceTree = "<group>"; };
@@ -268,6 +270,7 @@
 				A948BF8525EE414FBE9D516B /* DirectInstallTests.swift */,
 				B3828F398572870E570106D1 /* Fixtures */,
 				DAF5608369595D271FEB3CA5 /* GitHubReleasesTests.swift */,
+				29254E315EEA01BE75DFE853 /* HardeningTests.swift */,
 				26E2A630477415C73C593E7F /* InstalledAppsTests.swift */,
 				4A79448263806321D0FC596E /* InstallServerTests.swift */,
 				7F9EA75E3B4C73F1FF9EAE05 /* InstallWatchTests.swift */,
@@ -542,6 +545,7 @@
 				23741567B9F18568C9A90472 /* CertificateSharingTests.swift in Sources */,
 				48ED82C15208FC428CA4598C /* DirectInstallTests.swift in Sources */,
 				88743095CECCDC313C13D595 /* GitHubReleasesTests.swift in Sources */,
+				B656218500E43C8D68172189 /* HardeningTests.swift in Sources */,
 				E3DF5AFBD51051E649723E6E /* InstallServerTests.swift in Sources */,
 				49CF34597B2A2941EE015160 /* InstallWatchTests.swift in Sources */,
 				ED1096787E75BD812E743E99 /* InstalledAppsTests.swift in Sources */,

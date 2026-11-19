@@ -187,7 +187,11 @@ enum Backup {
                 guard let destination = safeDestination(for: entry.path, in: folder) else { continue }
                 try FileManager.default.createDirectory(at: destination.deletingLastPathComponent(),
                                                         withIntermediateDirectories: true)
-                _ = try archive.extract(entry, to: destination)
+                let checksum = try archive.extract(entry, to: destination)
+                // ZIPFoundation leaves the comparison to the caller; a damaged file would otherwise restore as if fine.
+                guard checksum == entry.checksum else {
+                    throw AppError("The backup is damaged (\(entry.path) doesn't match its checksum).")
+                }
             }
         } catch {
             try? FileManager.default.removeItem(at: folder)
@@ -247,7 +251,7 @@ enum Backup {
         summary.sources = sources.restore(backup.manifest.sources.compactMap(\.value))
         summary.repos = github.restore(backup.manifest.repos.compactMap(\.value))
         if let data = backup.manifest.signingDefaults {
-            SigningOptions.defaults = SigningOptions.decodeDefaults(from: data)
+            SigningOptions.defaults = mergedDefaults(current: SigningOptions.defaults, backup: SigningOptions.decodeDefaults(from: data))
         }
 
         for app in backup.library where library.app(app.id) == nil {
@@ -257,7 +261,7 @@ enum Backup {
                 try? fm.removeItem(at: app.directory)
                 try fm.createDirectory(at: Paths.library, withIntermediateDirectories: true)
                 try fm.moveItem(at: source, to: app.directory)
-                library.add(app)
+                try library.addOrRemove(app)
                 summary.apps += 1
             } catch {
                 summary.skipped.append("\(app.name) (\(error.localizedDescription))")
@@ -265,6 +269,22 @@ enum Backup {
         }
         backup.discard()
         return summary
+    }
+
+    /// Restoring keeps what's already here: a backup's signing defaults are used only if the current ones were never
+    /// changed (a fresh install, where they also bring back the PPQ suffix older apps were signed with). Rename
+    /// rules from both are kept.
+    static func mergedDefaults(current: SigningOptions, backup: SigningOptions) -> SigningOptions {
+        var fresh = SigningOptions()
+        fresh.ppqSuffix = current.ppqSuffix
+        let unchanged = (try? JSONEncoder().encode(current.asDefaults)) == (try? JSONEncoder().encode(fresh.asDefaults))
+        var result = unchanged ? backup : current
+        func union(_ mine: [SigningOptions.RenameRule], _ theirs: [SigningOptions.RenameRule]) -> [SigningOptions.RenameRule] {
+            mine + theirs.filter { rule in !mine.contains { $0.match == rule.match } }
+        }
+        result.bundleIDRules = union(current.bundleIDRules, backup.bundleIDRules)
+        result.nameRules = union(current.nameRules, backup.nameRules)
+        return result
     }
 
     // MARK: - Encryption

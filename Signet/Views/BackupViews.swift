@@ -155,9 +155,8 @@ struct BackupExportView: View {
     @State private var showMover = false
     @State private var error: String?
 
-    private var librarySize: Int64 {
-        library.apps.reduce(0) { $0 + FileManager.default.directorySize(at: $1.directory) }
-    }
+    /// Measured off the main thread when the form opens; walking a big library would stall typing.
+    @State private var librarySize: Int64?
 
     private var canCreate: Bool { !password.isEmpty && password == confirmation && !creating }
 
@@ -170,7 +169,7 @@ struct BackupExportView: View {
                     LabeledText("GitHub Repos", "\(github.repos.count)")
                     Toggle(isOn: $includeLibrary) {
                         Text("Include Library")
-                        Text("\(library.apps.count) apps · \(librarySize.formattedBytes)")
+                        Text("\(library.apps.count) apps · \(librarySize?.formattedBytes ?? "…")")
                     }
                 } footer: {
                     Text("Settings are always included. Apps can make the backup large.")
@@ -216,12 +215,28 @@ struct BackupExportView: View {
                 Text(error ?? "")
             }
             .interactiveDismissDisabled(creating)
+            .task {
+                let directories = library.apps.map(\.directory)
+                librarySize = await Task.detached(priority: .utility) {
+                    directories.reduce(0) { $0 + FileManager.default.directorySize(at: $1) }
+                }.value
+            }
         }
     }
 
     private func create() async {
         creating = true
         defer { creating = false }
+        // The backup holds every certificate and its password, readable with the password typed here, so whoever
+        // makes it must be able to unlock this iPhone.
+        if !certificates.certificates.isEmpty {
+            do {
+                try await CertificateSharing.authenticate(reason: "Back up your certificates and their passwords")
+            } catch {
+                self.error = error.localizedDescription
+                return
+            }
+        }
         let contents = Backup.Contents(
             certificates: certificates.certificates,
             defaultCertificateID: certificates.defaultID,

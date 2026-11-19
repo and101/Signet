@@ -46,8 +46,18 @@ final class LibraryStore {
         let app = try await Task.detached(priority: .userInitiated) {
             try AppImporter.importIPA(at: url, sourceURL: sourceURL)
         }.value
-        add(app)
+        try addOrRemove(app)
         return app
+    }
+
+    /// Adds an app, or, if the library list can't be saved, takes it back out and deletes its folder, so it doesn't
+    /// look imported now and vanish (or get cleaned up as untracked) after a relaunch.
+    func addOrRemove(_ app: LibraryApp) throws {
+        guard add(app) else {
+            apps.removeAll { $0.id == app.id }
+            try? FileManager.default.removeItem(at: app.directory)
+            throw AppError("Couldn't save the library list, so \(app.name) wasn't added. Free up some space and try again.")
+        }
     }
 
     /// Adds an app and saves the index. Returns false if the index couldn't be saved.

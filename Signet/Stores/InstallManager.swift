@@ -32,6 +32,10 @@ final class InstallManager {
     private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
     private var watchdog: Task<Void, Never>?
     private var progressWatch: Task<Void, Never>?
+    /// Fails a server transfer that stops partway; iOS doesn't say when it gives up on a download.
+    private var transferWatch: Task<Void, Never>?
+    private var lastTransferProgress = Date()
+    static let transferStallTimeout: TimeInterval = 60
     /// The bundle ID of the app last installed, for the Open button.
     private(set) var installedBundleID: String?
     /// The build iOS had installed under this bundle ID before the install; see `InstallWatch.confirmed`.
@@ -126,6 +130,8 @@ final class InstallManager {
         pendingSelfUpdateApp = nil
         watchdog?.cancel()
         progressWatch?.cancel()
+        transferWatch?.cancel()
+        transferWatch = nil
         endBackgroundTask()
     }
 
@@ -150,6 +156,8 @@ final class InstallManager {
             switch state {
             case .waiting, .manifestServed, .transferring:
                 state = .transferring(appName: name, progress: Double(sent) / Double(max(total, 1)))
+                lastTransferProgress = Date()
+                watchTransfer(token: token, appName: name)
             default:
                 break
             }
@@ -192,7 +200,26 @@ final class InstallManager {
     private func finish(_ final: State) {
         state = final
         progressWatch?.cancel()
+        transferWatch?.cancel()
+        transferWatch = nil
         endBackgroundTask()
+    }
+
+    /// Started on the first progress report; fails the install if the transfer then stalls.
+    private func watchTransfer(token: String, appName: String) {
+        guard transferWatch == nil else { return }
+        transferWatch = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(5))
+                guard let self, !Task.isCancelled, self.token == token else { return }
+                guard case .transferring = self.state else { break }
+                if Date().timeIntervalSince(self.lastTransferProgress) > Self.transferStallTimeout {
+                    self.fail(String(localized: "The download to iOS stopped partway. Try again with Signet kept open, or check Settings → Keep Running During Installs."))
+                    return
+                }
+            }
+            self?.transferWatch = nil
+        }
     }
 
     /// Turns a silent failure into an explanation instead of an endless spinner.
@@ -227,6 +254,8 @@ final class InstallManager {
         state = .failed(message)
         watchdog?.cancel()
         progressWatch?.cancel()
+        transferWatch?.cancel()
+        transferWatch = nil
         endBackgroundTask()
     }
 
@@ -299,6 +328,8 @@ extension InstallManager {
             Task { @MainActor in self.directLog.append(line) }
         }
         var remote: String?
+        Self.runningDirectInstalls += 1
+        defer { Self.runningDirectInstalls -= 1 }
         do {
             guard let port = await Self.resolvePort() else {
                 throw DirectInstaller.Failure(stage: .connect, message:
@@ -307,7 +338,7 @@ extension InstallManager {
             let version = try await installer.connect(port: port, timeout: DirectInstaller.connectTimeout)
             guard self.token == token else { return }
             directLog.append("Connected to iOS \(version)")
-            await Self.removeLeftovers(with: installer)
+            await Self.removeLeftovers(with: installer, ownInstalls: 1)
 
             phase = nil
             state = .transferring(appName: app.name, progress: 0)
@@ -426,11 +457,23 @@ extension InstallManager {
     }
 
     /// Deletes IPAs earlier installs left on the iPhone: the recorded ones, plus any found in the staging folder.
-    private static func removeLeftovers(with installer: DirectInstaller) async {
-        let found = (try? await Task.detached(operation: { try installer.listStaged() }).value) ?? []
-        let leftovers = Array(Set(DirectInstall.stagedPaths + found))
-        guard !leftovers.isEmpty else { return }
-        await removeStaged(leftovers, with: installer)
+    /// Direct installs whose work is still running, including ones whose sheet was closed. Their uploads are in
+    /// the staging folder and mustn't be cleaned up as leftovers.
+    private static var runningDirectInstalls = 0
+
+    /// Deletes IPAs earlier installs left on the iPhone, unless another direct install is still running.
+    /// - Parameter ownInstalls: running installs that belong to the caller (1 when called from an install).
+    private static func removeLeftovers(with installer: DirectInstaller, ownInstalls: Int = 0) async {
+        guard runningDirectInstalls <= ownInstalls else { return }
+        let recorded = DirectInstall.stagedPaths
+        guard let found = try? await Task.detached(operation: { try installer.listStaged() }).value else {
+            if !recorded.isEmpty { await removeStaged(recorded, with: installer) }
+            return
+        }
+        // Recorded files that are no longer there were removed by iOS; forget them.
+        DirectInstall.stagedPaths.removeAll { !found.contains($0) }
+        guard !found.isEmpty else { return }
+        await removeStaged(found, with: installer)
     }
 
     private static func removeStaged(_ paths: [String], with installer: DirectInstaller) async {

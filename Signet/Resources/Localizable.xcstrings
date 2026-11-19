@@ -406,6 +406,9 @@
     "Couldn't Verify" : {
 
     },
+    "Couldn't add a Frameworks run path to the app (%@); tweaks may not load." : {
+
+    },
     "Couldn't create the backup's encryption key." : {
 
     },
@@ -466,6 +469,9 @@
 
     },
     "Couldn't read the provisioning profile." : {
+
+    },
+    "Couldn't save the library list, so %@ wasn't added. Free up some space and try again." : {
 
     },
     "Couldn't save the password to the keychain (%d)." : {
@@ -1358,6 +1364,9 @@
     "The app is missing its Info.plist." : {
 
     },
+    "The backup is damaged (%@ doesn't match its checksum)." : {
+
+    },
     "The backup is damaged." : {
 
     },
@@ -1368,6 +1377,9 @@
 
     },
     "The certificate is a one-time setup needed to install apps." : {
+
+    },
+    "The download to iOS stopped partway. Try again with Signet kept open, or check Settings → Keep Running During Installs." : {
 
     },
     "The installed app uses this bundle ID" : {

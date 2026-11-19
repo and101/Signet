@@ -100,6 +100,12 @@ struct TweakInjector {
             for binary in plan.added { try rewritePaths(in: binary, extra: plan.rewrites) }
         }
 
+        // Tweaks are copied into Frameworks and loaded by @rpath; apps that embed no frameworks may not search there.
+        do {
+            try MachO.addRPath(Self.mainRPath, to: executable)
+        } catch {
+            log(String(localized: "Couldn't add a Frameworks run path to the app (\(error.localizedDescription)); tweaks may not load."))
+        }
         for (binary, loadPath) in plan.injected {
             log(String(localized: "Injecting \(binary.lastPathComponent)…"))
             guard Zsign.injectDyLib(appExecutable: executable.path, with: loadPath, weak: options.weakInject) else {
@@ -140,8 +146,9 @@ struct TweakInjector {
         try fm.replaceItem(at: destination, withCopyOf: file)
         let binaryName = Bundle(url: destination)?.object(forInfoDictionaryKey: "CFBundleExecutable") as? String
             ?? file.deletingPathExtension().lastPathComponent
-        let binary = destination.appendingPathComponent(binaryName)
-        guard fm.fileExists(atPath: binary.path) else { throw AppError("\(name) has no executable.") }
+        guard let binary = AppImporter.file(named: binaryName, in: destination), fm.fileExists(atPath: binary.path) else {
+            throw AppError("\(name) has no executable.")
+        }
         if inject { plan.injected.append((binary, "@rpath/\(name)/\(binaryName)")) }
         plan.added.append(binary)
     }
@@ -186,6 +193,7 @@ struct TweakInjector {
     }
 
     static let extensionRPath = "@executable_path/../../Frameworks"
+    static let mainRPath = "@executable_path/Frameworks"
 
     /// Main executables of the app's extensions (PlugIns and Extensions).
     func extensionExecutables() -> [URL] {

@@ -267,7 +267,8 @@ actor Signer {
         // Rules live in Settings; a stale copy here would bring back deleted rules or drop new ones.
         stored.bundleIDRules = []
         stored.nameRules = []
-        stored.injectFiles = []
+        // Only the names, in the order they were injected; the files themselves are in the Tweaks folder.
+        stored.injectFiles = options.injectFiles.map { URL(fileURLWithPath: $0.lastPathComponent) }
         return try JSONEncoder().encode(stored)
     }
 

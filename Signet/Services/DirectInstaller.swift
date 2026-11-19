@@ -172,14 +172,19 @@ final class DirectInstaller {
     /// `connect(port:)` with a time limit. A timed-out attempt is abandoned (idevice calls can't be cancelled), and
     /// this installer shouldn't be used afterwards.
     func connect(port: UInt16, timeout: TimeInterval = DirectInstaller.connectTimeout) async throws -> String {
-        try await withThrowingTaskGroup(of: String.self) { group in
-            group.addTask { try await Task.detached { try self.connect(port: port) }.value }
-            group.addTask {
-                try await Task.sleep(for: .seconds(timeout))
-                throw Failure(stage: .tunnel, message: String(localized: "This iPhone didn't answer within \(Int(timeout)) seconds"))
+        // Not a task group: it would wait for the blocked call before returning. Whichever finishes first wins and
+        // the other is ignored; a stuck call keeps its thread, which is the price of not being able to cancel it.
+        try await withCheckedThrowingContinuation { continuation in
+            let once = Once()
+            DispatchQueue.global(qos: .userInitiated).async {
+                let result = Result { try self.connect(port: port) }
+                if once.claim() { continuation.resume(with: result) }
             }
-            defer { group.cancelAll() }
-            return try await group.next()!
+            DispatchQueue.global().asyncAfter(deadline: .now() + timeout) {
+                guard once.claim() else { return }
+                continuation.resume(throwing: Failure(stage: .tunnel,
+                                                      message: String(localized: "This iPhone didn't answer within \(Int(timeout)) seconds")))
+            }
         }
     }
 
@@ -225,6 +230,7 @@ final class DirectInstaller {
     }
 
     /// Signet's IPAs left in the staging folder, including ones from earlier versions that didn't record them.
+    /// Throws if the iPhone can't be reached; an empty list means there are none.
     func listStaged() throws -> [String] {
         let afc = try connectAFC()
         defer { afc_client_free(afc) }
@@ -247,17 +253,23 @@ final class DirectInstaller {
             .map { "\(Self.stagingFolder)/\($0)" }
     }
 
-    /// Deletes staged IPAs (each is as big as its app). Returns the paths that are gone, including ones iOS
-    /// already removed. Only Signet's own files are touched.
+    /// Deletes staged IPAs (each is as big as its app). Returns the paths it deleted; failures stay recorded so a
+    /// later cleanup can retry. Only Signet's own files are touched.
     func removeStaged(_ paths: [String]) throws -> [String] {
         let ours = paths.filter { $0.hasPrefix("\(Self.stagingFolder)/\(Self.stagedPrefix)") }
         guard !ours.isEmpty else { return [] }
         let afc = try connectAFC()
         defer { afc_client_free(afc) }
+        var removed: [String] = []
         for path in ours {
-            if let error = afc_remove_path(afc, path) { idevice_error_free(error) } // already gone is fine
+            if let error = afc_remove_path(afc, path) {
+                log("Couldn't delete \(path) from the iPhone: code \(error.pointee.code)")
+                idevice_error_free(error)
+            } else {
+                removed.append(path)
+            }
         }
-        return ours
+        return removed
     }
 
     // MARK: - Installing

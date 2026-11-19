@@ -268,6 +268,8 @@ final class AppPatchingTests: XCTestCase {
             XCTAssertTrue(Zsign.checkSigned(appExecutable: executable.path), path)
         }
         XCTAssertTrue(try MachO.linkedDylibs(of: app.appendingPathComponent("Fixture")).contains("@rpath/FixtureTweak.dylib"))
+        XCTAssertTrue(try MachO.rpaths(of: app.appendingPathComponent("Fixture")).contains("@executable_path/Frameworks"),
+                      "the app can find tweaks copied into Frameworks")
     }
 
     func testExtensionsUntouchedByDefault() async throws {
@@ -490,5 +492,22 @@ final class AppPatchingTests: XCTestCase {
         XCTAssertEqual(id(""), "com.me")
         XCTAssertEqual(id("PlugIns/Widget.appex"), "com.me.widget")
         XCTAssertEqual(id("PlugIns/Other.appex"), "com.foobar.ext", "a longer ID that only starts the same is left alone")
+    }
+
+    func testRememberedTweaksKeepTheirOrder() throws {
+        let fm = FileManager.default
+        let folder = try Paths.newTempDirectory()
+        defer { Paths.removeIfTemporary(folder) }
+        let zebra = folder.appendingPathComponent("Zebra.dylib"), apple = folder.appendingPathComponent("Apple.dylib")
+        try fm.copyItem(at: fixture("FixtureTweak.dylib"), to: zebra)
+        try fm.copyItem(at: fixture("FixtureTweak.dylib"), to: apple)
+        var app = LibraryApp(kind: .signed, name: "A", bundleID: "com.a", version: "1", build: "1", appFolderName: "A.app", size: 0)
+        try fm.createDirectory(at: app.directory, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: app.directory) }
+        var options = SigningOptions()
+        options.injectFiles = [zebra, apple]
+        app.signingOptionsData = try Signer.remember(options, for: app)
+        let decoded = try JSONDecoder().decode(LibraryApp.self, from: JSONEncoder().encode(app))
+        XCTAssertEqual(decoded.rememberedOptions?.injectFiles.map(\.lastPathComponent), ["Zebra.dylib", "Apple.dylib"])
     }
 }

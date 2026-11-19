@@ -72,7 +72,7 @@ enum DebPackage {
             var member = field(0, 16)
             var body = cursor + 60
             var bodySize = size
-            if member.hasPrefix("#1/"), let nameLength = Int(member.dropFirst(3)), nameLength <= size {
+            if member.hasPrefix("#1/"), let nameLength = Int(member.dropFirst(3)), nameLength >= 0, nameLength <= size {
                 // BSD ar stores long names at the start of the member data.
                 let raw = archive[body..<(body + nameLength)].prefix { $0 != 0 }
                 member = String(decoding: raw, as: UTF8.self)

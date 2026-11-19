@@ -24,6 +24,8 @@ enum MachO {
         let cpuSubtype: UInt32
         /// File offset of this slice's `fat_arch` record; nil for thin files.
         let fatRecord: Int?
+        /// The slice's length; load commands must fit inside it, so a patch can't spill into the next slice.
+        var size: Int = .max
     }
 
     static func isMachO(_ url: URL) -> Bool {
@@ -234,6 +236,7 @@ enum MachO {
               let signature = try loadCommands(of: file, slice: slice).first(where: { $0.type == lcCodeSignature }) else {
             return nil
         }
+        guard signature.data.count >= 16 else { return nil } // linkedit_data_command: cmd, size, offset, length
         let blob = try file.read(at: slice.offset + Int(signature.data.u32(8)), count: Int(signature.data.u32(12)))
         guard blob.count >= 12, blob.u32(0, bigEndian: true) == 0xfade_0cc0 else { return nil }
         let count = Int(blob.u32(8, bigEndian: true))
@@ -268,14 +271,16 @@ enum MachO {
             guard count > 0, count < 32, 8 + count * recordSize <= file.size else { return [] }
             return try (0..<count).compactMap { index in
                 let record = 8 + index * recordSize
-                let offset = is64 ? Int(try file.u64(record + 8, bigEndian: true)) : Int(try file.u32(record + 8, bigEndian: true))
-                guard offset > 0, offset + headerSize <= file.size else { return nil }
+                // Offsets and sizes come from the file; anything that doesn't fit in it is skipped, not trusted.
+                guard let offset = is64 ? Int(exactly: try file.u64(record + 8, bigEndian: true)) : Int(try file.u32(record + 8, bigEndian: true)),
+                      let size = is64 ? Int(exactly: try file.u64(record + 16, bigEndian: true)) : Int(try file.u32(record + 12, bigEndian: true)),
+                      offset > 0, size >= headerSize, offset <= file.size - size else { return nil }
                 return Slice(offset: offset, cpuType: try file.u32(record, bigEndian: true),
-                             cpuSubtype: try file.u32(record + 4, bigEndian: true), fatRecord: record)
+                             cpuSubtype: try file.u32(record + 4, bigEndian: true), fatRecord: record, size: size)
             }
         }
         guard try file.u32(0) == magic64, file.size >= headerSize else { return [] }
-        return [Slice(offset: 0, cpuType: try file.u32(4), cpuSubtype: try file.u32(8), fatRecord: nil)]
+        return [Slice(offset: 0, cpuType: try file.u32(4), cpuSubtype: try file.u32(8), fatRecord: nil, size: file.size)]
     }
 
     /// arm64 is what third-party processes run; fall back to any arm64 slice, then the first.
@@ -289,6 +294,7 @@ enum MachO {
         guard try file.u32(slice.offset) == magic64 else { return [] }
         let count = Int(try file.u32(slice.offset + 16))
         let size = Int(try file.u32(slice.offset + 20))
+        guard headerSize + size <= slice.size else { throw AppError("Malformed Mach-O load commands.") }
         let region = try file.read(at: slice.offset + headerSize, count: size)
         guard region.count == size else { throw AppError("Truncated Mach-O header.") }
         var commands: [LoadCommand] = []

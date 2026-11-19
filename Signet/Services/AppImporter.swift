@@ -119,6 +119,15 @@ enum AppImporter {
     static func mainExecutable(of appURL: URL) -> URL? {
         let plist = NSDictionary(contentsOf: appURL.appendingPathComponent("Info.plist")) as? [String: Any]
         guard let name = plist?["CFBundleExecutable"] as? String else { return nil }
-        return appURL.appendingPathComponent(name)
+        return file(named: name, in: appURL)
+    }
+
+    /// A file directly inside a bundle. Names come from the bundle's Info.plist, which an IPA controls, so
+    /// anything with a path in it ("../../x") is refused rather than patched outside the app.
+    static func file(named name: String, in bundle: URL) -> URL? {
+        guard !name.isEmpty, !name.contains("/"), name != ".", name != ".." else { return nil }
+        let url = bundle.appendingPathComponent(name).standardizedFileURL
+        guard url.deletingLastPathComponent().path == bundle.standardizedFileURL.path else { return nil }
+        return url
     }
 }
