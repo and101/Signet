@@ -7,7 +7,8 @@ import IDevice
 /// back to the device) with a remote-pairing file made once on a computer (iloader).
 ///
 /// Every call into idevice blocks, so use an instance off the main thread, and from one task at a time.
-final class DirectInstaller {
+// Unchecked: one task uses an instance at a time; the timeout only hands it to a worker thread and stops using it.
+final class DirectInstaller: @unchecked Sendable {
     struct Failure: LocalizedError {
         /// `tunnel`: the device answered but wouldn't open the tunnel, usually an expired pairing file.
         enum Stage { case pairingFile, connect, tunnel, upload, install }
