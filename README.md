@@ -17,7 +17,7 @@ later.
 
 - **From a computer.** Download `Signet.ipa` from the [latest release](https://github.com/and101/Signet/releases/latest)
   and install it with [Sideloadly](https://sideloadly.io) or [AltStore](https://altstore.io). With a free Apple ID
-  the app expires after 7 days. A paid developer account lasts a year.
+  the app expires after 7 days. With a paid developer account it lasts a year.
 - **With your own certificate.** Sign `Signet.ipa` with your `.p12` and provisioning profile in any signer.
 
 ### Updates
