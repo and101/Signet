@@ -30,6 +30,8 @@ struct SignView: View {
     @State private var repoDefaults: TrackedRepo?
     /// The earlier signed copy of this app whose options were applied, set once on first appearance.
     @State private var previousSigning: LibraryApp?
+    /// Set when a rename rule from Settings filled in the bundle ID or name.
+    @State private var renamedByRule = false
     @State private var appliedRepoDefaults = false
     @FocusState private var isEditing: Bool
 
@@ -111,6 +113,8 @@ struct SignView: View {
                     }
                 } else if let repoDefaults {
                     Text("Using defaults from \(repoDefaults.fullName).")
+                } else if renamedByRule {
+                    Text("Renamed by your rules in Settings → Default Signing Options.")
                 }
             }
 
@@ -240,7 +244,10 @@ struct SignView: View {
             // onAppear fires again when coming back from the signed app; only apply repo defaults once.
             if !appliedRepoDefaults {
                 appliedRepoDefaults = true
-                if !applyPreviousSigning() { applyRepoDefaults() }
+                if !applyPreviousSigning() {
+                    applyRepoDefaults()
+                    applyRenameRules()
+                }
             }
             if certificateID == nil { certificateID = certificates.defaultCertificate?.id }
             updateSuggestedBundleID()
@@ -478,8 +485,22 @@ struct SignView: View {
         iconItem = nil
         automaticBundleID = nil
         certificateID = certificates.defaultCertificate?.id
+        renamedByRule = false
         applyRepoDefaults()
+        applyRenameRules()
         updateSuggestedBundleID()
+    }
+
+    /// Fills in the bundle ID and name from the user's rename rules, where nothing more specific already did.
+    private func applyRenameRules() {
+        if options.appName.trimmingCharacters(in: .whitespaces).isEmpty, let name = options.ruleName(for: app.name) {
+            options.appName = name
+            renamedByRule = true
+        }
+        if options.bundleID.trimmingCharacters(in: .whitespaces).isEmpty, let bundleID = options.ruleBundleID(for: app.bundleID) {
+            useBundleID(bundleID)
+            renamedByRule = true
+        }
     }
 
     /// Uses the certificate and bundle ID set for the GitHub repo this app was downloaded from.

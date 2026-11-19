@@ -177,9 +177,30 @@ private struct DefaultOptionsView: View {
                 Text("Used each time you sign. Changes on the Sign screen are saved here too.")
             }
             Section {
+                NavigationLink {
+                    RenameRulesView(title: "Bundle ID Rules", rules: $options.bundleIDRules,
+                                    matchPrompt: "com.example.app", replacementPrompt: "com.me.app",
+                                    footer: "When an app with this bundle ID is signed, Signet uses the new one. Rules don't apply when an app is signed with an earlier version's settings.")
+                } label: {
+                    LabeledContent("Bundle ID Rules", value: options.bundleIDRules.isEmpty ? "None" : "\(options.bundleIDRules.count)")
+                }
+                NavigationLink {
+                    RenameRulesView(title: "Name Rules", rules: $options.nameRules,
+                                    matchPrompt: "App name", replacementPrompt: "New name",
+                                    footer: "When an app with this name is signed, Signet renames it. Matching ignores upper and lower case.")
+                } label: {
+                    LabeledContent("Name Rules", value: options.nameRules.isEmpty ? "None" : "\(options.nameRules.count)")
+                }
+            } header: {
+                Text("Rename Rules")
+            }
+            Section {
                 Button("Reset to Defaults", role: .destructive) {
                     var fresh = SigningOptions()
                     fresh.ppqSuffix = options.ppqSuffix // keeps re-signed apps updating in place
+                    // Rules are the user's own lists, not settings with a default.
+                    fresh.bundleIDRules = options.bundleIDRules
+                    fresh.nameRules = options.nameRules
                     options = fresh
                 }
             }

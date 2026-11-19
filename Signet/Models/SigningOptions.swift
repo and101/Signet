@@ -39,6 +39,19 @@ struct SigningOptions: Codable, Equatable {
     var ppqProtection = true
     /// Random, generated once and used for every app, so re-signing an app still updates the installed copy.
     var ppqSuffix = ""
+    /// Replace an app's bundle ID or name automatically whenever it's signed, e.g. com.spotify.client → com.me.spotify.
+    var bundleIDRules: [RenameRule] = []
+    var nameRules: [RenameRule] = []
+
+    /// The bundle ID a rule gives this app, if any (exact match).
+    func ruleBundleID(for bundleID: String) -> String? {
+        bundleIDRules.first { $0.match.trimmingCharacters(in: .whitespaces) == bundleID }?.cleanReplacement
+    }
+
+    /// The name a rule gives this app, if any (exact match, ignoring case).
+    func ruleName(for name: String) -> String? {
+        nameRules.first { $0.match.trimmingCharacters(in: .whitespaces).caseInsensitiveCompare(name) == .orderedSame }?.cleanReplacement
+    }
 
     /// Strips the per-app fields so the rest can be stored as defaults.
     var asDefaults: SigningOptions {
@@ -68,6 +81,17 @@ struct SigningOptions: Codable, Equatable {
         case classic
         /// Marks the app as built with the iOS 26 SDK so UIKit uses Liquid Glass. Can break apps that check the SDK.
         case liquidGlass
+    }
+
+    struct RenameRule: Codable, Hashable, Identifiable {
+        var id = UUID()
+        var match: String
+        var replacement: String
+
+        var cleanReplacement: String? {
+            let value = replacement.trimmingCharacters(in: .whitespaces)
+            return value.isEmpty ? nil : value
+        }
     }
 
     private static let key = "defaultSigningOptions"
