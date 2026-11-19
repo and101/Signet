@@ -97,6 +97,16 @@ struct SigningOptions: Codable, Equatable {
         }
     }
 
+    /// These options as new defaults, keeping the rename rules already saved: the rules are edited in Settings,
+    /// and a sign screen (or an earlier version's remembered options) has an older copy of them.
+    var asDefaultsKeepingSavedRules: SigningOptions {
+        var value = self
+        let saved = SigningOptions.defaults
+        value.bundleIDRules = saved.bundleIDRules
+        value.nameRules = saved.nameRules
+        return value
+    }
+
     private static let key = "defaultSigningOptions"
 
     static var defaults: SigningOptions {

@@ -27,7 +27,8 @@ final class CertificateSharingTests: XCTestCase {
 
     func testRefusesWebAndFileCallbacks() {
         for template in ["https://evil.example/c?cert=$(BASE64_CERT)", "http://x/?c=$(BASE64_CERT)",
-                         "file:///tmp/$(BASE64_CERT)", "javascript:$(BASE64_CERT)"] {
+                         "file:///tmp/$(BASE64_CERT)", "javascript:$(BASE64_CERT)",
+                         "mailto:me@example.com?body=$(BASE64_CERT)", "sms:123&body=$(BASE64_CERT)"] {
             XCTAssertNil(CertificateSharing.callbackURL(template: template, p12: p12, password: ""), template)
             XCTAssertFalse(CertificateSharing.isAppScheme(template), template)
         }
@@ -63,5 +64,10 @@ final class CertificateSharingTests: XCTestCase {
                       library: library, sources: sources)
         XCTAssertNil(router.pendingCertificateRequest, "web callbacks are refused")
         XCTAssertNotNil(router.message)
+    }
+
+    func testDestinationShownInTheConfirmation() {
+        XCTAssertEqual(CertificateSharing.destination(of: "livecontainer://certificate?cert=$(BASE64_CERT)"), "livecontainer://certificate")
+        XCTAssertEqual(CertificateSharing.destination(of: "myapp:$(BASE64_CERT)"), "myapp://")
     }
 }

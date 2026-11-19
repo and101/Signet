@@ -200,7 +200,7 @@ struct SourceAppsView: View {
                 if let about = repository.subtitle ?? repository.description {
                     Section {
                         Text(about).font(.callout).foregroundStyle(.secondary)
-                        if let website = repository.website { Link("Website", destination: website) }
+                        if let website = repository.website, website.isWebLink { Link("Website", destination: website) }
                     }
                 }
                 if !repository.news.isEmpty {
@@ -275,7 +275,7 @@ private struct NewsCard: View {
         Group {
             if let app {
                 NavigationLink { SourceAppDetailView(app: app) } label: { card }
-            } else if let url = item.url {
+            } else if let url = item.url, url.isWebLink {
                 Button { openURL(url) } label: { card }
             } else {
                 card

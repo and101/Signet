@@ -263,6 +263,9 @@ actor Signer {
         var stored = options
         stored.customIcon = nil
         stored.entitlementsFile = nil
+        // Rules live in Settings; a stale copy here would bring back deleted rules or drop new ones.
+        stored.bundleIDRules = []
+        stored.nameRules = []
         stored.injectFiles = []
         return try JSONEncoder().encode(stored)
     }

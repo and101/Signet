@@ -384,6 +384,11 @@ private struct CopyingDocumentPicker: UIViewControllerRepresentable {
     }
 }
 
+extension URL {
+    /// http or https. Links from sources are only opened if they're web pages.
+    var isWebLink: Bool { ["http", "https"].contains(scheme?.lowercased() ?? "") }
+}
+
 extension Color {
     /// A colour from a source's `#RRGGBB` (or `RRGGBB`) tint. Nil for anything else.
     init?(hex: String?) {

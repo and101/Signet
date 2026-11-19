@@ -35,7 +35,14 @@ enum CertificateSharing {
         return URL(string: filled)
     }
 
-    /// The app a callback template goes to, for the confirmation ("Send to livecontainer?").
+    /// Where a callback template goes, for the confirmation: `livecontainer://certificate`.
+    static func destination(of template: String) -> String {
+        guard let scheme = scheme(of: template) else { return template }
+        let host = URL(string: template)?.host ?? ""
+        return host.isEmpty ? "\(scheme)://" : "\(scheme)://\(host)"
+    }
+
+    /// The app a callback template goes to.
     static func scheme(of template: String) -> String? {
         URL(string: template)?.scheme ?? template.components(separatedBy: "://").first
     }
@@ -43,7 +50,8 @@ enum CertificateSharing {
     /// Only custom app schemes, never http(s), file or data links.
     static func isAppScheme(_ template: String) -> Bool {
         guard let scheme = scheme(of: template)?.lowercased(), !scheme.isEmpty else { return false }
-        return !["http", "https", "file", "data", "ftp", "javascript", "about"].contains(scheme)
+        return !["http", "https", "file", "data", "ftp", "javascript", "about", "mailto", "sms", "tel", "facetime",
+                 "facetime-audio", "itms-services", "shortcuts", "x-apple-reminderkit"].contains(scheme)
     }
 
     // MARK: - Import

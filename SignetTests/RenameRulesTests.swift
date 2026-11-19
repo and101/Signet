@@ -31,4 +31,36 @@ final class RenameRulesTests: XCTestCase {
         XCTAssertEqual(decoded.bundleIDRules, [])
         XCTAssertEqual(decoded.nameRules, [])
     }
+
+    func testSigningAnUpdateKeepsRulesAddedSince() throws {
+        let key = "defaultSigningOptions"
+        let saved = UserDefaults.standard.data(forKey: key)
+        defer { UserDefaults.standard.set(saved, forKey: key) }
+
+        // An app signed while one rule existed remembers its options...
+        var original = SigningOptions()
+        original.bundleIDRules = [.init(match: "com.old", replacement: "com.old.mine")]
+        let folder = try Paths.newTempDirectory()
+        defer { Paths.removeIfTemporary(folder) }
+        var app = LibraryApp(kind: .signed, name: "A", bundleID: "com.a", version: "1", build: "1", appFolderName: "A.app", size: 0)
+        try FileManager.default.createDirectory(at: app.directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: app.directory) }
+        app.signingOptionsData = try Signer.remember(original, for: app)
+        XCTAssertEqual(app.rememberedOptions?.bundleIDRules, [], "rules aren't stored with signed apps")
+
+        // ...then a second rule is added in Settings, and the update is signed from the remembered options.
+        var defaults = SigningOptions.defaults
+        defaults.bundleIDRules = [.init(match: "com.old", replacement: "com.old.mine"), .init(match: "com.new", replacement: "com.new.mine")]
+        SigningOptions.defaults = defaults
+        let fromSignScreen = try XCTUnwrap(app.rememberedOptions)
+        SigningOptions.defaults = fromSignScreen.asDefaultsKeepingSavedRules
+        XCTAssertEqual(SigningOptions.defaults.bundleIDRules.map(\.match), ["com.old", "com.new"])
+    }
+
+    func testOnlyWebLinksOpenFromSources() {
+        XCTAssertTrue(URL(string: "https://example.com")!.isWebLink)
+        XCTAssertTrue(URL(string: "HTTP://example.com")!.isWebLink)
+        XCTAssertFalse(URL(string: "signet://install?url=x")!.isWebLink)
+        XCTAssertFalse(URL(string: "tel:123")!.isWebLink)
+    }
 }

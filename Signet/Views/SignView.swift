@@ -533,6 +533,9 @@ struct SignView: View {
         guard let previous = library.signedApps.first(where: { SourceUpdates.key(for: $0) == key && $0.signingOptionsData != nil }),
               var remembered = previous.rememberedOptions else { return false }
         remembered.version = "" // the new version's own
+        let saved = SigningOptions.defaults
+        remembered.bundleIDRules = saved.bundleIDRules
+        remembered.nameRules = saved.nameRules
         options = remembered
         previousSigning = previous
         if let id = previous.certificateID, certificates.certificate(id) != nil { certificateID = id }
@@ -591,7 +594,9 @@ struct SignView: View {
         signing = true
         log.start()
         defer { signing = false }
-        let options = options
+        var options = options
+        // The certificate's automatic bundle ID (PPQ suffix, wildcard namespace) only matters when signing.
+        if let automaticBundleID, options.bundleID == automaticBundleID { options.bundleID = "" }
         let source = app
         do {
             let url = try await Signer.shared.exportModified(source, options: options) { line in
@@ -619,7 +624,7 @@ struct SignView: View {
             }
             log.finish(.succeeded, "Signed \(result.name) \(result.version)")
             let saved = library.add(result)
-            SigningOptions.defaults = options
+            SigningOptions.defaults = options.asDefaultsKeepingSavedRules
             // Only remove the original once the signed copy is safely recorded.
             if options.deleteOriginalAfterSigning, saved {
                 library.delete(source.id)
