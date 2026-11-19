@@ -47,11 +47,13 @@ enum CertificateSharing {
         URL(string: template)?.scheme ?? template.components(separatedBy: "://").first
     }
 
-    /// Only custom app schemes, never http(s), file or data links.
+    /// Apps allowed to receive a certificate through a callback link. Any other scheme could forward it on (browsers
+    /// open web links with their own schemes, such as googlechrome://), so only apps known to use it are allowed.
+    static let allowedCallbackSchemes: Set<String> = [liveContainerScheme]
+
     static func isAppScheme(_ template: String) -> Bool {
-        guard let scheme = scheme(of: template)?.lowercased(), !scheme.isEmpty else { return false }
-        return !["http", "https", "file", "data", "ftp", "javascript", "about", "mailto", "sms", "tel", "facetime",
-                 "facetime-audio", "itms-services", "shortcuts", "x-apple-reminderkit"].contains(scheme)
+        guard let scheme = scheme(of: template)?.lowercased() else { return false }
+        return allowedCallbackSchemes.contains(scheme)
     }
 
     // MARK: - Import

@@ -470,4 +470,25 @@ final class AppPatchingTests: XCTestCase {
         defer { try? fm.removeItem(at: second) }
         XCTAssertEqual(second.lastPathComponent, "Modded_5.0_unsigned 2.ipa")
     }
+
+    func testUnsignedRenameOnlyTouchesTheAppsOwnIDs() throws {
+        let fm = FileManager.default
+        let app = try Paths.newTempDirectory().appendingPathComponent("A.app", isDirectory: true)
+        defer { Paths.removeIfTemporary(app.deletingLastPathComponent()) }
+        func write(_ path: String, _ id: String) throws {
+            let folder = app.appendingPathComponent(path, isDirectory: true)
+            try fm.createDirectory(at: folder, withIntermediateDirectories: true)
+            (["CFBundleIdentifier": id] as NSDictionary).write(to: folder.appendingPathComponent("Info.plist"), atomically: true)
+        }
+        try write("", "com.foo")
+        try write("PlugIns/Widget.appex", "com.foo.widget")
+        try write("PlugIns/Other.appex", "com.foobar.ext")
+        try Signer.applyIdentity(in: app, from: "com.foo", to: "com.me", name: "", version: "")
+        func id(_ path: String) -> String? {
+            (NSDictionary(contentsOf: app.appendingPathComponent(path).appendingPathComponent("Info.plist")) as? [String: Any])?["CFBundleIdentifier"] as? String
+        }
+        XCTAssertEqual(id(""), "com.me")
+        XCTAssertEqual(id("PlugIns/Widget.appex"), "com.me.widget")
+        XCTAssertEqual(id("PlugIns/Other.appex"), "com.foobar.ext", "a longer ID that only starts the same is left alone")
+    }
 }

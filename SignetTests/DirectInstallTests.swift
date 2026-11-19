@@ -187,4 +187,16 @@ final class DirectInstallTests: XCTestCase {
         manager.checkPendingSelfUpdate()
         XCTAssertTrue(manager.selfUpdateResult?.contains("didn't update") ?? false)
     }
+
+    func testConnectingGivesUpAfterTheTimeLimit() async throws {
+        // A pairing file that reads fine but points at nothing would block in the library; here a missing file fails
+        // fast, so check the limit with an address that never answers instead.
+        let installer = DirectInstaller(pairingFileURL: URL(fileURLWithPath: "/nonexistent"), address: "127.0.0.1")
+        let started = Date()
+        do {
+            _ = try await installer.connect(port: 9, timeout: 1)
+            XCTFail("should fail")
+        } catch {}
+        XCTAssertLessThan(Date().timeIntervalSince(started), 2)
+    }
 }

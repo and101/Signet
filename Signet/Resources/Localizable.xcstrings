@@ -431,9 +431,6 @@
     "Couldn't finish the upload" : {
 
     },
-    "Couldn't open a connection to this iPhone" : {
-
-    },
     "Couldn't open the app that asked for the certificate." : {
 
     },
@@ -1418,6 +1415,12 @@
           }
         }
       }
+    },
+    "This iPhone didn't answer within %lld seconds" : {
+
+    },
+    "This iPhone refused the connection" : {
+
     },
     "This isn't a valid IPA." : {
 

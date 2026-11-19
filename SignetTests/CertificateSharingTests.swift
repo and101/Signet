@@ -32,8 +32,13 @@ final class CertificateSharingTests: XCTestCase {
             XCTAssertNil(CertificateSharing.callbackURL(template: template, p12: p12, password: ""), template)
             XCTAssertFalse(CertificateSharing.isAppScheme(template), template)
         }
-        XCTAssertNil(CertificateSharing.callbackURL(template: "myapp://nothing", p12: p12, password: ""),
+        XCTAssertNil(CertificateSharing.callbackURL(template: "livecontainer://nothing", p12: p12, password: ""),
                      "a template without the placeholder can't receive anything")
+        // Browsers open web links from their own schemes, so they could forward a certificate anywhere.
+        for template in ["googlechrome://evil.example/$(BASE64_CERT)", "firefox://open-url?url=https://evil.example/$(BASE64_CERT)",
+                         "myapp://certificate?cert=$(BASE64_CERT)"] {
+            XCTAssertNil(CertificateSharing.callbackURL(template: template, p12: p12, password: ""), template)
+        }
     }
 
     func testParsesFeatherImportLinks() throws {
@@ -68,6 +73,6 @@ final class CertificateSharingTests: XCTestCase {
 
     func testDestinationShownInTheConfirmation() {
         XCTAssertEqual(CertificateSharing.destination(of: "livecontainer://certificate?cert=$(BASE64_CERT)"), "livecontainer://certificate")
-        XCTAssertEqual(CertificateSharing.destination(of: "myapp:$(BASE64_CERT)"), "myapp://")
+        XCTAssertEqual(CertificateSharing.destination(of: "livecontainer:$(BASE64_CERT)"), "livecontainer://")
     }
 }

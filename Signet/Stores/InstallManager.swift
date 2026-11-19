@@ -304,7 +304,7 @@ extension InstallManager {
                 throw DirectInstaller.Failure(stage: .connect, message:
                     String(localized: "Can't reach this iPhone through the VPN. Check LocalDevVPN is connected and Wi-Fi is on, then try again."))
             }
-            let version = try await Task.detached { try installer.connect(port: port) }.value
+            let version = try await installer.connect(port: port, timeout: DirectInstaller.connectTimeout)
             guard self.token == token else { return }
             directLog.append("Connected to iOS \(version)")
             await Self.removeLeftovers(with: installer)
@@ -361,10 +361,10 @@ extension InstallManager {
             if let remote { await Self.removeStaged([remote], with: installer) }
             guard self.token == token else { return }
             let stage = (error as? DirectInstaller.Failure)?.stage
-            if stage == .connect || stage == .pairingFile { serverFallback = app }
+            if stage == .connect || stage == .tunnel || stage == .pairingFile { serverFallback = app }
             failedDirectly = true
             phase = nil
-            fail(stage == .pairingFile
+            fail(stage == .pairingFile || stage == .tunnel
                  ? String(localized: "\(error.localizedDescription). The pairing file may have expired (it does after an iOS update or reset); make a new one with iloader.")
                  : error.localizedDescription)
         }
@@ -418,7 +418,7 @@ extension InstallManager {
         for candidate in [DirectInstall.discoveredPort, DirectInstaller.defaultPort].compactMap({ $0 }) {
             if await DirectInstaller.isReachable(address: address, port: candidate) { return candidate }
         }
-        if let found = await DirectInstaller.discoverPort(), await DirectInstaller.isReachable(address: address, port: found) {
+        for found in await DirectInstaller.discoverPorts() where await DirectInstaller.isReachable(address: address, port: found) {
             DirectInstall.discoveredPort = found
             return found
         }
@@ -446,7 +446,12 @@ extension InstallManager {
             throw AppError("Can't reach this iPhone through the VPN. Check LocalDevVPN is connected and Wi-Fi is on.")
         }
         let installer = DirectInstaller(pairingFileURL: DirectInstall.pairingFileURL, address: DirectInstall.address)
-        let version = try await Task.detached { try installer.connect(port: port) }.value
+        let version: String
+        do {
+            version = try await installer.connect(port: port, timeout: DirectInstaller.connectTimeout)
+        } catch let failure as DirectInstaller.Failure where failure.stage == .tunnel {
+            throw AppError(verbatim: String(localized: "\(failure.localizedDescription). The pairing file may have expired (it does after an iOS update or reset); make a new one with iloader."))
+        }
         await removeLeftovers(with: installer)
         return version
     }

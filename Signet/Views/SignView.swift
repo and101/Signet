@@ -624,7 +624,10 @@ struct SignView: View {
             }
             log.finish(.succeeded, "Signed \(result.name) \(result.version)")
             let saved = library.add(result)
-            SigningOptions.defaults = options.asDefaultsKeepingSavedRules
+            // Options loaded from an earlier version of this app are that app's, not the user's defaults.
+            if previousSigning == nil {
+                SigningOptions.defaults = options.asDefaultsKeepingSavedRules
+            }
             // Only remove the original once the signed copy is safely recorded.
             if options.deleteOriginalAfterSigning, saved {
                 library.delete(source.id)

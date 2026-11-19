@@ -205,8 +205,9 @@ actor Signer {
         func update(_ plistURL: URL, isMain: Bool) throws {
             guard let plist = NSMutableDictionary(contentsOf: plistURL) else { return }
             if newID != oldID {
+                // The app's own ID, or one under it (com.app.widget), but not com.appother.
                 func renamed(_ value: Any?) -> String? {
-                    guard let value = value as? String, value.hasPrefix(oldID) else { return nil }
+                    guard let value = value as? String, value == oldID || value.hasPrefix(oldID + ".") else { return nil }
                     return newID + value.dropFirst(oldID.count)
                 }
                 if let id = renamed(plist["CFBundleIdentifier"]) { plist["CFBundleIdentifier"] = id }

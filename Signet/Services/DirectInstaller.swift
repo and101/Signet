@@ -9,7 +9,8 @@ import IDevice
 /// Every call into idevice blocks, so use an instance off the main thread, and from one task at a time.
 final class DirectInstaller {
     struct Failure: LocalizedError {
-        enum Stage { case pairingFile, connect, upload, install }
+        /// `tunnel`: the device answered but wouldn't open the tunnel, usually an expired pairing file.
+        enum Stage { case pairingFile, connect, tunnel, upload, install }
         let stage: Stage
         let message: String
         var errorDescription: String? { message }
@@ -80,40 +81,49 @@ final class DirectInstaller {
         }
     }
 
-    /// Finds this iPhone's remote-pairing port by browsing Bonjour for `_remotepairing._tcp`.
-    static func discoverPort(timeout: TimeInterval = 3) async -> UInt16? {
+    /// Ports of the `_remotepairing._tcp` services Bonjour finds within `timeout`. Other Apple devices on the same
+    /// Wi-Fi advertise it too, so the caller checks which one answers at the VPN address.
+    static func discoverPorts(timeout: TimeInterval = 3) async -> [UInt16] {
         await withCheckedContinuation { continuation in
             let once = Once()
             let browser = NWBrowser(for: .bonjour(type: "_remotepairing._tcp", domain: "local."), using: .tcp)
             // Browser and resolver callbacks all run on this serial queue.
             let queue = DispatchQueue(label: "Signet.remotePairingDiscovery")
-            let resolver = Holder<NWConnection>()
-            let finish = { (port: UInt16?) in
+            let state = Holder<DiscoveryState>()
+            state.value = DiscoveryState()
+            let finish = {
                 guard once.claim() else { return }
                 browser.cancel()
-                resolver.value?.cancel()
-                continuation.resume(returning: port)
+                state.value?.resolvers.forEach { $0.cancel() }
+                continuation.resume(returning: state.value?.ports ?? [])
             }
             browser.browseResultsChangedHandler = { results, _ in
-                guard resolver.value == nil, let result = results.first else { return }
-                // Connecting resolves the service to an address and port.
-                let connection = NWConnection(to: result.endpoint, using: .tcp)
-                resolver.value = connection
-                connection.stateUpdateHandler = { state in
-                    if case .ready = state, case .hostPort(_, let port)? = connection.currentPath?.remoteEndpoint {
-                        finish(port.rawValue)
-                    } else if case .failed = state {
-                        finish(nil)
+                for result in results where !(state.value?.seen.contains(result.endpoint) ?? true) {
+                    state.value?.seen.insert(result.endpoint)
+                    // Connecting resolves the service to an address and port.
+                    let connection = NWConnection(to: result.endpoint, using: .tcp)
+                    state.value?.resolvers.append(connection)
+                    connection.stateUpdateHandler = { connectionState in
+                        if case .ready = connectionState, case .hostPort(_, let port)? = connection.currentPath?.remoteEndpoint,
+                           !(state.value?.ports.contains(port.rawValue) ?? true) {
+                            state.value?.ports.append(port.rawValue)
+                        }
                     }
+                    connection.start(queue: queue)
                 }
-                connection.start(queue: queue)
             }
-            browser.stateUpdateHandler = { state in
-                if case .failed = state { finish(nil) }
+            browser.stateUpdateHandler = { browserState in
+                if case .failed = browserState { finish() }
             }
             browser.start(queue: queue)
-            queue.asyncAfter(deadline: .now() + timeout) { finish(nil) }
+            queue.asyncAfter(deadline: .now() + timeout) { finish() }
         }
+    }
+
+    private struct DiscoveryState {
+        var seen: Set<NWEndpoint> = []
+        var resolvers: [NWConnection] = []
+        var ports: [UInt16] = []
     }
 
     // MARK: - Connecting
@@ -138,7 +148,7 @@ final class DirectInstaller {
                                         nil, nil, &adapter, &handshake)
             }
         }
-        try check(.connect, "Couldn't open a connection to this iPhone", error)
+        try check(.tunnel, "This iPhone refused the connection", error)
         log("Connected on port \(port)")
         // A failed pair-verify can fall back to pair-setup, which updates the file; keep the newest copy.
         if let error = rp_pairing_file_write(pairing, pairingFileURL.path) { idevice_error_free(error) }
@@ -153,6 +163,24 @@ final class DirectInstaller {
         plist_get_string_val(value, &string)
         defer { plist_mem_free(string) }
         return string.map { String(cString: $0) } ?? "unknown"
+    }
+
+    /// How long opening the tunnel may take. A failed pair-verify can fall back to pair-setup, which waits for a PIN
+    /// Signet can't give, so without a limit "Connecting…" could spin forever.
+    static let connectTimeout: TimeInterval = 20
+
+    /// `connect(port:)` with a time limit. A timed-out attempt is abandoned (idevice calls can't be cancelled), and
+    /// this installer shouldn't be used afterwards.
+    func connect(port: UInt16, timeout: TimeInterval = DirectInstaller.connectTimeout) async throws -> String {
+        try await withThrowingTaskGroup(of: String.self) { group in
+            group.addTask { try await Task.detached { try self.connect(port: port) }.value }
+            group.addTask {
+                try await Task.sleep(for: .seconds(timeout))
+                throw Failure(stage: .tunnel, message: String(localized: "This iPhone didn't answer within \(Int(timeout)) seconds"))
+            }
+            defer { group.cancelAll() }
+            return try await group.next()!
+        }
     }
 
     func disconnect() {
@@ -213,8 +241,8 @@ final class DirectInstaller {
             names.append(String(cString: entry))
             idevice_string_free(entry)
         }
-        // idevice allocates the array with Rust's default (system) allocator, so it's malloc memory.
-        free(entries)
+        // The array itself isn't freed: idevice has no function for it, and freeing memory another allocator owns
+        // would crash. It's a few bytes per cleanup.
         return names.filter { $0.hasPrefix(Self.stagedPrefix) && $0.hasSuffix(".ipa") }
             .map { "\(Self.stagingFolder)/\($0)" }
     }
