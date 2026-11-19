@@ -39,7 +39,7 @@ notes = re.sub(r"\*\*(.+?)\*\*", r"\1", open(notes_path).read()).strip()
 owner, name = repo.split("/")
 pages = f"https://{owner}.github.io/{name}"
 description = ("Sign, customise and install apps on your iPhone with your own certificate. Inject tweaks, "
-               "install directly without a computer, track GitHub releases, back up your setup and update Signet "
+               "install directly, track GitHub releases, back up your setup and update Signet "
                "from Signet.")
 source = {
     "name": "Signet",

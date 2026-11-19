@@ -2,7 +2,7 @@
   "name": "Signet",
   "identifier": "ember.wax.signet.source",
   "subtitle": "On-device app signer",
-  "description": "Sign IPAs with your own certificate, customise them, inject tweaks and install them, all on your iPhone. Track GitHub releases, back up your setup, and update Signet with Signet.",
+  "description": "Sign, customise and install apps on your iPhone with your own certificate. Inject tweaks, install directly, track GitHub releases, back up your setup and update Signet from Signet.",
   "iconURL": "https://and101.github.io/Signet/icon.png",
   "website": "https://github.com/and101/Signet",
   "tintColor": "#C8382A",
@@ -12,17 +12,18 @@
       "bundleIdentifier": "ember.wax.signet",
       "developerName": "and101",
       "subtitle": "Sign and install apps on your iPhone",
-      "localizedDescription": "Sign IPAs with your own certificate, customise them, inject tweaks and install them, all on your iPhone. Track GitHub releases, back up your setup, and update Signet with Signet.",
+      "localizedDescription": "Sign, customise and install apps on your iPhone with your own certificate. Inject tweaks, install directly, track GitHub releases, back up your setup and update Signet from Signet.",
       "iconURL": "https://and101.github.io/Signet/icon.png",
       "tintColor": "#C8382A",
       "category": "utilities",
       "versions": [
         {
-          "version": "1.0",
-          "buildVersion": "1",
-          "date": "2026-11-18",
-          "size": 9819941,
-          "downloadURL": "https://github.com/and101/Signet/releases/download/v1.0/Signet.ipa",
+          "version": "1.1",
+          "buildVersion": "2",
+          "date": "2026-11-19",
+          "localizedDescription": "New\n\n- Direct install (beta). Install apps the way a computer does, using LocalDevVPN and a pairing file from iloader. No install certificate is needed, and Signet can update itself.\n- Updates. New versions from your sources appear in the Library. Signing an update reuses the last version's settings, tweaks and icon.\n- Signet's own source is added by default, so Signet updates appear in the Library too.\n- More signing options. Liquid Glass or the classic look, light or dark mode, ProMotion and Game Mode. Renaming an app now changes its name in every language.\n- Remove individual extensions and frameworks, and inject tweaks into extensions.\n- Icons. Choose one from Files or from the app's own alternate icons.\n- Rename rules give apps a bundle ID or name automatically whenever they're signed.\n- Custom entitlements. Sign with your own entitlements file.\n- Export without signing. Save a modified IPA to sign elsewhere.\n- Send a certificate to LiveContainer.\n- Sources show news, featured apps and screenshots.\n- Library. Select several apps to delete them.\n- Installs keep running in the background and show iOS's install progress.\n- Acknowledgements in Settings list every open source component.\n- Signet can now be translated.\n\nImproved\n\n- Links from websites ask before adding a source or downloading an app.\n- Backing up certificates needs Face ID, Touch ID or your passcode.\n- Damaged or malicious IPAs, tweaks and backups are rejected instead of crashing Signet.\n- Shorter, clearer text throughout.\n\nRequirements\n\niOS 17 or later. Direct install needs LocalDevVPN and a pairing file made on a computer.",
+          "size": 12093876,
+          "downloadURL": "https://github.com/and101/Signet/releases/download/v1.1/Signet.ipa",
           "minOSVersion": "17.0"
         }
       ],
