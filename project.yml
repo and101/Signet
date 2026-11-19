@@ -62,6 +62,10 @@ targets:
         UIFileSharingEnabled: true
         # Silent audio keeps Signet's install server running in the background while iOS downloads an app.
         UIBackgroundModes: [audio]
+        # Direct install finds this iPhone's remote-pairing service over Bonjour.
+        NSBonjourServices: [_remotepairing._tcp]
+        NSLocalNetworkUsageDescription: Signet looks for this iPhone's pairing service to install apps directly.
+        LSApplicationQueriesSchemes: [localdevvpn]
         # Opened files are copied into Documents/Inbox. Opening in place needs an access token tied to the signed
         # identity, which iOS refuses when the bundle ID doesn't match the profile.
         LSSupportsOpeningDocumentsInPlace: false
@@ -112,6 +116,9 @@ targets:
         TARGETED_DEVICE_FAMILY: "1,2"
         ENABLE_USER_SCRIPT_SANDBOXING: YES
     dependencies:
+      # Direct install: run scripts/fetch-idevice.sh once to download it.
+      - framework: Vendor/IDevice/IDevice.xcframework
+        embed: false
       - package: Zsign
         product: Zsign
       - package: OpenSSL

@@ -2,7 +2,8 @@ import Foundation
 import Observation
 import UIKit
 
-/// Drives an over-the-air install through the local server and reports progress to the UI.
+/// Drives an install, through the local server (over the air) or directly through a pairing file, and reports
+/// progress to the UI.
 @MainActor @Observable
 final class InstallManager {
     enum State: Equatable {
@@ -19,6 +20,10 @@ final class InstallManager {
         /// The IPA reached iOS, but Signet can't tell whether the install worked.
         case finished(appName: String)
         case failed(String)
+        /// Direct install of Signet itself: waiting for the user to agree to Signet closing.
+        case confirmingSelfUpdate(appName: String, differentTeam: Bool)
+        /// The update to Signet is with iOS; Signet is about to quit so iOS can replace it.
+        case closingForUpdate(appName: String)
     }
 
     private(set) var state: State = .idle
@@ -33,6 +38,18 @@ final class InstallManager {
     private var buildBefore: String??
     private var expectedBuild = ""
 
+    /// What's happening, in plain words, while connecting or installing directly.
+    private(set) var phase: String?
+    /// A direct install that couldn't connect, which the server method can install instead.
+    private(set) var serverFallback: LibraryApp?
+    /// The steps of the last direct install, for its Details and Copy Diagnostics.
+    private(set) var directLog = ActivityLog()
+    /// After a direct self-update, how it went, shown once on the next launch.
+    var selfUpdateResult: String?
+    private var pendingSelfUpdateApp: LibraryApp?
+    /// The team of the certificate an app was signed with, to warn before a self-update changes team.
+    var teamLookup: (UUID?) -> String? = { _ in nil }
+
     init() {
         InstallServer.shared.onProgress = { [weak self] token, sent, total in
             Task { @MainActor in self?.update(token: token, sent: sent, total: total) }
@@ -42,7 +59,13 @@ final class InstallManager {
         }
     }
 
-    func install(_ app: LibraryApp) async {
+    func install(_ app: LibraryApp, method: InstallMethod = DirectInstall.method) async {
+        serverFallback = nil
+        phase = nil
+        if method == .direct {
+            await installDirectly(app)
+            return
+        }
         do {
             guard FileManager.default.fileExists(atPath: app.ipaURL.path) else {
                 throw AppError("The signed IPA is missing. Sign the app again.")
@@ -85,7 +108,7 @@ final class InstallManager {
         switch state {
         case .idle, .finished, .failed:
             Task { try? await InstallServer.shared.ensureResponsive() }
-        case .waiting, .manifestServed, .transferring, .installing, .installed:
+        case .waiting, .manifestServed, .transferring, .installing, .installed, .confirmingSelfUpdate, .closingForUpdate:
             break
         }
     }
@@ -93,6 +116,9 @@ final class InstallManager {
     func dismiss() {
         state = .idle
         token = nil
+        phase = nil
+        serverFallback = nil
+        pendingSelfUpdateApp = nil
         watchdog?.cancel()
         progressWatch?.cancel()
         endBackgroundTask()
@@ -222,11 +248,203 @@ final class InstallManager {
     }
 }
 
+// MARK: - Direct install
+
+extension InstallManager {
+    /// Uploads the IPA to the iPhone's staging folder and asks its installer to install it, through the pairing
+    /// file's tunnel. Connection problems offer the server method instead.
+    private func installDirectly(_ app: LibraryApp, confirmedSelfUpdate: Bool = false) async {
+        guard FileManager.default.fileExists(atPath: app.ipaURL.path) else {
+            fail("The signed IPA is missing. Sign the app again.")
+            return
+        }
+        guard DirectInstall.hasPairingFile else {
+            serverFallback = app
+            fail("Direct install needs a pairing file. Set it up in Settings → Install Method, or use the install server.")
+            return
+        }
+        let selfUpdate = SelfUpdateCheck.evaluate(app: app, runningBundleID: Bundle.main.bundleIdentifier,
+                                                  runningTeamID: SelfUpdateCheck.runningTeamID,
+                                                  signingTeamID: teamLookup(app.certificateID))
+        switch selfUpdate {
+        case .separateCopy:
+            serverFallback = app
+            fail("This copy of Signet has a different bundle ID (\(app.bundleID)), so it would install as a separate app "
+                 + "without your library or certificates. To update Signet, sign it with "
+                 + "\(Bundle.main.bundleIdentifier ?? "Signet's own bundle ID"). To install it as a separate app anyway, "
+                 + "use the install server.")
+            return
+        case .update(let differentTeam) where !confirmedSelfUpdate:
+            pendingSelfUpdateApp = app
+            state = .confirmingSelfUpdate(appName: app.name, differentTeam: differentTeam)
+            return
+        default:
+            break
+        }
+        let isSelfUpdate = selfUpdate != .otherApp
+
+        let token = UUID().uuidString
+        self.token = token
+        directLog.start()
+        directLog.append("Installing \(app.name) \(app.version) (\(app.size.formattedBytes)) directly")
+        state = .waiting(appName: app.name)
+        phase = "Connecting to your iPhone…"
+        if !isSelfUpdate { beginBackgroundTask() }
+        DirectInstaller.startLibraryLog()
+
+        let installer = DirectInstaller(pairingFileURL: DirectInstall.pairingFileURL, address: DirectInstall.address) { line in
+            Task { @MainActor in self.directLog.append(line) }
+        }
+        var remote: String?
+        do {
+            guard let port = await Self.resolvePort() else {
+                throw DirectInstaller.Failure(stage: .connect, message:
+                    "Can't reach this iPhone through the VPN. Check LocalDevVPN is connected and Wi-Fi is on, then try again.")
+            }
+            let version = try await Task.detached { try installer.connect(port: port) }.value
+            guard self.token == token else { return }
+            directLog.append("Connected to iOS \(version)")
+            await Self.removeLeftovers(with: installer)
+
+            phase = nil
+            state = .transferring(appName: app.name, progress: 0)
+            let ipa = app.ipaURL
+            let uploaded = try await Task.detached {
+                try installer.upload(ipa, staged: { DirectInstall.stagedPaths.append($0) }) { fraction in
+                    Task { @MainActor in
+                        guard self.token == token else { return }
+                        self.state = .transferring(appName: app.name, progress: fraction)
+                    }
+                }
+            }.value
+            remote = uploaded
+            guard self.token == token else { return }
+            directLog.append("Uploaded to \(uploaded)")
+
+            state = .installing(appName: app.name, progress: nil)
+            phase = DirectInstaller.phase(forPercent: 0)
+            if isSelfUpdate {
+                DirectInstall.pendingSelfUpdate = .init(version: app.version, build: app.build)
+            }
+            let bundleID = app.bundleID
+            let appName = app.name
+            try await Task.detached {
+                try installer.install(remotePath: uploaded, bundleID: bundleID, requestSent: {
+                    guard isSelfUpdate else { return }
+                    Task { @MainActor in self.closeForSelfUpdate(appName: appName) }
+                }) { fraction in
+                    Task { @MainActor in
+                        guard self.token == token else { return }
+                        self.state = .installing(appName: appName, progress: fraction)
+                        self.phase = DirectInstaller.phase(forPercent: Int(fraction * 100))
+                    }
+                }
+            }.value
+            DirectInstall.pendingSelfUpdate = nil
+            InstallHistory.record(bundleID)
+            directLog.finish(.succeeded, "Installed \(app.name) \(app.version)")
+            await Self.removeStaged([uploaded], with: installer)
+            guard self.token == token else { return }
+            installedBundleID = bundleID
+            phase = nil
+            finish(.installed(appName: app.name))
+        } catch {
+            DirectInstall.pendingSelfUpdate = nil
+            directLog.finish(.failed, error.localizedDescription)
+            if let remote { await Self.removeStaged([remote], with: installer) }
+            guard self.token == token else { return }
+            let stage = (error as? DirectInstaller.Failure)?.stage
+            if stage == .connect || stage == .pairingFile { serverFallback = app }
+            phase = nil
+            fail(stage == .pairingFile
+                 ? "\(error.localizedDescription). The pairing file may have expired (it does after an iOS update or reset); make a new one with iloader."
+                 : error.localizedDescription)
+        }
+    }
+
+    /// The user agreed to Signet closing to update itself.
+    func confirmSelfUpdate() {
+        guard let app = pendingSelfUpdateApp else { return }
+        pendingSelfUpdateApp = nil
+        Task { await installDirectly(app, confirmedSelfUpdate: true) }
+    }
+
+    /// Installs with the server method after a direct install couldn't connect.
+    func retryWithServer() {
+        guard let app = serverFallback else { return }
+        serverFallback = nil
+        Task { await install(app, method: .server) }
+    }
+
+    /// iOS won't replace Signet while it runs (on iOS 27 an install of itself waits at 0% until it's closed), so
+    /// once the request is on its way, go to the Home Screen and quit. iOS finishes on its own.
+    private func closeForSelfUpdate(appName: String) {
+        state = .closingForUpdate(appName: appName)
+        endBackgroundTask()
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            UserDefaults.standard.synchronize()
+            UIApplication.shared.perform(#selector(NSXPCConnection.suspend))
+            try? await Task.sleep(for: .milliseconds(500))
+            exit(0)
+        }
+    }
+
+    /// Reports a direct self-update from the previous launch, once.
+    func checkPendingSelfUpdate() {
+        guard let pending = DirectInstall.pendingSelfUpdate else { return }
+        DirectInstall.pendingSelfUpdate = nil
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? pending.version
+        selfUpdateResult = build == pending.build
+            ? "Signet updated to \(version)."
+            : "Signet didn't update to \(pending.version). Try installing it again."
+    }
+
+    /// The manual port, else the last one found, else the usual one, else a Bonjour search.
+    private static func resolvePort() async -> UInt16? {
+        let address = DirectInstall.address
+        if let manual = DirectInstall.manualPort { return manual }
+        for candidate in [DirectInstall.discoveredPort, DirectInstaller.defaultPort].compactMap({ $0 }) {
+            if await DirectInstaller.isReachable(address: address, port: candidate) { return candidate }
+        }
+        if let found = await DirectInstaller.discoverPort(), await DirectInstaller.isReachable(address: address, port: found) {
+            DirectInstall.discoveredPort = found
+            return found
+        }
+        return nil
+    }
+
+    private static func removeLeftovers(with installer: DirectInstaller) async {
+        let leftovers = DirectInstall.stagedPaths
+        guard !leftovers.isEmpty else { return }
+        await removeStaged(leftovers, with: installer)
+    }
+
+    private static func removeStaged(_ paths: [String], with installer: DirectInstaller) async {
+        guard let removed = try? await Task.detached(operation: { try installer.removeStaged(paths) }).value else { return }
+        DirectInstall.stagedPaths.removeAll { removed.contains($0) }
+    }
+
+    /// Checks the whole connection for Settings: pairing file, VPN, tunnel. Returns the iOS version.
+    static func testDirectConnection() async throws -> String {
+        guard DirectInstall.hasPairingFile else { throw AppError("Import a pairing file first.") }
+        DirectInstaller.startLibraryLog()
+        guard let port = await resolvePort() else {
+            throw AppError("Can't reach this iPhone through the VPN. Check LocalDevVPN is connected and Wi-Fi is on.")
+        }
+        let installer = DirectInstaller(pairingFileURL: DirectInstall.pairingFileURL, address: DirectInstall.address)
+        let version = try await Task.detached { try installer.connect(port: port) }.value
+        await removeLeftovers(with: installer)
+        return version
+    }
+}
+
 extension InstallManager.State {
     var appName: String? {
         switch self {
         case .waiting(let name), .manifestServed(let name), .transferring(let name, _), .installing(let name, _),
-             .installed(let name), .finished(let name): name
+             .installed(let name), .finished(let name), .confirmingSelfUpdate(let name, _), .closingForUpdate(let name): name
         case .idle, .failed: nil
         }
     }

@@ -41,7 +41,8 @@ Switching to a certificate with a different bundle ID makes iOS treat Signet as 
   so they never match an App Store app.
 - **Tweaks.** Inject `.dylib`, `.deb` and zipped `.framework` files. Jailbreak paths are fixed and ElleKit is added
   when a tweak needs it.
-- **Install.** Install signed apps over the air from the phone, or share the IPA.
+- **Install.** Install signed apps over the air from the phone, or directly through a pairing file (beta), or share
+  the IPA.
 - **Sources.** Browse AltStore-compatible sources.
 - **GitHub releases.** Track a repo to see new IPAs, download them automatically, and set a bundle ID and
   certificate for its apps.
@@ -62,15 +63,33 @@ once in **Settings → Install Certificate**. Without the key, it can't vouch fo
 If installs fail:
 
 - Ad blockers or DNS filters may block `local.backloop.dev`. Allow it.
-- Stay in Signet until the transfer finishes.
+- Signet keeps running in the background while an app installs. If installs stop when you leave Signet, check
+  **Settings → Keep Running During Installs** is on.
 - If an app won't open, trust the developer in **Settings → General → VPN & Device Management**. Development and
   ad hoc profiles also need your device in the profile.
+
+## Direct install (beta)
+
+Direct install sends apps straight to the iPhone's installer, the way a computer does. It's faster, doesn't need the
+install certificate, and lets Signet update itself. Set it up in **Settings → Install Method → Direct**:
+
+1. **Pairing file.** On a Mac or PC, install [iloader](https://github.com/nab138/iloader/releases/latest), connect
+   the iPhone with a cable and choose **Manage Pairing File**. Export the remote-pairing file
+   (`PairingFile_RemoteRP.plist`), send it to the iPhone and import it in Signet. Make a new one after updating or
+   resetting the iPhone.
+2. **LocalDevVPN.** Install [LocalDevVPN](https://apps.apple.com/app/id6755608044) and connect it. Wi-Fi needs to be
+   on.
+3. **Test Connection** in the same screen.
+
+If direct install can't connect, Signet offers to use the install server instead. When Signet installs an update of
+itself, it closes so iOS can replace it; open it again a few seconds later.
 
 ## Building
 
 Requires Xcode 26 and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
 
 ```sh
+./scripts/fetch-idevice.sh   # once: downloads the idevice library used by direct install
 xcodegen generate
 open Signet.xcodeproj
 ```
@@ -95,5 +114,6 @@ gh release create v<version> build/Signet.ipa --title "Signet <version>"
 
 Signet is released under the [MIT License](LICENSE). It includes
 [zsign](https://github.com/khcrysalis/Zsign-Package) (MIT, patches in `Vendor/Zsign/PATCHES.md`) and
-[ElleKit](https://github.com/tealbathingsuit/ellekit) (BSD-3-Clause), and uses OpenSSL, SwiftNIO,
+[ElleKit](https://github.com/tealbathingsuit/ellekit) (BSD-3-Clause) and
+[idevice](https://github.com/jkcoxson/idevice) (MIT), and uses OpenSSL, SwiftNIO,
 swift-certificates, ZIPFoundation and SWCompression under their own licences.

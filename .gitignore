@@ -6,3 +6,4 @@ xcuserdata/
 *.ipa
 SignetTests/Fixtures/
 /devdata/
+Vendor/IDevice/IDevice.xcframework/

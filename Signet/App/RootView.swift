@@ -44,6 +44,14 @@ struct RootView: View {
         } message: {
             Text(router.message ?? library.lastError ?? "")
         }
+        .alert("Signet Updated", isPresented: Binding(
+            get: { installer.selfUpdateResult != nil },
+            set: { if !$0 { installer.selfUpdateResult = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(installer.selfUpdateResult ?? "")
+        }
         .alert(
             linkTitle(router.pendingLink),
             isPresented: Binding(

@@ -26,6 +26,10 @@ struct SignetApp: App {
                 .environment(installer)
                 .environment(router)
                 .onOpenURL { router.handle($0, library: library, sources: sources) }
+                .task {
+                    installer.teamLookup = { [certificates] id in certificates.certificate(id)?.teamID }
+                    installer.checkPendingSelfUpdate()
+                }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {

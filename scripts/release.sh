@@ -13,6 +13,7 @@ DERIVED=$(mktemp -d)
 STAGE=$(mktemp -d)
 trap 'rm -rf "$DERIVED" "$STAGE"' EXIT
 
+[ -d Vendor/IDevice/IDevice.xcframework ] || ./scripts/fetch-idevice.sh
 xcodegen generate >/dev/null
 xcodebuild build -project Signet.xcodeproj -scheme Signet -configuration Release \
   -destination 'generic/platform=iOS' -derivedDataPath "$DERIVED" \

@@ -20,7 +20,9 @@
 		369A6B102C0334889F7D37C8 /* Signer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD10DD94FA0CFBB8744584D /* Signer.swift */; };
 		3D27FF1AB73B3C7A9F55F85A /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A334CA2CA3328E8C08695CE /* RootView.swift */; };
 		3EEFDB9E073852F4E7ACF92A /* CryptoSetup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDCFF8187B4753A2AF14891 /* CryptoSetup.swift */; };
+		43D513206F07B5C37748ACD7 /* DirectInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = D092F621527D945843BE829A /* DirectInstaller.swift */; };
 		45A8D51954304B515432CA11 /* Paths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02B5E5AA5C9BCA0BF5C2A1AF /* Paths.swift */; };
+		48ED82C15208FC428CA4598C /* DirectInstallTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A948BF8525EE414FBE9D516B /* DirectInstallTests.swift */; };
 		49CF34597B2A2941EE015160 /* InstallWatchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F9EA75E3B4C73F1FF9EAE05 /* InstallWatchTests.swift */; };
 		562F0F384BCD082404F9B3A9 /* OpenSSL in Frameworks */ = {isa = PBXBuildFile; productRef = 60766E6B331FE6AE267C6EC7 /* OpenSSL */; };
 		5910435409A44054AA23D628 /* DebPackage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCB2349CE7257F986676843E /* DebPackage.swift */; };
@@ -41,6 +43,7 @@
 		8D74F0CB335A42FE971FAC17 /* GitHubRepoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB7797CE10F8404DB62EDF62 /* GitHubRepoView.swift */; };
 		8E3BA70D585505BA50C89498 /* StorageCleanupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C06EDB4C94A4894262AD1F9 /* StorageCleanupTests.swift */; };
 		8F47930E7BFF27AA2E2FB5BF /* SignedAppView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35B7E211B0BB561DC9DB0DB1 /* SignedAppView.swift */; };
+		917231AB7A1022B5378FDA28 /* IDevice.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 618D0E57280DC2EF8068EEE7 /* IDevice.xcframework */; };
 		974C1DCF3D35FA11CB30C143 /* GitHubRepo.swift in Sources */ = {isa = PBXBuildFile; fileRef = E66D359B5CF7CB9B757A78B7 /* GitHubRepo.swift */; };
 		98B30093B7251DEC2A9AF347 /* EntitlementsMerger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A7318A2E4ABB0409FA10A9B /* EntitlementsMerger.swift */; };
 		9D085603DC79007E13211297 /* SourceUpdatesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F334D71B414618C7758430 /* SourceUpdatesTests.swift */; };
@@ -56,6 +59,7 @@
 		BBAAE29F4A9EBE2973E2838D /* InstallServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89BBF3E483DBA61AC8B186C2 /* InstallServer.swift */; };
 		BEBA52C6B05825C81E3B0223 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DC8A76F85DE0CC08F85782C0 /* Assets.xcassets */; };
 		C12D56DACCEC7554638CD1BF /* BackupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D14ABAC97E087BD623A707 /* BackupTests.swift */; };
+		CA9A549758F9DC665669FA39 /* InstallMethodView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A398574D7DC4746D30D441F /* InstallMethodView.swift */; };
 		CC9C4596590CCB75BFCD5D6C /* CertificatesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8BCF10D9D3DB5472A19ED4D /* CertificatesView.swift */; };
 		CD8503746CE03A0849D087D5 /* MachO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B8B5F747D0B8B6E798D4D55 /* MachO.swift */; };
 		CE95A33BE2C3EBD0C10700C5 /* Backup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E2A731FD2F3B7AC211895D2 /* Backup.swift */; };
@@ -69,6 +73,7 @@
 		EBAA219750176192DEC70D81 /* PPQTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C9269E1748A1D5027C719C /* PPQTests.swift */; };
 		ED1096787E75BD812E743E99 /* InstalledAppsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26E2A630477415C73C593E7F /* InstalledAppsTests.swift */; };
 		EE9F614AD419C3EA8ABFC11C /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B567FF00BB14FC880B2C81DB /* LibraryView.swift */; };
+		EEF4CCCCA5B8C63DBC33005B /* DirectInstall.swift in Sources */ = {isa = PBXBuildFile; fileRef = 940CDBD658CA55165C8A939F /* DirectInstall.swift */; };
 		F1D7FE06B56033D618B68A58 /* LibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 741578A4593491440CA8B0D1 /* LibraryStore.swift */; };
 		FBE1EA71BBC1C0E53B9C2393 /* NIOCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3612EF849675CD84F76E08BB /* NIOCore */; };
 		FE2A66F457E15B527626DC71 /* SourceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B88DC12756CED8975FCDEB8 /* SourceStore.swift */; };
@@ -112,6 +117,7 @@
 		55F7B27BFA81444467EC62D2 /* TweakSupportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TweakSupportTests.swift; sourceTree = "<group>"; };
 		5C06EDB4C94A4894262AD1F9 /* StorageCleanupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageCleanupTests.swift; sourceTree = "<group>"; };
 		5EDCFF8187B4753A2AF14891 /* CryptoSetup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoSetup.swift; sourceTree = "<group>"; };
+		618D0E57280DC2EF8068EEE7 /* IDevice.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = IDevice.xcframework; path = Vendor/IDevice/IDevice.xcframework; sourceTree = "<group>"; };
 		741578A4593491440CA8B0D1 /* LibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStore.swift; sourceTree = "<group>"; };
 		79D5CB622C29F818A4BCF2B8 /* InstallManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallManager.swift; sourceTree = "<group>"; };
 		7A334CA2CA3328E8C08695CE /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
@@ -122,11 +128,14 @@
 		89BBF3E483DBA61AC8B186C2 /* InstallServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallServer.swift; sourceTree = "<group>"; };
 		8A7318A2E4ABB0409FA10A9B /* EntitlementsMerger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntitlementsMerger.swift; sourceTree = "<group>"; };
 		915C559E3CB3B706AAFE9AEC /* Zsign */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Zsign; path = Vendor/Zsign; sourceTree = SOURCE_ROOT; };
+		940CDBD658CA55165C8A939F /* DirectInstall.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectInstall.swift; sourceTree = "<group>"; };
 		99B8AE239425932B7D1B6CFD /* SignetApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignetApp.swift; sourceTree = "<group>"; };
+		9A398574D7DC4746D30D441F /* InstallMethodView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallMethodView.swift; sourceTree = "<group>"; };
 		A671260366594AE81BC9FF6C /* KeychainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTests.swift; sourceTree = "<group>"; };
 		A78D6D59B0C70D82414ADEFA /* SourceUpdates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceUpdates.swift; sourceTree = "<group>"; };
 		A7C9269E1748A1D5027C719C /* PPQTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PPQTests.swift; sourceTree = "<group>"; };
 		A8BCF10D9D3DB5472A19ED4D /* CertificatesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CertificatesView.swift; sourceTree = "<group>"; };
+		A948BF8525EE414FBE9D516B /* DirectInstallTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectInstallTests.swift; sourceTree = "<group>"; };
 		AD77FFD51835080BE0CBB5D1 /* InstalledApps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledApps.swift; sourceTree = "<group>"; };
 		B2D0AD137C26ECF7070F15D9 /* SigningOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SigningOptions.swift; sourceTree = "<group>"; };
 		B3828F398572870E570106D1 /* Fixtures */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Fixtures; path = SignetTests/Fixtures; sourceTree = SOURCE_ROOT; };
@@ -141,6 +150,7 @@
 		CCA84AA949F6ECE68E28875A /* ServerCertificate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerCertificate.swift; sourceTree = "<group>"; };
 		CCE623DEBB67EFDD6F4113D3 /* CertificateImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CertificateImporter.swift; sourceTree = "<group>"; };
 		CEA7DD5D112B523E319FC0FA /* TweakInjector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TweakInjector.swift; sourceTree = "<group>"; };
+		D092F621527D945843BE829A /* DirectInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectInstaller.swift; sourceTree = "<group>"; };
 		DAF5608369595D271FEB3CA5 /* GitHubReleasesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubReleasesTests.swift; sourceTree = "<group>"; };
 		DC8A76F85DE0CC08F85782C0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E14DE164067464A1DE9F951C /* InstallProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallProgress.swift; sourceTree = "<group>"; };
@@ -156,6 +166,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				917231AB7A1022B5378FDA28 /* IDevice.xcframework in Frameworks */,
 				87EF0C514614D59FEC8B90B8 /* Zsign in Frameworks */,
 				562F0F384BCD082404F9B3A9 /* OpenSSL in Frameworks */,
 				0F6AB3C4C185DB9BC7F2B195 /* ZIPFoundation in Frameworks */,
@@ -179,6 +190,7 @@
 				A8BCF10D9D3DB5472A19ED4D /* CertificatesView.swift */,
 				B52EE5B717EFA86B0A446963 /* Components.swift */,
 				FB7797CE10F8404DB62EDF62 /* GitHubRepoView.swift */,
+				9A398574D7DC4746D30D441F /* InstallMethodView.swift */,
 				B567FF00BB14FC880B2C81DB /* LibraryView.swift */,
 				BFC7070B3A5754283DA58F7D /* SettingsView.swift */,
 				35B7E211B0BB561DC9DB0DB1 /* SignedAppView.swift */,
@@ -192,6 +204,7 @@
 			isa = PBXGroup;
 			children = (
 				1869B439031756F054DAE63E /* Certificate.swift */,
+				940CDBD658CA55165C8A939F /* DirectInstall.swift */,
 				E66D359B5CF7CB9B757A78B7 /* GitHubRepo.swift */,
 				1B20DAA11E6393102E0D5107 /* LibraryApp.swift */,
 				B2D0AD137C26ECF7070F15D9 /* SigningOptions.swift */,
@@ -219,8 +232,17 @@
 				FE68384D6962DAEADDB8883D /* Packages */,
 				BA857D8DBB8898C281739BD6 /* Signet */,
 				50021F037ECE27D2FB40FF16 /* SignetTests */,
+				3DE11EC8802ADF35AD897DAF /* Frameworks */,
 				F2367709A2DDF62BDA536E06 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		3DE11EC8802ADF35AD897DAF /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				618D0E57280DC2EF8068EEE7 /* IDevice.xcframework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		50021F037ECE27D2FB40FF16 /* SignetTests */ = {
@@ -229,6 +251,7 @@
 				11BA9A4C53798C55795FCDCA /* ActivityLogTests.swift */,
 				43439FDD4FA6A48328482F63 /* AppPatchingTests.swift */,
 				23D14ABAC97E087BD623A707 /* BackupTests.swift */,
+				A948BF8525EE414FBE9D516B /* DirectInstallTests.swift */,
 				B3828F398572870E570106D1 /* Fixtures */,
 				DAF5608369595D271FEB3CA5 /* GitHubReleasesTests.swift */,
 				26E2A630477415C73C593E7F /* InstalledAppsTests.swift */,
@@ -278,6 +301,7 @@
 				CCE623DEBB67EFDD6F4113D3 /* CertificateImporter.swift */,
 				5EDCFF8187B4753A2AF14891 /* CryptoSetup.swift */,
 				FCB2349CE7257F986676843E /* DebPackage.swift */,
+				D092F621527D945843BE829A /* DirectInstaller.swift */,
 				8A7318A2E4ABB0409FA10A9B /* EntitlementsMerger.swift */,
 				AD77FFD51835080BE0CBB5D1 /* InstalledApps.swift */,
 				E14DE164067464A1DE9F951C /* InstallProgress.swift */,
@@ -453,11 +477,14 @@
 				FE7AB61AF46358A03CF25310 /* Components.swift in Sources */,
 				3EEFDB9E073852F4E7ACF92A /* CryptoSetup.swift in Sources */,
 				5910435409A44054AA23D628 /* DebPackage.swift in Sources */,
+				EEF4CCCCA5B8C63DBC33005B /* DirectInstall.swift in Sources */,
+				43D513206F07B5C37748ACD7 /* DirectInstaller.swift in Sources */,
 				98B30093B7251DEC2A9AF347 /* EntitlementsMerger.swift in Sources */,
 				974C1DCF3D35FA11CB30C143 /* GitHubRepo.swift in Sources */,
 				8D74F0CB335A42FE971FAC17 /* GitHubRepoView.swift in Sources */,
 				843E84420E2BBE1263FCC42D /* GitHubStore.swift in Sources */,
 				1C89FA8A0E70EC856C3D1775 /* InstallManager.swift in Sources */,
+				CA9A549758F9DC665669FA39 /* InstallMethodView.swift in Sources */,
 				A51D0877D4F0BD233EA96A7D /* InstallProgress.swift in Sources */,
 				BBAAE29F4A9EBE2973E2838D /* InstallServer.swift in Sources */,
 				07547A4D763F5D74EADBF8F6 /* InstalledApps.swift in Sources */,
@@ -491,6 +518,7 @@
 				695828DB3C9E36DF9D2CD55F /* ActivityLogTests.swift in Sources */,
 				1E5D3CDDA65031FC7CB5149A /* AppPatchingTests.swift in Sources */,
 				C12D56DACCEC7554638CD1BF /* BackupTests.swift in Sources */,
+				48ED82C15208FC428CA4598C /* DirectInstallTests.swift in Sources */,
 				88743095CECCDC313C13D595 /* GitHubReleasesTests.swift in Sources */,
 				E3DF5AFBD51051E649723E6E /* InstallServerTests.swift in Sources */,
 				49CF34597B2A2941EE015160 /* InstallWatchTests.swift in Sources */,
@@ -524,6 +552,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"Vendor/IDevice\"",
+				);
 				INFOPLIST_FILE = Signet/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -702,6 +734,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"Vendor/IDevice\"",
+				);
 				INFOPLIST_FILE = Signet/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

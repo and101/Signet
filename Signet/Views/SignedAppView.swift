@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct SignedAppView: View {
     let appID: UUID
@@ -89,7 +90,7 @@ struct InstallProgressView: View {
         case .waiting(let name):
             ProgressView().controlSize(.large)
             Text("Installing \(name)").font(.headline)
-            Text("Waiting for iOS…")
+            Text(installer.phase ?? "Waiting for iOS…")
                 .multilineTextAlignment(.center).foregroundStyle(.secondary)
         case .manifestServed(let name):
             ProgressView().controlSize(.large)
@@ -104,10 +105,11 @@ struct InstallProgressView: View {
             Text("Installing \(name)").font(.headline)
             if let progress {
                 ProgressView(value: progress)
-                Text("\(Int(progress * 100))% installed").foregroundStyle(.secondary)
+                Text(installer.phase.map { "\($0) \(Int(progress * 100))%" } ?? "\(Int(progress * 100))% installed")
+                    .foregroundStyle(.secondary)
             } else {
                 ProgressView().controlSize(.large)
-                Text("iOS is installing the app…").foregroundStyle(.secondary)
+                Text(installer.phase ?? "iOS is installing the app…").foregroundStyle(.secondary)
             }
         case .installed(let name):
             Image(systemName: "checkmark.circle.fill").font(.largeTitle).imageScale(.large).foregroundStyle(.green)
@@ -130,6 +132,34 @@ struct InstallProgressView: View {
             Image(systemName: "xmark.circle.fill").font(.largeTitle).imageScale(.large).foregroundStyle(.red)
             Text("Install Failed").font(.headline)
             Text(message).multilineTextAlignment(.center).font(.callout).foregroundStyle(.secondary)
+            if installer.serverFallback != nil {
+                Button("Use the Install Server Instead") { installer.retryWithServer() }
+                    .buttonStyle(.borderedProminent)
+            }
+            if installer.directLog.outcome == .failed {
+                Button {
+                    UIPasteboard.general.string = DirectInstallDiagnostics.text(installer.directLog)
+                } label: {
+                    Label("Copy Details", systemImage: "doc.on.doc")
+                }
+                .font(.footnote)
+            }
+        case .confirmingSelfUpdate(let name, let differentTeam):
+            Image(systemName: "arrow.triangle.2.circlepath").font(.largeTitle).imageScale(.large).foregroundStyle(.tint)
+            Text("Update to \(name)?").font(.headline)
+            Text("Signet will close while iOS installs the update. Open it again in a few seconds.")
+                .multilineTextAlignment(.center).font(.callout).foregroundStyle(.secondary)
+            if differentTeam {
+                Text("This update is signed by a different team than this copy of Signet, so saved certificate passwords may not be readable afterwards. Back up first in Settings → Back Up.")
+                    .multilineTextAlignment(.center).font(.callout).foregroundStyle(.orange)
+            }
+            Button("Update Signet") { installer.confirmSelfUpdate() }
+                .buttonStyle(.borderedProminent)
+        case .closingForUpdate:
+            ProgressView().controlSize(.large)
+            Text("Updating Signet").font(.headline)
+            Text("Signet is closing so iOS can finish. Open it again in a few seconds.")
+                .multilineTextAlignment(.center).font(.callout).foregroundStyle(.secondary)
         }
     }
 }

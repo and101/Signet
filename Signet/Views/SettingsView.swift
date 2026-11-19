@@ -10,6 +10,7 @@ struct SettingsView: View {
     @State private var hasSavedIndex = false
     @State private var confirmDeleteIndex = false
     @AppStorage(KeepAlive.settingKey) private var keepAlive = true
+    @AppStorage(DirectInstall.methodKey) private var installMethod = InstallMethod.server.rawValue
 
     var body: some View {
         NavigationStack {
@@ -30,8 +31,19 @@ struct SettingsView: View {
                             Label { Text("Install Certificate") } icon: { SettingsIcon("checkmark.shield.fill", color: .green) }
                         }
                     }
+                    NavigationLink {
+                        InstallMethodView()
+                    } label: {
+                        LabeledContent {
+                            Text(installMethod == InstallMethod.direct.rawValue ? "Direct" : "Server")
+                        } label: {
+                            Label { Text("Install Method") } icon: { SettingsIcon("arrow.down.app.fill", color: .blue) }
+                        }
+                    }
                 } footer: {
-                    Text("A one-time setup needed to install apps.")
+                    Text(installMethod == InstallMethod.direct.rawValue
+                         ? "Direct install doesn't need the certificate; it's used if you switch back to the install server."
+                         : "The certificate is a one-time setup needed to install apps.")
                 }
 
                 Section {
