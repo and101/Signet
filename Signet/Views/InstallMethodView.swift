@@ -244,6 +244,10 @@ enum DirectInstallDiagnostics {
             "",
             log.isEmpty ? "No direct install yet." : log.text,
         ]
+        let trail = DirectInstall.selfUpdateTrail
+        if !trail.isEmpty {
+            lines += ["", "--- Self-updates ---"] + trail
+        }
         if let library = try? String(contentsOf: DirectInstaller.libraryLogURL, encoding: .utf8), !library.isEmpty {
             lines += ["", "--- idevice log (last 150 lines) ---"] + library.split(separator: "\n").suffix(150).map(String.init)
         }

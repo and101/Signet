@@ -7,7 +7,8 @@ import IDevice
 final class DirectInstallTests: XCTestCase {
     private var savedDefaults: [String: Any?] = [:]
     private let keys = [DirectInstall.methodKey, DirectInstall.addressKey, DirectInstall.portKey,
-                        "directInstallDiscoveredPort", "directInstallStagedPaths", "directInstallPendingSelfUpdate"]
+                        "directInstallDiscoveredPort", "directInstallStagedPaths", "directInstallPendingSelfUpdate",
+                        "directInstallSelfUpdateTrail"]
 
     override func setUp() {
         Paths.prepare()
@@ -54,8 +55,9 @@ final class DirectInstallTests: XCTestCase {
         XCTAssertEqual(DirectInstall.discoveredPort, 62000)
         DirectInstall.discoveredPort = nil
         XCTAssertNil(DirectInstall.discoveredPort)
-        DirectInstall.pendingSelfUpdate = .init(version: "1.1", build: "7", bundlePath: "/a")
-        XCTAssertEqual(DirectInstall.pendingSelfUpdate, .init(version: "1.1", build: "7", bundlePath: "/a"))
+        let pending = DirectInstall.PendingSelfUpdate(version: "1.1", build: "7", bundlePath: "/a", date: Date(timeIntervalSince1970: 5))
+        DirectInstall.pendingSelfUpdate = pending
+        XCTAssertEqual(DirectInstall.pendingSelfUpdate, pending)
         DirectInstall.pendingSelfUpdate = nil
         XCTAssertNil(DirectInstall.pendingSelfUpdate)
     }
@@ -166,26 +168,32 @@ final class DirectInstallTests: XCTestCase {
         XCTAssertNil(manager.serverFallback)
     }
 
-    func testSelfUpdateNeedsANewBundleContainer() {
-        // Reinstalling the same build still moves Signet to a new container; staying put means nothing installed.
-        let pending = DirectInstall.PendingSelfUpdate(version: "1.1", build: "2", bundlePath: "/containers/A/Signet.app")
-        XCTAssertTrue(pending.wasInstalled(nowAt: "/containers/B/Signet.app"))
-        XCTAssertFalse(pending.wasInstalled(nowAt: "/containers/A/Signet.app"))
+    func testSelfUpdateDetection() {
+        let sent = Date(timeIntervalSince1970: 1_000_000)
+        let pending = DirectInstall.PendingSelfUpdate(version: "1.1", build: "2", bundlePath: "/containers/A/Signet.app", date: sent)
+        // A new container, or the same path with a folder made after the update was sent.
+        XCTAssertTrue(pending.wasInstalled(nowAt: "/containers/B/Signet.app", bundleCreated: nil))
+        XCTAssertTrue(pending.wasInstalled(nowAt: "/containers/A/Signet.app", bundleCreated: sent.addingTimeInterval(20)))
+        // Same place, older folder: nothing was installed.
+        XCTAssertFalse(pending.wasInstalled(nowAt: "/containers/A/Signet.app", bundleCreated: sent.addingTimeInterval(-3600)))
+        XCTAssertFalse(pending.wasInstalled(nowAt: "/containers/A/Signet.app", bundleCreated: nil))
     }
 
     @MainActor
-    func testPendingSelfUpdateIsReportedOnce() {
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+    func testPendingSelfUpdateIsReportedOnce() async {
         let manager = InstallManager()
-        DirectInstall.pendingSelfUpdate = .init(version: "9.9", build: build, bundlePath: "/elsewhere/Signet.app")
+        DirectInstall.pendingSelfUpdate = .init(version: "9.9", build: "1", bundlePath: "/elsewhere/Signet.app", date: Date())
         manager.checkPendingSelfUpdate()
-        XCTAssertNotNil(manager.selfUpdateResult)
+        XCTAssertNil(DirectInstall.pendingSelfUpdate, "reported once")
+        try? await Task.sleep(for: .seconds(1)) // the alert is raised after the first screen is up
         XCTAssertTrue(manager.selfUpdateResult?.hasPrefix("Signet updated") ?? false)
-        XCTAssertNil(DirectInstall.pendingSelfUpdate)
+        XCTAssertTrue(DirectInstall.selfUpdateTrail.last?.contains("Launch check") ?? false, "the check is logged")
 
         manager.selfUpdateResult = nil
-        DirectInstall.pendingSelfUpdate = .init(version: "9.9", build: build, bundlePath: Bundle.main.bundlePath)
+        DirectInstall.pendingSelfUpdate = .init(version: "9.9", build: "1", bundlePath: Bundle.main.bundlePath,
+                                                date: Date().addingTimeInterval(3600))
         manager.checkPendingSelfUpdate()
+        try? await Task.sleep(for: .seconds(1))
         XCTAssertTrue(manager.selfUpdateResult?.contains("didn't update") ?? false)
     }
 

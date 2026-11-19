@@ -55,6 +55,9 @@ final class InstallManager {
     private var pendingSelfUpdateApp: LibraryApp?
     /// Quits Signet after a self-update request; cancelled if the install fails first.
     private var selfUpdateExit: Task<Void, Never>?
+    /// Set once Signet starts leaving for a self-update. Errors after that are the connection closing as Signet
+    /// goes, not the install failing: iOS has the request and finishes it.
+    private var selfUpdateLeaving = false
     /// The team of the certificate an app was signed with, to warn before a self-update changes team.
     var teamLookup: (UUID?) -> String? = { _ in nil }
 
@@ -376,7 +379,9 @@ extension InstallManager {
             state = .installing(appName: app.name, progress: nil)
             phase = DirectInstaller.phase(forPercent: 0)
             if isSelfUpdate {
-                DirectInstall.pendingSelfUpdate = .init(version: app.version, build: app.build, bundlePath: Bundle.main.bundlePath)
+                DirectInstall.pendingSelfUpdate = .init(version: app.version, build: app.build,
+                                                        bundlePath: Bundle.main.bundlePath, date: Date())
+                DirectInstall.recordSelfUpdate("Sending \(app.version) (\(app.build)) from \(Bundle.main.bundlePath)")
             }
             let bundleID = app.bundleID
             let appName = app.name
@@ -393,7 +398,12 @@ extension InstallManager {
                     }
                 }
             }.value
-            DirectInstall.pendingSelfUpdate = nil
+            if isSelfUpdate {
+                // Keep the record: the next launch confirms the update.
+                DirectInstall.recordSelfUpdate("The installer reported success")
+            } else {
+                DirectInstall.pendingSelfUpdate = nil
+            }
             InstallHistory.record(bundleID)
             directLog.finish(.succeeded, "Installed \(app.name) \(app.version)")
             await Self.removeStaged([uploaded], with: installer)
@@ -402,6 +412,12 @@ extension InstallManager {
             phase = nil
             finish(.installed(appName: app.name))
         } catch {
+            if isSelfUpdate, selfUpdateLeaving {
+                // Signet is quitting and iOS is installing; leave the record and the uploaded IPA alone.
+                DirectInstall.recordSelfUpdate("Connection closed while leaving (expected): \(error.localizedDescription)")
+                return
+            }
+            if isSelfUpdate { DirectInstall.recordSelfUpdate("Failed before leaving: \(error.localizedDescription)") }
             // Don't quit for a self-update that failed; stay open to show why.
             selfUpdateExit?.cancel()
             selfUpdateExit = nil
@@ -442,6 +458,8 @@ extension InstallManager {
             // Long enough for a request iOS rejects outright to fail first and cancel this.
             try? await Task.sleep(for: .seconds(2))
             guard !Task.isCancelled else { return }
+            self.selfUpdateLeaving = true
+            DirectInstall.recordSelfUpdate("Request sent; going to the Home Screen and quitting")
             UserDefaults.standard.synchronize()
             UIApplication.shared.perform(#selector(NSXPCConnection.suspend))
             try? await Task.sleep(for: .milliseconds(500))
@@ -455,9 +473,17 @@ extension InstallManager {
         guard let pending = DirectInstall.pendingSelfUpdate else { return }
         DirectInstall.pendingSelfUpdate = nil
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? pending.version
-        selfUpdateResult = pending.wasInstalled(nowAt: Bundle.main.bundlePath)
+        let created = try? Bundle.main.bundleURL.resourceValues(forKeys: [.creationDateKey]).creationDate
+        let updated = pending.wasInstalled(nowAt: Bundle.main.bundlePath, bundleCreated: created)
+        DirectInstall.recordSelfUpdate("Launch check: now at \(Bundle.main.bundlePath), folder created \(created?.formatted(.iso8601) ?? "unknown"); updated: \(updated)")
+        let result = updated
             ? String(localized: "Signet updated to \(version).")
             : String(localized: "Signet didn't update to \(pending.version). Try installing it again.")
+        // Shown once the first screen is up; an alert raised during launch can be dropped.
+        Task {
+            try? await Task.sleep(for: .milliseconds(600))
+            self.selfUpdateResult = result
+        }
     }
 
     /// The manual port, else the last one found, else the usual one, else a Bonjour search.

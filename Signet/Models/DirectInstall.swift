@@ -80,14 +80,34 @@ enum DirectInstall {
     struct PendingSelfUpdate: Codable, Equatable {
         let version: String
         let build: String
-        /// Where the running copy lived. iOS installs every update into a new bundle container, so a different
-        /// path on the next launch shows the update happened, even when the build number is the same.
+        /// Where the running copy lived; a different path on the next launch means iOS installed a new copy.
         var bundlePath: String?
+        /// When the update was sent. iOS creates the app's folder when it installs it, so a folder made after this
+        /// also shows the update happened, whether or not iOS kept the same path.
+        var date: Date?
 
-        func wasInstalled(nowAt currentPath: String) -> Bool {
-            if let bundlePath { return bundlePath != currentPath }
-            return Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String == build
+        func wasInstalled(nowAt currentPath: String, bundleCreated: Date?) -> Bool {
+            if let bundlePath, bundlePath != currentPath { return true }
+            if let date, let bundleCreated, bundleCreated > date.addingTimeInterval(-1) { return true }
+            if bundlePath == nil, date == nil {
+                return Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String == build
+            }
+            return false
         }
+    }
+
+    // MARK: - Self-update trail
+
+    private static let trailKey = "directInstallSelfUpdateTrail"
+
+    /// What happened during the last self-updates, kept across launches (Signet quits halfway through one), for
+    /// Copy Diagnostics.
+    static var selfUpdateTrail: [String] { defaults.stringArray(forKey: trailKey) ?? [] }
+
+    static func recordSelfUpdate(_ event: String) {
+        let line = "\(Date().formatted(.iso8601)) \(event)"
+        defaults.set(Array((selfUpdateTrail + [line]).suffix(40)), forKey: trailKey)
+        defaults.synchronize()
     }
 
     /// Recorded just before Signet quits to let iOS replace it; read on the next launch.

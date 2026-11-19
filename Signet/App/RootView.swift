@@ -45,7 +45,7 @@ struct RootView: View {
         } message: {
             Text(router.message ?? library.lastError ?? "")
         }
-        .alert("Signet Updated", isPresented: Binding(
+        .alert("Signet Update", isPresented: Binding(
             get: { installer.selfUpdateResult != nil },
             set: { if !$0 { installer.selfUpdateResult = nil } }
         )) {
