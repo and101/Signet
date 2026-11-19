@@ -16,6 +16,7 @@
 		1C89FA8A0E70EC856C3D1775 /* InstallManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79D5CB622C29F818A4BCF2B8 /* InstallManager.swift */; };
 		1E5D3CDDA65031FC7CB5149A /* AppPatchingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43439FDD4FA6A48328482F63 /* AppPatchingTests.swift */; };
 		20E2F7141296FA5A93E7FD54 /* AppImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E674667AB2C3E3ADE88164 /* AppImporter.swift */; };
+		23741567B9F18568C9A90472 /* CertificateSharingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6DDCE4E692EB06F76006F4B /* CertificateSharingTests.swift */; };
 		354C3FD26F372D7CC2917278 /* NIOSSL in Frameworks */ = {isa = PBXBuildFile; productRef = DE8984E5703468375736DA7C /* NIOSSL */; };
 		369A6B102C0334889F7D37C8 /* Signer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD10DD94FA0CFBB8744584D /* Signer.swift */; };
 		3D27FF1AB73B3C7A9F55F85A /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A334CA2CA3328E8C08695CE /* RootView.swift */; };
@@ -51,6 +52,7 @@
 		9E44E414E2D031C52E842F1E /* CertificateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 297D2A0C11CAAB9753BBD2A5 /* CertificateStore.swift */; };
 		A2E4BE457F8806E90827A732 /* LibraryIndexTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5045DDFAAE6576D6F14C4577 /* LibraryIndexTests.swift */; };
 		A51D0877D4F0BD233EA96A7D /* InstallProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = E14DE164067464A1DE9F951C /* InstallProgress.swift */; };
+		A52C56EF86AB73E6763FB773 /* CertificateSharing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 974B0FF6906877D55B49280F /* CertificateSharing.swift */; };
 		A7FA635BD25C5835E2507C9F /* SourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF5AA7721A8F8B70A76D3EF5 /* SourcesView.swift */; };
 		A9FEA8FD97EBB6CB143DDE3A /* TweakSupportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55F7B27BFA81444467EC62D2 /* TweakSupportTests.swift */; };
 		AA57C3942804408F3D5EB279 /* Certificate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1869B439031756F054DAE63E /* Certificate.swift */; };
@@ -132,9 +134,11 @@
 		8A7318A2E4ABB0409FA10A9B /* EntitlementsMerger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntitlementsMerger.swift; sourceTree = "<group>"; };
 		915C559E3CB3B706AAFE9AEC /* Zsign */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Zsign; path = Vendor/Zsign; sourceTree = SOURCE_ROOT; };
 		940CDBD658CA55165C8A939F /* DirectInstall.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectInstall.swift; sourceTree = "<group>"; };
+		974B0FF6906877D55B49280F /* CertificateSharing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CertificateSharing.swift; sourceTree = "<group>"; };
 		99B8AE239425932B7D1B6CFD /* SignetApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignetApp.swift; sourceTree = "<group>"; };
 		9A398574D7DC4746D30D441F /* InstallMethodView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallMethodView.swift; sourceTree = "<group>"; };
 		A671260366594AE81BC9FF6C /* KeychainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTests.swift; sourceTree = "<group>"; };
+		A6DDCE4E692EB06F76006F4B /* CertificateSharingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CertificateSharingTests.swift; sourceTree = "<group>"; };
 		A78D6D59B0C70D82414ADEFA /* SourceUpdates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceUpdates.swift; sourceTree = "<group>"; };
 		A7C9269E1748A1D5027C719C /* PPQTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PPQTests.swift; sourceTree = "<group>"; };
 		A8BCF10D9D3DB5472A19ED4D /* CertificatesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CertificatesView.swift; sourceTree = "<group>"; };
@@ -256,6 +260,7 @@
 				11BA9A4C53798C55795FCDCA /* ActivityLogTests.swift */,
 				43439FDD4FA6A48328482F63 /* AppPatchingTests.swift */,
 				23D14ABAC97E087BD623A707 /* BackupTests.swift */,
+				A6DDCE4E692EB06F76006F4B /* CertificateSharingTests.swift */,
 				A948BF8525EE414FBE9D516B /* DirectInstallTests.swift */,
 				B3828F398572870E570106D1 /* Fixtures */,
 				DAF5608369595D271FEB3CA5 /* GitHubReleasesTests.swift */,
@@ -305,6 +310,7 @@
 				06E674667AB2C3E3ADE88164 /* AppImporter.swift */,
 				1E2A731FD2F3B7AC211895D2 /* Backup.swift */,
 				CCE623DEBB67EFDD6F4113D3 /* CertificateImporter.swift */,
+				974B0FF6906877D55B49280F /* CertificateSharing.swift */,
 				5EDCFF8187B4753A2AF14891 /* CryptoSetup.swift */,
 				FCB2349CE7257F986676843E /* DebPackage.swift */,
 				D092F621527D945843BE829A /* DirectInstaller.swift */,
@@ -478,6 +484,7 @@
 				B7F0BC8E1035ACB94661E4BD /* BackupViews.swift in Sources */,
 				AA57C3942804408F3D5EB279 /* Certificate.swift in Sources */,
 				8B605A0156C5FDA9853C965C /* CertificateImporter.swift in Sources */,
+				A52C56EF86AB73E6763FB773 /* CertificateSharing.swift in Sources */,
 				9E44E414E2D031C52E842F1E /* CertificateStore.swift in Sources */,
 				CC9C4596590CCB75BFCD5D6C /* CertificatesView.swift in Sources */,
 				FE7AB61AF46358A03CF25310 /* Components.swift in Sources */,
@@ -525,6 +532,7 @@
 				695828DB3C9E36DF9D2CD55F /* ActivityLogTests.swift in Sources */,
 				1E5D3CDDA65031FC7CB5149A /* AppPatchingTests.swift in Sources */,
 				C12D56DACCEC7554638CD1BF /* BackupTests.swift in Sources */,
+				23741567B9F18568C9A90472 /* CertificateSharingTests.swift in Sources */,
 				48ED82C15208FC428CA4598C /* DirectInstallTests.swift in Sources */,
 				88743095CECCDC313C13D595 /* GitHubReleasesTests.swift in Sources */,
 				E3DF5AFBD51051E649723E6E /* InstallServerTests.swift in Sources */,

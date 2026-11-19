@@ -65,7 +65,8 @@ targets:
         # Direct install finds this iPhone's remote-pairing service over Bonjour.
         NSBonjourServices: [_remotepairing._tcp]
         NSLocalNetworkUsageDescription: Signet looks for this iPhone's pairing service to install apps directly.
-        LSApplicationQueriesSchemes: [localdevvpn]
+        LSApplicationQueriesSchemes: [localdevvpn, livecontainer]
+        NSFaceIDUsageDescription: Signet asks for Face ID before sharing a certificate with another app.
         # Opened files are copied into Documents/Inbox. Opening in place needs an access token tied to the signed
         # identity, which iOS refuses when the bundle ID doesn't match the profile.
         LSSupportsOpeningDocumentsInPlace: false

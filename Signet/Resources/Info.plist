@@ -74,6 +74,7 @@
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>localdevvpn</string>
+		<string>livecontainer</string>
 	</array>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<false/>
@@ -86,6 +87,8 @@
 	<array>
 		<string>_remotepairing._tcp</string>
 	</array>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Signet asks for Face ID before sharing a certificate with another app.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Signet looks for this iPhone's pairing service to install apps directly.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

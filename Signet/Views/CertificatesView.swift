@@ -185,6 +185,7 @@ struct AddCertificateView: View {
             .onAppear {
                 if let pending = router.pendingP12 { p12 = pending; router.pendingP12 = nil }
                 if let pending = router.pendingProfile { profile = pending; router.pendingProfile = nil }
+                if let pending = router.pendingPassword { password = pending; router.pendingPassword = nil }
             }
         }
     }
@@ -236,6 +237,22 @@ struct CertificateDetailView: View {
     @State private var checking = false
     @State private var nickname = ""
     @State private var certificateToDelete: CertificateRecord?
+    @State private var confirmSendToLiveContainer = false
+    @State private var shareError: String?
+
+    private func sendToLiveContainer(_ cert: CertificateRecord) async {
+        do {
+            try await CertificateSharing.authenticate(reason: "Send \(cert.nickname) to LiveContainer")
+            let p12 = try Data(contentsOf: cert.p12URL)
+            guard let url = CertificateSharing.liveContainerURL(p12: p12, password: cert.password),
+                  await UIApplication.shared.open(url) else {
+                shareError = "LiveContainer isn't installed, or didn't open."
+                return
+            }
+        } catch {
+            shareError = error.localizedDescription
+        }
+    }
 
     var body: some View {
         if let cert = store.certificate(id) {
@@ -302,8 +319,27 @@ struct CertificateDetailView: View {
                 }
 
                 Section {
+                    Button { confirmSendToLiveContainer = true } label: {
+                        Label("Send to LiveContainer", systemImage: "square.and.arrow.up.on.square")
+                    }
+                } footer: {
+                    Text("LiveContainer uses it to sign the apps it runs. Anyone with the certificate and password can sign apps as you.")
+                }
+
+                Section {
                     Button("Delete Certificate", role: .destructive) { certificateToDelete = cert }
                 }
+            }
+            .confirmationDialog("Send \(cert.nickname) to LiveContainer?", isPresented: $confirmSendToLiveContainer,
+                                titleVisibility: .visible) {
+                Button("Send") { Task { await sendToLiveContainer(cert) } }
+            } message: {
+                Text("LiveContainer gets the certificate and its password.")
+            }
+            .alert("Couldn't Send", isPresented: Binding(get: { shareError != nil }, set: { if !$0 { shareError = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(shareError ?? "")
             }
             .certificateDeleteConfirmation(item: $certificateToDelete) {
                 store.delete($0.id)
