@@ -21,6 +21,7 @@ struct SignView: View {
     @State private var showTweakPicker = false
     @State private var existingDylibs: [String] = []
     @State private var removableItems: [Signer.RemovableItem] = []
+    @State private var showEntitlementsPicker = false
     @State private var detection: InstalledApps.Detection?
     @State private var signing = false
     @State private var log = ActivityLog()
@@ -189,6 +190,43 @@ struct SignView: View {
                 case .unchanged: EmptyView()
                 case .classic: Text("Keeps the look from before iOS 26. Only affects apps built for iOS 26.")
                 case .liquidGlass: Text("Marks the app as built for iOS 26 so it uses Liquid Glass. Some apps look wrong or crash.")
+                }
+            }
+
+            Section {
+                if let file = options.entitlementsFile {
+                    LabeledContent("Custom Entitlements", value: file.lastPathComponent)
+                    Button("Remove Custom Entitlements", role: .destructive) {
+                        Paths.removeIfTemporary(file)
+                        options.entitlementsFile = nil
+                    }
+                } else {
+                    Button { showEntitlementsPicker = true } label: { Label("Use an Entitlements File", systemImage: "doc.badge.gearshape") }
+                        // On the button rather than the form, which already has the tweak picker's sheet.
+                        .copyingFileImporter(isPresented: $showEntitlementsPicker, allowedContentTypes: [.propertyList, .xml, .data]) { urls in
+                            guard let url = urls.first else { return }
+                            do {
+                                _ = try EntitlementsMerger.read(url)
+                                options.entitlementsFile = url
+                            } catch {
+                                Paths.removeIfTemporary(url)
+                                self.error = error.localizedDescription
+                            }
+                        }
+                }
+            } header: {
+                Text("Entitlements")
+            } footer: {
+                if options.entitlementsFile != nil {
+                    let missing = ungrantedEntitlements
+                    if missing.isEmpty {
+                        Text("Signs with this file instead of the profile's entitlements. Merge App Entitlements is ignored.")
+                    } else {
+                        Text("Your profile doesn't grant \(missing.joined(separator: ", ")), so iOS will refuse to install the app.")
+                            .foregroundStyle(.orange)
+                    }
+                } else {
+                    Text("Optional. By default the app gets your profile's entitlements, or merged ones if Merge App Entitlements is on.")
                 }
             }
 
@@ -439,6 +477,14 @@ struct SignView: View {
             }
         }
         .disabled(removedByToggle)
+    }
+
+    /// Keys the custom entitlements claim that the chosen certificate's profile doesn't grant.
+    private var ungrantedEntitlements: [String] {
+        guard let file = options.entitlementsFile, let certificate,
+              let custom = try? EntitlementsMerger.read(file),
+              let profile = try? ProvisioningProfile(url: certificate.profileURL) else { return [] }
+        return EntitlementsMerger.ungranted(custom, profile: profile.entitlements)
     }
 
     private func tweakIcon(for file: URL) -> String {

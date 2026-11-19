@@ -369,4 +369,68 @@ final class AppPatchingTests: XCTestCase {
         XCTAssertNil(app.signingOptionsData)
         XCTAssertNil(app.rememberedOptions)
     }
+
+    // MARK: - Custom entitlements
+
+    func testUngrantedEntitlements() {
+        let profile: [String: Any] = ["application-identifier": "T.*", "get-task-allow": true,
+                                      "keychain-access-groups": ["T.*"]]
+        let custom: [String: Any] = ["get-task-allow": true, "com.apple.developer.healthkit": true,
+                                     "com.apple.developer.siri": false, "aps-environment": "development"]
+        XCTAssertEqual(EntitlementsMerger.ungranted(custom, profile: profile), ["aps-environment", "com.apple.developer.healthkit"])
+    }
+
+    func testSignsWithCustomEntitlementsAndRemembersThem() async throws {
+        let folder = try Paths.newTempDirectory()
+        defer { Paths.removeIfTemporary(folder) }
+        let file = folder.appendingPathComponent("custom.entitlements")
+        let custom: [String: Any] = ["application-identifier": "TESTTEAM01.com.example.fixture",
+                                     "com.apple.developer.team-identifier": "TESTTEAM01",
+                                     "get-task-allow": true, "keychain-access-groups": ["TESTTEAM01.custom.group"]]
+        try PropertyListSerialization.data(fromPropertyList: custom, format: .xml, options: 0).write(to: file)
+
+        var options = SigningOptions()
+        options.entitlementsFile = file
+        options.mergeEntitlements = true // ignored when a file is chosen
+        let fm = FileManager.default
+        let source = try AppImporter.importIPA(at: fixture("Fixture.ipa"))
+        let cert = try CertificateImporter.importCertificate(
+            p12: fixture("test.p12"), profile: fixture("test.mobileprovision"), password: "fixture", nickname: "")
+        defer {
+            try? fm.removeItem(at: source.directory)
+            try? fm.removeItem(at: cert.directory)
+            Keychain.delete(cert.id.uuidString)
+        }
+        let signed = try await Signer.shared.sign(source, with: cert, options: options) { _ in }
+        defer { try? fm.removeItem(at: signed.directory) }
+
+        let out = try Paths.newTempDirectory()
+        defer { try? fm.removeItem(at: out) }
+        try fm.unzipItem(at: signed.ipaURL, to: out)
+        let executable = out.appendingPathComponent("Payload/Fixture.app/Fixture")
+        let signedEntitlements = try XCTUnwrap(MachO.entitlements(of: executable))
+        XCTAssertEqual(signedEntitlements["keychain-access-groups"] as? [String], ["TESTTEAM01.custom.group"])
+        XCTAssertTrue(fm.fileExists(atPath: file.path), "the user's file isn't deleted after signing")
+
+        let remembered = try XCTUnwrap(signed.rememberedOptions)
+        XCTAssertEqual(remembered.entitlementsFile?.lastPathComponent, "custom-entitlements.plist")
+        XCTAssertEqual(try EntitlementsMerger.read(XCTUnwrap(remembered.entitlementsFile))["keychain-access-groups"] as? [String],
+                       ["TESTTEAM01.custom.group"])
+        XCTAssertNil(options.asDefaults.entitlementsFile, "custom entitlements are per app")
+    }
+
+    func testBadEntitlementsFileFailsSigning() async throws {
+        let folder = try Paths.newTempDirectory()
+        defer { Paths.removeIfTemporary(folder) }
+        let file = folder.appendingPathComponent("broken.entitlements")
+        try Data("not a plist".utf8).write(to: file)
+        var options = SigningOptions()
+        options.entitlementsFile = file
+        do {
+            _ = try await sign(options)
+            XCTFail("signing should fail")
+        } catch {
+            XCTAssertTrue(error.localizedDescription.contains("isn't an entitlements file"))
+        }
+    }
 }

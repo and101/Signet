@@ -34,6 +34,7 @@ struct LibraryApp: Codable, Identifiable, Hashable {
 
     var tweaksURL: URL { directory.appendingPathComponent("Tweaks", isDirectory: true) }
     var customIconURL: URL { directory.appendingPathComponent("custom-icon.png") }
+    var customEntitlementsURL: URL { directory.appendingPathComponent("custom-entitlements.plist") }
 
     /// The options a signed app was made with, including its custom icon and tweaks.
     var rememberedOptions: SigningOptions? {
@@ -41,6 +42,7 @@ struct LibraryApp: Codable, Identifiable, Hashable {
         var options = SigningOptions.decodeDefaults(from: signingOptionsData)
         let fm = FileManager.default
         options.customIcon = try? Data(contentsOf: customIconURL)
+        options.entitlementsFile = fm.fileExists(atPath: customEntitlementsURL.path) ? customEntitlementsURL : nil
         options.injectFiles = ((try? fm.contentsOfDirectory(at: tweaksURL, includingPropertiesForKeys: nil)) ?? [])
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
         return options

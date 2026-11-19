@@ -41,6 +41,26 @@ enum EntitlementsMerger {
         return result
     }
 
+    /// Reads an entitlements plist picked by the user.
+    static func read(_ url: URL) throws -> [String: Any] {
+        guard let data = try? Data(contentsOf: url),
+              let plist = (try? PropertyListSerialization.propertyList(from: data, format: nil)) as? [String: Any] else {
+            throw AppError("\(url.lastPathComponent) isn't an entitlements file. It should be a plist dictionary.")
+        }
+        return plist
+    }
+
+    /// Entitlements a custom file claims that the profile doesn't grant. iOS refuses to install an app that claims
+    /// more than its profile allows. A key turned off (`false`) claims nothing, so it's left out.
+    static func ungranted(_ custom: [String: Any], profile: [String: Any]) -> [String] {
+        custom.compactMap { key, value in
+            if profile[key] != nil { return nil }
+            if let flag = value as? Bool, !flag { return nil }
+            return key
+        }
+        .sorted()
+    }
+
     static func allowed(_ value: String, by patterns: [String]) -> Bool {
         patterns.contains { pattern in
             pattern.hasSuffix("*") ? value.hasPrefix(pattern.dropLast()) : value == pattern

@@ -13,6 +13,8 @@ struct SigningOptions: Codable, Equatable {
     var appearance = Appearance.unchanged
     /// Paths inside the .app to delete, e.g. `PlugIns/Share.appex` or `Frameworks/Ads.framework`.
     var removePaths: [String] = []
+    /// An entitlements plist to sign with instead of the profile's (or merged) entitlements.
+    var entitlementsFile: URL?
 
     // Behaviour (saved as defaults)
     var removeSupportedDevices = true
@@ -66,6 +68,7 @@ struct SigningOptions: Codable, Equatable {
         copy.interfaceStyle = .unchanged
         copy.appearance = .unchanged
         copy.removePaths = []
+        copy.entitlementsFile = nil
         return copy
     }
 

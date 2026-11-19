@@ -90,10 +90,16 @@ actor Signer {
             }
 
             var entitlementsPath = ""
-            if options.mergeEntitlements, let executable = AppImporter.mainExecutable(of: source.appURL) {
+            var mergedFile = false
+            if let custom = options.entitlementsFile {
+                _ = try EntitlementsMerger.read(custom) // fail early with a clear message
+                log("Using custom entitlements from \(custom.lastPathComponent)…")
+                entitlementsPath = custom.path
+            } else if options.mergeEntitlements, let executable = AppImporter.mainExecutable(of: source.appURL) {
                 if let url = try mergedEntitlements(for: executable, certificate: certificate, into: result.directory) {
                     log("Merging the app's entitlements…")
                     entitlementsPath = url.path
+                    mergedFile = true
                 } else {
                     log("The app has no entitlements to merge; using the profile's.")
                 }
@@ -138,7 +144,7 @@ actor Signer {
                 compressionMethod: options.compressIPA ? .deflate : .none
             )
             try fm.removeItem(at: result.payloadURL)
-            if !entitlementsPath.isEmpty { try? fm.removeItem(atPath: entitlementsPath) }
+            if mergedFile { try? fm.removeItem(atPath: entitlementsPath) } // never the user's own file
             result.signingOptionsData = try Self.remember(options, for: result)
             result.size = fm.fileSize(at: result.ipaURL)
             log("Done — \(result.size.formattedBytes)")
@@ -167,8 +173,13 @@ actor Signer {
         if let icon = options.customIcon {
             try icon.write(to: app.customIconURL)
         }
+        if let entitlements = options.entitlementsFile, entitlements.standardizedFileURL != app.customEntitlementsURL.standardizedFileURL {
+            try? fm.removeItem(at: app.customEntitlementsURL)
+            try fm.copyItem(at: entitlements, to: app.customEntitlementsURL)
+        }
         var stored = options
         stored.customIcon = nil
+        stored.entitlementsFile = nil
         stored.injectFiles = []
         return try JSONEncoder().encode(stored)
     }
