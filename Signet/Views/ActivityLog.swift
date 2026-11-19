@@ -18,9 +18,9 @@ struct ActivityLog: Equatable {
     var isEmpty: Bool { entries.isEmpty }
     var latest: String? { entries.last?.text }
 
-    /// Clears the history and marks the task as running.
-    mutating func start() {
-        entries = []
+    /// Marks the task as running, clearing the previous run's history unless `keepingHistory`.
+    mutating func start(keepingHistory: Bool = false) {
+        if !keepingHistory { entries = [] }
         outcome = .running
     }
 
@@ -43,16 +43,19 @@ struct ActivityLog: Equatable {
 struct ActivityStatusRow: View {
     let log: ActivityLog
     var progress: Double?
+    /// Shown instead of the latest step while running, e.g. a phase that changes more often than the log.
+    var detail: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 10) {
                 icon.frame(width: 20)
-                Text(log.latest ?? "")
+                let text = (log.outcome == .running ? detail : nil) ?? log.latest ?? ""
+                Text(text)
                     .font(.subheadline)
                     .lineLimit(2)
                     .contentTransition(.opacity)
-                    .animation(.default, value: log.latest)
+                    .animation(.default, value: text)
                 Spacer(minLength: 0)
             }
             if let progress, log.outcome == .running {
