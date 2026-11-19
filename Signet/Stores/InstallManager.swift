@@ -47,7 +47,10 @@ final class InstallManager {
     /// A direct install that couldn't connect, which the server method can install instead.
     private(set) var serverFallback: LibraryApp?
     /// The steps of the last direct install, for its Details and Copy Diagnostics.
-    private(set) var directLog = ActivityLog()
+    /// Saved as it changes, so Copy Diagnostics still has it after a relaunch (a self-update quits mid-install).
+    private(set) var directLog = ActivityLog() {
+        didSet { DirectInstall.lastLog = directLog.text }
+    }
     /// Whether the current failure came from a direct install, so its details are the ones on offer.
     private(set) var failedDirectly = false
     /// After a direct self-update, how it went, shown once on the next launch.

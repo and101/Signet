@@ -8,7 +8,7 @@ final class DirectInstallTests: XCTestCase {
     private var savedDefaults: [String: Any?] = [:]
     private let keys = [DirectInstall.methodKey, DirectInstall.addressKey, DirectInstall.portKey,
                         "directInstallDiscoveredPort", "directInstallStagedPaths", "directInstallPendingSelfUpdate",
-                        "directInstallSelfUpdateTrail"]
+                        "directInstallSelfUpdateTrail", "directInstallLastLog"]
 
     override func setUp() {
         Paths.prepare()
@@ -162,6 +162,7 @@ final class DirectInstallTests: XCTestCase {
         let manager = InstallManager()
         await manager.install(app, method: .direct)
         guard case .failed(let message) = manager.state else { return XCTFail("expected a failure, got \(manager.state)") }
+        XCTAssertTrue(DirectInstall.lastLog.isEmpty, "nothing was attempted, so nothing is logged")
         XCTAssertTrue(message.contains("pairing file"))
         XCTAssertEqual(manager.serverFallback?.id, app.id)
         manager.dismiss()
@@ -249,5 +250,12 @@ final class DirectInstallTests: XCTestCase {
         try fm.createSymbolicLink(atPath: app.appendingPathComponent("Frameworks/outside.dylib").path, withDestinationPath: "../../victim")
         try fm.createSymbolicLink(atPath: app.appendingPathComponent("absolute").path, withDestinationPath: "/etc/hosts")
         XCTAssertEqual(Set(AppImporter.escapingSymlinks(in: app)), ["Frameworks/outside.dylib", "absolute"])
+    }
+
+    func testLastLogSurvivesInUserDefaults() {
+        DirectInstall.lastLog = "12:00 Installing App"
+        XCTAssertEqual(DirectInstall.lastLog, "12:00 Installing App")
+        XCTAssertTrue(DirectInstallDiagnostics.text(ActivityLog()).contains("12:00 Installing App"),
+                      "diagnostics after a relaunch show the saved log")
     }
 }

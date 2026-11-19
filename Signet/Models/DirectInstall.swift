@@ -96,6 +96,16 @@ enum DirectInstall {
         }
     }
 
+    // MARK: - Last install log
+
+    private static let lastLogKey = "directInstallLastLog"
+
+    /// The last direct install's steps, kept across launches for Copy Diagnostics.
+    static var lastLog: String {
+        get { defaults.string(forKey: lastLogKey) ?? "" }
+        set { defaults.set(newValue, forKey: lastLogKey) }
+    }
+
     // MARK: - Self-update trail
 
     private static let trailKey = "directInstallSelfUpdateTrail"

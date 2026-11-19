@@ -242,7 +242,7 @@ enum DirectInstallDiagnostics {
                 + (DirectInstall.discoveredPort.map { " (found \($0))" } ?? ""),
             "Pairing file: \(DirectInstall.hasPairingFile ? "imported" : "none")",
             "",
-            log.isEmpty ? "No direct install yet." : log.text,
+            log.isEmpty ? (DirectInstall.lastLog.isEmpty ? "No direct install yet." : DirectInstall.lastLog) : log.text,
         ]
         let trail = DirectInstall.selfUpdateTrail
         if !trail.isEmpty {
