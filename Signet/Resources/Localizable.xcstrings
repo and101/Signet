@@ -304,6 +304,9 @@
     "Cancel Download" : {
 
     },
+    "Cancelled: %@" : {
+
+    },
     "Certificate" : {
 
     },
@@ -1004,9 +1007,6 @@
     "Not installed." : {
 
     },
-    "Not shared: %@" : {
-
-    },
     "Not tested" : {
 
     },
@@ -1214,7 +1214,7 @@
     "Set Up" : {
 
     },
-    "Set a passcode on this iPhone to share certificates." : {
+    "Set a passcode on this iPhone first." : {
 
     },
     "Set up Settings → Install Certificate first. It's a one-time step." : {
@@ -1398,6 +1398,9 @@
 
     },
     "The upload was interrupted" : {
+
+    },
+    "This IPA contains a link that points outside the app (%@), so it wasn't imported." : {
 
     },
     "This app was %@ with this bundle ID" : {

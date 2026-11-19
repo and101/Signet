@@ -277,7 +277,11 @@ enum Backup {
     static func mergedDefaults(current: SigningOptions, backup: SigningOptions) -> SigningOptions {
         var fresh = SigningOptions()
         fresh.ppqSuffix = current.ppqSuffix
-        let unchanged = (try? JSONEncoder().encode(current.asDefaults)) == (try? JSONEncoder().encode(fresh.asDefaults))
+        // Rules are compared separately below; a fresh install with rules typed in still counts as unchanged.
+        var currentSettings = current.asDefaults
+        currentSettings.bundleIDRules = []
+        currentSettings.nameRules = []
+        let unchanged = currentSettings == fresh.asDefaults
         var result = unchanged ? backup : current
         func union(_ mine: [SigningOptions.RenameRule], _ theirs: [SigningOptions.RenameRule]) -> [SigningOptions.RenameRule] {
             mine + theirs.filter { rule in !mine.contains { $0.match == rule.match } }

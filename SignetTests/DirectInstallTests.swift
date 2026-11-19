@@ -1,5 +1,6 @@
 import XCTest
 @testable import Signet
+import IDevice
 
 /// Direct install without an iPhone: settings, the self-update rules, pairing-file checks, and failures coming
 /// back as errors rather than crashes or hangs.
@@ -189,14 +190,56 @@ final class DirectInstallTests: XCTestCase {
     }
 
     func testConnectingGivesUpAfterTheTimeLimit() async throws {
-        // A pairing file that reads fine but points at nothing would block in the library; here a missing file fails
-        // fast, so check the limit with an address that never answers instead.
-        let installer = DirectInstaller(pairingFileURL: URL(fileURLWithPath: "/nonexistent"), address: "127.0.0.1")
+        // A real pairing file and a local server that accepts the connection but never answers: the library
+        // blocks waiting for the handshake, exactly like an iPhone that stops responding.
+        let folder = try Paths.newTempDirectory()
+        defer { Paths.removeIfTemporary(folder) }
+        let pairingURL = folder.appendingPathComponent("pairing.plist")
+        var pairing: OpaquePointer?
+        XCTAssertNil(rp_pairing_file_generate("SignetTests", &pairing))
+        XCTAssertNil(rp_pairing_file_write(pairing, pairingURL.path))
+        rp_pairing_file_free(pairing)
+
+        let listener = socket(AF_INET, SOCK_STREAM, 0)
+        XCTAssertGreaterThanOrEqual(listener, 0)
+        defer { close(listener) }
+        var address = sockaddr_in()
+        address.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+        address.sin_family = sa_family_t(AF_INET)
+        address.sin_addr.s_addr = inet_addr("127.0.0.1")
+        address.sin_port = 0
+        var length = socklen_t(MemoryLayout<sockaddr_in>.size)
+        let bound = withUnsafeMutablePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                bind(listener, $0, length) == 0 && listen(listener, 4) == 0 && getsockname(listener, $0, &length) == 0
+            }
+        }
+        XCTAssertTrue(bound)
+        let port = UInt16(bigEndian: address.sin_port)
+
+        let installer = DirectInstaller(pairingFileURL: pairingURL, address: "127.0.0.1")
         let started = Date()
         do {
-            _ = try await installer.connect(port: 9, timeout: 1)
-            XCTFail("should fail")
-        } catch {}
-        XCTAssertLessThan(Date().timeIntervalSince(started), 2)
+            _ = try await installer.connect(port: port, timeout: 1)
+            XCTFail("a server that never answers can't connect")
+        } catch let failure as DirectInstaller.Failure {
+            XCTAssertEqual(failure.stage, .tunnel)
+            XCTAssertTrue(failure.localizedDescription.contains("didn't answer"), failure.localizedDescription)
+        }
+        XCTAssertLessThan(Date().timeIntervalSince(started), 2.5, "gives up at the limit instead of waiting for the library")
+    }
+
+    func testFindsLinksThatLeaveTheApp() throws {
+        let fm = FileManager.default
+        let root = try Paths.newTempDirectory()
+        defer { Paths.removeIfTemporary(root) }
+        let app = root.appendingPathComponent("A.app", isDirectory: true)
+        try fm.createDirectory(at: app.appendingPathComponent("Frameworks"), withIntermediateDirectories: true)
+        try Data().write(to: app.appendingPathComponent("A"))
+        try Data().write(to: root.appendingPathComponent("victim"))
+        try fm.createSymbolicLink(atPath: app.appendingPathComponent("Frameworks/inside.dylib").path, withDestinationPath: "../A")
+        try fm.createSymbolicLink(atPath: app.appendingPathComponent("Frameworks/outside.dylib").path, withDestinationPath: "../../victim")
+        try fm.createSymbolicLink(atPath: app.appendingPathComponent("absolute").path, withDestinationPath: "/etc/hosts")
+        XCTAssertEqual(Set(AppImporter.escapingSymlinks(in: app)), ["Frameworks/outside.dylib", "absolute"])
     }
 }

@@ -231,7 +231,8 @@ struct BackupExportView: View {
         // makes it must be able to unlock this iPhone.
         if !certificates.certificates.isEmpty {
             do {
-                try await CertificateSharing.authenticate(reason: "Back up your certificates and their passwords")
+                try await CertificateSharing.authenticate(reason: "Back up your certificates and their passwords",
+                                                          allowWithoutPasscode: true)
             } catch {
                 self.error = error.localizedDescription
                 return

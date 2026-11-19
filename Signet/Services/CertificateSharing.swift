@@ -80,16 +80,19 @@ enum CertificateSharing {
     // MARK: - Authentication
 
     /// Face ID, Touch ID or the passcode. Throws if the user cancels or the device has no passcode.
-    static func authenticate(reason: String) async throws {
+    /// - Parameter allowWithoutPasscode: proceed on an iPhone with no passcode, where there's nothing to check
+    ///   against (backups). Sending a certificate to another app always needs one.
+    static func authenticate(reason: String, allowWithoutPasscode: Bool = false) async throws {
         let context = LAContext()
         var error: NSError?
         guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
-            throw AppError("Set a passcode on this iPhone to share certificates.")
+            if allowWithoutPasscode, (error as? LAError)?.code == .passcodeNotSet { return }
+            throw AppError("Set a passcode on this iPhone first.")
         }
         do {
             try await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason)
         } catch {
-            throw AppError("Not shared: \(error.localizedDescription)")
+            throw AppError("Cancelled: \(error.localizedDescription)")
         }
     }
 }

@@ -42,6 +42,9 @@ enum AppImporter {
             throw AppError("This isn't a valid IPA.")
         }
         let appURL = payload.appendingPathComponent(appFolder, isDirectory: true)
+        if let link = escapingSymlinks(in: appURL).first {
+            throw AppError("This IPA contains a link that points outside the app (\(link)), so it wasn't imported.")
+        }
         let info = try BundleInfo(appURL: appURL)
 
         var app = LibraryApp(
@@ -120,6 +123,26 @@ enum AppImporter {
         let plist = NSDictionary(contentsOf: appURL.appendingPathComponent("Info.plist")) as? [String: Any]
         guard let name = plist?["CFBundleExecutable"] as? String else { return nil }
         return file(named: name, in: appURL)
+    }
+
+    /// Symbolic links in an app that point outside it. Signing patches files in place, so following one could change
+    /// a file elsewhere in Signet's storage. Returns their paths relative to the app.
+    static func escapingSymlinks(in appURL: URL) -> [String] {
+        let fm = FileManager.default
+        let root = appURL.resolvingSymlinksInPath().standardizedFileURL.path
+        guard let walker = fm.enumerator(at: appURL, includingPropertiesForKeys: [.isSymbolicLinkKey]) else { return [] }
+        var escaping: [String] = []
+        for case let url as URL in walker {
+            guard (try? url.resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink) == true,
+                  let target = try? fm.destinationOfSymbolicLink(atPath: url.path) else { continue }
+            let resolved = (target.hasPrefix("/") ? URL(fileURLWithPath: target)
+                            : url.deletingLastPathComponent().resolvingSymlinksInPath().appendingPathComponent(target))
+                .standardizedFileURL.path
+            if resolved != root, !resolved.hasPrefix(root + "/") {
+                escaping.append(String(url.path.dropFirst(appURL.path.count + 1)))
+            }
+        }
+        return escaping
     }
 
     /// A file directly inside a bundle. Names come from the bundle's Info.plist, which an IPA controls, so

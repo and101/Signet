@@ -104,7 +104,7 @@ enum MachO {
 
             let growth = rebuilt.count - oldSize
             if growth > 0 {
-                let available = try firstSectionOffset(of: file, slice: slice, commands: commands) - (headerSize + oldSize)
+                let available = min(try firstSectionOffset(of: file, slice: slice, commands: commands), slice.size) - (headerSize + oldSize)
                 guard growth <= available else {
                     throw AppError("\(url.lastPathComponent) has no room to rewrite \(old) to \(new).")
                 }
@@ -152,7 +152,7 @@ enum MachO {
             let commands = try loadCommands(of: reader, slice: slice)
             if commands.contains(where: { rpath(in: $0) == path }) { continue }
             let used = commands.reduce(0) { $0 + $1.data.count }
-            let available = try firstSectionOffset(of: reader, slice: slice, commands: commands) - (headerSize + used)
+            let available = min(try firstSectionOffset(of: reader, slice: slice, commands: commands), slice.size) - (headerSize + used)
             guard size <= available else { throw AppError("\(url.lastPathComponent) has no room to add a run path.") }
             targets.append((slice, UInt32(commands.count), used))
         }

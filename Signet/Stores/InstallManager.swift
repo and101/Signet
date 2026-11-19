@@ -209,11 +209,20 @@ final class InstallManager {
     private func watchTransfer(token: String, appName: String) {
         guard transferWatch == nil else { return }
         transferWatch = Task { [weak self] in
+            // Counted in ticks the app was awake for: after a suspension the clock jumps, but no ticks were missed.
+            var idleTicks = 0
+            var lastSeen = Date.distantPast
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(5))
                 guard let self, !Task.isCancelled, self.token == token else { return }
                 guard case .transferring = self.state else { break }
-                if Date().timeIntervalSince(self.lastTransferProgress) > Self.transferStallTimeout {
+                if self.lastTransferProgress != lastSeen {
+                    lastSeen = self.lastTransferProgress
+                    idleTicks = 0
+                } else {
+                    idleTicks += 1
+                }
+                if Double(idleTicks) * 5 >= Self.transferStallTimeout {
                     self.fail(String(localized: "The download to iOS stopped partway. Try again with Signet kept open, or check Settings → Keep Running During Installs."))
                     return
                 }
