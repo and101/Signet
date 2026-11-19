@@ -96,20 +96,31 @@ struct TweakInjector {
             }
         }
 
+        // Picked frameworks can contain links of their own; check before patching anything they point to.
+        if let link = AppImporter.escapingSymlinks(in: appURL).first {
+            throw AppError("A tweak contains a link that points outside the app (\(link)), so it wasn't injected.")
+        }
         if options.fixSubstratePaths {
             for binary in plan.added { try rewritePaths(in: binary, extra: plan.rewrites) }
         }
 
-        // Tweaks are copied into Frameworks and loaded by @rpath; apps that embed no frameworks may not search there.
-        do {
-            try MachO.addRPath(Self.mainRPath, to: executable)
-        } catch {
-            log(String(localized: "Couldn't add a Frameworks run path to the app (\(error.localizedDescription)); tweaks may not load."))
-        }
+        // Same-named inputs share one copy in Frameworks; inject each load path once.
+        var seen = Set<String>()
+        plan.injected = plan.injected.filter { seen.insert($0.1).inserted }
         for (binary, loadPath) in plan.injected {
             log(String(localized: "Injecting \(binary.lastPathComponent)…"))
             guard Zsign.injectDyLib(appExecutable: executable.path, with: loadPath, weak: options.weakInject) else {
                 throw AppError("Failed to inject \(binary.lastPathComponent).")
+            }
+        }
+        // Tweaks are copied into Frameworks and loaded by @rpath; apps that embed no frameworks may not search there.
+        // Added after the injections, which need the header space more, and only if nothing equivalent is there.
+        let existing = (try? MachO.rpaths(of: executable)) ?? []
+        if !existing.contains(Self.mainRPath), !existing.contains("@loader_path/Frameworks") {
+            do {
+                try MachO.addRPath(Self.mainRPath, to: executable)
+            } catch {
+                log(String(localized: "Couldn't add a Frameworks run path to the app (\(error.localizedDescription)); tweaks may not load."))
             }
         }
 

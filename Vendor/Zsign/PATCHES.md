@@ -19,4 +19,8 @@ Only `src/`, `swift/`, `Package.swift` and `LICENSE` were copied. Local patches 
    until the app quit. `Free()` now unmaps first, `CloseFile()` forgets the mapping after unmapping, and the
    destructor and `OpenFile()` release any mapping still open.
 
+6. `src/bundle.cpp` — when renaming an app, extension and Watch app bundle IDs were rewritten with a substring
+   replace, so renaming `com.foo` also changed `com.foobar.ext`. Only the old ID itself and IDs under it
+   (`com.foo.widget`) are renamed now.
+
 `SignetTests/SigningPipelineTests` cover both: embedding by default and omitting when requested.

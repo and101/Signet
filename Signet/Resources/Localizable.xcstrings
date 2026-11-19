@@ -76,6 +76,16 @@
     "%@ isn't an entitlements file. It should be a plist dictionary." : {
 
     },
+    "%@ names its executable \"%@\", which isn't inside it, so the app can't be signed safely." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ names its executable \"%2$@\", which isn't inside it, so the app can't be signed safely."
+          }
+        }
+      }
+    },
     "%@ of %@" : {
       "localizations" : {
         "en" : {
@@ -159,7 +169,13 @@
     "3. Turn On Full Trust" : {
 
     },
+    "A direct install is still running. Try again when it finishes." : {
+
+    },
     "A link sent a certificate and provisioning profile. You can check them before saving." : {
+
+    },
+    "A tweak contains a link that points outside the app (%@), so it wasn't injected." : {
 
     },
     "About" : {
@@ -234,6 +250,9 @@
           }
         }
       }
+    },
+    "Another direct install is still finishing. Try again in a moment." : {
+
     },
     "App Deleted" : {
 
@@ -435,6 +454,9 @@
 
     },
     "Couldn't finish the upload" : {
+
+    },
+    "Couldn't list the iPhone's staging folder (code %d)" : {
 
     },
     "Couldn't open the app that asked for the certificate." : {
@@ -1356,6 +1378,9 @@
 
     },
     "The App's Own Icons" : {
+
+    },
+    "The app contains a link that points outside it (%@), so it can't be signed safely." : {
 
     },
     "The app has no entitlements to merge; using the profile's." : {

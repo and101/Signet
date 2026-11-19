@@ -483,6 +483,17 @@ bool ZBundle::ModifyPluginsBundleId(const string& strOldBundleId, const string& 
 		return false;
 	});
 
+	// PATCH(signet): upstream used a substring replace, so renaming com.foo also rewrote com.foobar.ext and any
+	// ID that merely contained com.foo. Only the old ID itself, or IDs under it (com.foo.widget), are renamed.
+	auto renameId = [&](string& id) {
+		if (id == strOldBundleId) {
+			id = strNewBundleId;
+		} else if (id.size() > strOldBundleId.size() && id.compare(0, strOldBundleId.size(), strOldBundleId) == 0 &&
+				   id[strOldBundleId.size()] == '.') {
+			id = strNewBundleId + id.substr(strOldBundleId.size());
+		}
+	};
+
 	for (const string& strFolder: arrFolders) {
 		jvalue jvInfo;
 		if (!jvInfo.read_plist_from_file("%s/Info.plist", strFolder.c_str())) {
@@ -492,14 +503,14 @@ bool ZBundle::ModifyPluginsBundleId(const string& strOldBundleId, const string& 
 
 		string strOldPIBundleID = jvInfo["CFBundleIdentifier"];
 		string strNewPIBundleID = strOldPIBundleID;
-		ZUtil::StringReplace(strNewPIBundleID, strOldBundleId, strNewBundleId);
+		renameId(strNewPIBundleID);
 		jvInfo["CFBundleIdentifier"] = strNewPIBundleID;
 		ZLog::PrintV(">>> BundleId: \t%s -> %s, Plugin\n", strOldPIBundleID.c_str(), strNewPIBundleID.c_str());
 
 		if (jvInfo.has("WKCompanionAppBundleIdentifier")) {
 			string strOldWKCBundleID = jvInfo["WKCompanionAppBundleIdentifier"];
 			string strNewWKCBundleID = strOldWKCBundleID;
-			ZUtil::StringReplace(strNewWKCBundleID, strOldBundleId, strNewBundleId);
+			renameId(strNewWKCBundleID);
 			jvInfo["WKCompanionAppBundleIdentifier"] = strNewWKCBundleID;
 			ZLog::PrintV(">>> BundleId: \t%s -> %s, Plugin-WKCompanionAppBundleIdentifier\n", strOldWKCBundleID.c_str(), strNewWKCBundleID.c_str());
 		}
@@ -509,7 +520,7 @@ bool ZBundle::ModifyPluginsBundleId(const string& strOldBundleId, const string& 
 				if (jvInfo["NSExtension"]["NSExtensionAttributes"].has("WKAppBundleIdentifier")) {
 					string strOldWKBundleID = jvInfo["NSExtension"]["NSExtensionAttributes"]["WKAppBundleIdentifier"];
 					string strNewWKBundleID = strOldWKBundleID;
-					ZUtil::StringReplace(strNewWKBundleID, strOldBundleId, strNewBundleId);
+					renameId(strNewWKBundleID);
 					jvInfo["NSExtension"]["NSExtensionAttributes"]["WKAppBundleIdentifier"] = strNewWKBundleID;
 					ZLog::PrintV(">>> BundleId: \t%s -> %s, NSExtension-NSExtensionAttributes-WKAppBundleIdentifier\n", strOldWKBundleID.c_str(), strNewWKBundleID.c_str());
 				}

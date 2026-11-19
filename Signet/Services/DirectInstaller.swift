@@ -131,6 +131,7 @@ final class DirectInstaller {
     /// Opens the tunnel and returns the iOS version the device reports.
     func connect(port: UInt16) throws -> String {
         disconnect()
+        let originalFile = try? Data(contentsOf: pairingFileURL)
         var pairing: OpaquePointer?
         try check(.pairingFile, "Couldn't read the pairing file", rp_pairing_file_read(pairingFileURL.path, &pairing))
         defer { rp_pairing_file_free(pairing) }
@@ -150,8 +151,12 @@ final class DirectInstaller {
         }
         try check(.tunnel, "This iPhone refused the connection", error)
         log("Connected on port \(port)")
-        // A failed pair-verify can fall back to pair-setup, which updates the file; keep the newest copy.
-        if let error = rp_pairing_file_write(pairing, pairingFileURL.path) { idevice_error_free(error) }
+        // A failed pair-verify can fall back to pair-setup, which updates the file; keep the newest copy. Not if the
+        // file changed meanwhile: this may be a timed-out attempt finishing after the user imported a new one.
+        if (try? Data(contentsOf: pairingFileURL)) == originalFile,
+           let error = rp_pairing_file_write(pairing, pairingFileURL.path) {
+            idevice_error_free(error)
+        }
 
         var lockdown: OpaquePointer?
         try check(.connect, "Couldn't reach the iPhone's services", lockdownd_connect_rsd(adapter, handshake, &lockdown))
@@ -237,8 +242,9 @@ final class DirectInstaller {
         var entries: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
         var count = 0
         if let error = afc_list_directory(afc, Self.stagingFolder, &entries, &count) {
-            idevice_error_free(error) // no staging folder yet
-            return []
+            // Can't tell a missing folder from a dropped connection, so report it; callers keep their records.
+            defer { idevice_error_free(error) }
+            throw Failure(stage: .upload, message: String(localized: "Couldn't list the iPhone's staging folder (code \(error.pointee.code))"))
         }
         guard let entries else { return [] }
         var names: [String] = []

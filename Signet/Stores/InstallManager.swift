@@ -68,6 +68,9 @@ final class InstallManager {
     }
 
     func install(_ app: LibraryApp, method: InstallMethod = DirectInstall.method) async {
+        // A watcher from an earlier install that was replaced without being dismissed.
+        transferWatch?.cancel()
+        transferWatch = nil
         serverFallback = nil
         phase = nil
         failedDirectly = false
@@ -214,8 +217,8 @@ final class InstallManager {
             var lastSeen = Date.distantPast
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(5))
-                guard let self, !Task.isCancelled, self.token == token else { return }
-                guard case .transferring = self.state else { break }
+                guard let self, !Task.isCancelled else { return }
+                guard self.token == token, case .transferring = self.state else { break }
                 if self.lastTransferProgress != lastSeen {
                     lastSeen = self.lastTransferProgress
                     idleTicks = 0
@@ -324,6 +327,12 @@ extension InstallManager {
         }
         let isSelfUpdate = selfUpdate != .otherApp
 
+        // One direct install (or connection test) at a time: a second one's cleanup could delete the first one's
+        // upload, and a closed sheet's install keeps running. Checked and claimed with no suspension in between.
+        guard Self.runningDirectInstalls == 0 else {
+            fail(String(localized: "Another direct install is still finishing. Try again in a moment."))
+            return
+        }
         let token = UUID().uuidString
         self.token = token
         directLog.start()
@@ -347,7 +356,7 @@ extension InstallManager {
             let version = try await installer.connect(port: port, timeout: DirectInstaller.connectTimeout)
             guard self.token == token else { return }
             directLog.append("Connected to iOS \(version)")
-            await Self.removeLeftovers(with: installer, ownInstalls: 1)
+            await Self.removeLeftovers(with: installer)
 
             phase = nil
             state = .transferring(appName: app.name, progress: 0)
@@ -470,12 +479,12 @@ extension InstallManager {
     /// the staging folder and mustn't be cleaned up as leftovers.
     private static var runningDirectInstalls = 0
 
-    /// Deletes IPAs earlier installs left on the iPhone, unless another direct install is still running.
-    /// - Parameter ownInstalls: running installs that belong to the caller (1 when called from an install).
-    private static func removeLeftovers(with installer: DirectInstaller, ownInstalls: Int = 0) async {
-        guard runningDirectInstalls <= ownInstalls else { return }
+    /// Deletes IPAs earlier installs left on the iPhone. Only called by the one running direct operation, so no
+    /// other upload can be in the staging folder.
+    private static func removeLeftovers(with installer: DirectInstaller) async {
         let recorded = DirectInstall.stagedPaths
         guard let found = try? await Task.detached(operation: { try installer.listStaged() }).value else {
+            // Couldn't list: try the recorded ones, and keep any that fail for next time.
             if !recorded.isEmpty { await removeStaged(recorded, with: installer) }
             return
         }
@@ -493,6 +502,9 @@ extension InstallManager {
     /// Checks the whole connection for Settings: pairing file, VPN, tunnel. Returns the iOS version.
     static func testDirectConnection() async throws -> String {
         guard DirectInstall.hasPairingFile else { throw AppError("Import a pairing file first.") }
+        guard runningDirectInstalls == 0 else { throw AppError("A direct install is still running. Try again when it finishes.") }
+        runningDirectInstalls += 1
+        defer { runningDirectInstalls -= 1 }
         DirectInstaller.startLibraryLog()
         guard let port = await resolvePort() else {
             throw AppError("Can't reach this iPhone through the VPN. Check LocalDevVPN is connected and Wi-Fi is on.")

@@ -127,14 +127,20 @@ enum AppImporter {
 
     /// Symbolic links in an app that point outside it. Signing patches files in place, so following one could change
     /// a file elsewhere in Signet's storage. Returns their paths relative to the app.
+    /// A link whose target can't be read counts as escaping, and so does a folder that can't be walked.
     static func escapingSymlinks(in appURL: URL) -> [String] {
         let fm = FileManager.default
         let root = appURL.resolvingSymlinksInPath().standardizedFileURL.path
-        guard let walker = fm.enumerator(at: appURL, includingPropertiesForKeys: [.isSymbolicLinkKey]) else { return [] }
+        var unreadable = false
+        guard let walker = fm.enumerator(at: appURL, includingPropertiesForKeys: [.isSymbolicLinkKey],
+                                         errorHandler: { _, _ in unreadable = true; return true }) else { return ["."] }
         var escaping: [String] = []
         for case let url as URL in walker {
-            guard (try? url.resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink) == true,
-                  let target = try? fm.destinationOfSymbolicLink(atPath: url.path) else { continue }
+            guard (try? url.resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink) == true else { continue }
+            guard let target = try? fm.destinationOfSymbolicLink(atPath: url.path) else {
+                escaping.append(String(url.path.dropFirst(appURL.path.count + 1)))
+                continue
+            }
             let resolved = (target.hasPrefix("/") ? URL(fileURLWithPath: target)
                             : url.deletingLastPathComponent().resolvingSymlinksInPath().appendingPathComponent(target))
                 .standardizedFileURL.path
@@ -142,7 +148,32 @@ enum AppImporter {
                 escaping.append(String(url.path.dropFirst(appURL.path.count + 1)))
             }
         }
+        if unreadable { escaping.append(".") }
         return escaping
+    }
+
+    /// Checks an app before Signet patches or signs it: no link may lead outside it, and every bundle's executable
+    /// (the app, its extensions and frameworks) must be a plain file name inside that bundle. zsign reads
+    /// CFBundleExecutable itself, so this has to hold for every nested bundle, not only for Signet's own lookups.
+    static func validateForSigning(_ appURL: URL) throws {
+        if let link = escapingSymlinks(in: appURL).first {
+            throw AppError("The app contains a link that points outside it (\(link)), so it can't be signed safely.")
+        }
+        let fm = FileManager.default
+        var bundles = [appURL]
+        if let walker = fm.enumerator(at: appURL, includingPropertiesForKeys: nil) {
+            for case let url as URL in walker where ["app", "appex", "framework"].contains(url.pathExtension.lowercased()) {
+                bundles.append(url)
+            }
+        }
+        for bundle in bundles {
+            let plist = NSDictionary(contentsOf: bundle.appendingPathComponent("Info.plist")) as? [String: Any]
+            guard let name = plist?["CFBundleExecutable"] as? String else { continue }
+            guard file(named: name, in: bundle) != nil else {
+                let relative = bundle == appURL ? appURL.lastPathComponent : String(bundle.path.dropFirst(appURL.path.count + 1))
+                throw AppError("\(relative) names its executable \"\(name)\", which isn't inside it, so the app can't be signed safely.")
+            }
+        }
     }
 
     /// A file directly inside a bundle. Names come from the bundle's Info.plist, which an IPA controls, so

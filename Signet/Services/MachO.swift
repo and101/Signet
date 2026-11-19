@@ -237,7 +237,9 @@ enum MachO {
             return nil
         }
         guard signature.data.count >= 16 else { return nil } // linkedit_data_command: cmd, size, offset, length
-        let blob = try file.read(at: slice.offset + Int(signature.data.u32(8)), count: Int(signature.data.u32(12)))
+        let blobOffset = Int(signature.data.u32(8)), blobLength = Int(signature.data.u32(12))
+        guard blobOffset <= slice.size, blobLength <= slice.size - blobOffset else { return nil } // not another slice's
+        let blob = try file.read(at: slice.offset + blobOffset, count: blobLength)
         guard blob.count >= 12, blob.u32(0, bigEndian: true) == 0xfade_0cc0 else { return nil }
         let count = Int(blob.u32(8, bigEndian: true))
         for index in 0..<count {
@@ -269,7 +271,7 @@ enum MachO {
             let count = Int(try file.u32(4, bigEndian: true))
             let recordSize = is64 ? 32 : 20
             guard count > 0, count < 32, 8 + count * recordSize <= file.size else { return [] }
-            return try (0..<count).compactMap { index in
+            let found: [Slice] = try (0..<count).compactMap { index in
                 let record = 8 + index * recordSize
                 // Offsets and sizes come from the file; anything that doesn't fit in it is skipped, not trusted.
                 guard let offset = is64 ? Int(exactly: try file.u64(record + 8, bigEndian: true)) : Int(try file.u32(record + 8, bigEndian: true)),
@@ -278,6 +280,12 @@ enum MachO {
                 return Slice(offset: offset, cpuType: try file.u32(record, bigEndian: true),
                              cpuSubtype: try file.u32(record + 4, bigEndian: true), fatRecord: record, size: size)
             }
+            // Slices that overlap could have one patched through the other; such a file isn't treated as Mach-O.
+            let ordered = found.sorted { $0.offset < $1.offset }
+            for (current, next) in zip(ordered, ordered.dropFirst()) where current.offset + current.size > next.offset {
+                return []
+            }
+            return found
         }
         guard try file.u32(0) == magic64, file.size >= headerSize else { return [] }
         return [Slice(offset: 0, cpuType: try file.u32(4), cpuSubtype: try file.u32(8), fatRecord: nil, size: file.size)]

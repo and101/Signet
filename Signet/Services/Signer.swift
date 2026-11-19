@@ -83,6 +83,8 @@ actor Signer {
             log(String(localized: "Copying \(source.appFolderName)…"))
             try fm.copyItem(at: source.appURL, to: result.appURL)
             let appURL = result.appURL
+            // Library entries from older versions or backups weren't checked at import.
+            try AppImporter.validateForSigning(appURL)
 
             log(String(localized: "Patching Info.plist…"))
             try patchInfoPlist(at: appURL, options: options)
@@ -142,7 +144,9 @@ actor Signer {
 
                 try Self.replaceNestedProfiles(in: appURL, with: certificate.profileURL,
                                                remove: options.removeProvisioningFile)
-                log(String(localized: "Signing with \(certificate.nickname)…"))
+                // Tweaks and frameworks added since the first check are bundles and links too.
+            try AppImporter.validateForSigning(appURL)
+            log(String(localized: "Signing with \(certificate.nickname)…"))
                 let ok = Zsign.sign(
                     appPath: appURL.path,
                     provisionPath: certificate.profileURL.path,
@@ -268,7 +272,9 @@ actor Signer {
         stored.bundleIDRules = []
         stored.nameRules = []
         // Only the names, in the order they were injected; the files themselves are in the Tweaks folder.
-        stored.injectFiles = options.injectFiles.map { URL(fileURLWithPath: $0.lastPathComponent) }
+        var names = Set<String>()
+        stored.injectFiles = options.injectFiles.map(\.lastPathComponent).filter { names.insert($0).inserted }
+            .map { URL(fileURLWithPath: $0) }
         return try JSONEncoder().encode(stored)
     }
 

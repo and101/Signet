@@ -166,7 +166,8 @@ enum Backup {
         }
         guard let manifestEntry = archive["manifest.json"] else { throw AppError("That isn't a Signet backup.") }
         var manifestData = Data()
-        _ = try archive.extract(manifestEntry) { manifestData.append($0) }
+        let manifestChecksum = try archive.extract(manifestEntry) { manifestData.append($0) }
+        guard manifestChecksum == manifestEntry.checksum else { throw AppError("This backup is damaged.") }
         let manifest: Manifest
         do {
             manifest = try JSONDecoder().decode(Manifest.self, from: manifestData)
@@ -251,7 +252,8 @@ enum Backup {
         summary.sources = sources.restore(backup.manifest.sources.compactMap(\.value))
         summary.repos = github.restore(backup.manifest.repos.compactMap(\.value))
         if let data = backup.manifest.signingDefaults {
-            SigningOptions.defaults = mergedDefaults(current: SigningOptions.defaults, backup: SigningOptions.decodeDefaults(from: data))
+            SigningOptions.defaults = mergedDefaults(current: SigningOptions.defaults, backup: SigningOptions.decodeDefaults(from: data),
+                                                     hasSignedApps: library.apps.contains { $0.kind == .signed })
         }
 
         for app in backup.library where library.app(app.id) == nil {
@@ -274,20 +276,23 @@ enum Backup {
     /// Restoring keeps what's already here: a backup's signing defaults are used only if the current ones were never
     /// changed (a fresh install, where they also bring back the PPQ suffix older apps were signed with). Rename
     /// rules from both are kept.
-    static func mergedDefaults(current: SigningOptions, backup: SigningOptions) -> SigningOptions {
+    static func mergedDefaults(current: SigningOptions, backup: SigningOptions, hasSignedApps: Bool) -> SigningOptions {
         var fresh = SigningOptions()
         fresh.ppqSuffix = current.ppqSuffix
         // Rules are compared separately below; a fresh install with rules typed in still counts as unchanged.
         var currentSettings = current.asDefaults
         currentSettings.bundleIDRules = []
         currentSettings.nameRules = []
-        let unchanged = currentSettings == fresh.asDefaults
+        // Apps already signed here use this installation's PPQ suffix; replacing it would stop them updating in place.
+        let unchanged = currentSettings == fresh.asDefaults && !hasSignedApps
         var result = unchanged ? backup : current
-        func union(_ mine: [SigningOptions.RenameRule], _ theirs: [SigningOptions.RenameRule]) -> [SigningOptions.RenameRule] {
-            mine + theirs.filter { rule in !mine.contains { $0.match == rule.match } }
+        func union(_ mine: [SigningOptions.RenameRule], _ theirs: [SigningOptions.RenameRule],
+                   key: (String) -> String) -> [SigningOptions.RenameRule] {
+            let taken = Set(mine.map { key($0.match) })
+            return mine + theirs.filter { !taken.contains(key($0.match)) }
         }
-        result.bundleIDRules = union(current.bundleIDRules, backup.bundleIDRules)
-        result.nameRules = union(current.nameRules, backup.nameRules)
+        result.bundleIDRules = union(current.bundleIDRules, backup.bundleIDRules) { $0.trimmingCharacters(in: .whitespaces) }
+        result.nameRules = union(current.nameRules, backup.nameRules) { $0.trimmingCharacters(in: .whitespaces).lowercased() }
         return result
     }
 

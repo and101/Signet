@@ -79,7 +79,7 @@ final class HardeningTests: XCTestCase {
 
         var fresh = SigningOptions()
         fresh.ppqSuffix = "fresh1"
-        let onFresh = Backup.mergedDefaults(current: fresh, backup: backup)
+        let onFresh = Backup.mergedDefaults(current: fresh, backup: backup, hasSignedApps: false)
         XCTAssertTrue(onFresh.enableFileSharing)
         XCTAssertEqual(onFresh.ppqSuffix, "backup", "a fresh install takes the suffix older apps were signed with")
 
@@ -87,10 +87,77 @@ final class HardeningTests: XCTestCase {
         customised.ppqSuffix = "mine12"
         customised.removeWatchApp = true
         customised.bundleIDRules = [.init(match: "com.a", replacement: "com.a.mine")]
-        let onCustomised = Backup.mergedDefaults(current: customised, backup: backup)
+        let onCustomised = Backup.mergedDefaults(current: customised, backup: backup, hasSignedApps: false)
         XCTAssertFalse(onCustomised.enableFileSharing, "existing settings are kept")
         XCTAssertTrue(onCustomised.removeWatchApp)
         XCTAssertEqual(onCustomised.ppqSuffix, "mine12")
         XCTAssertEqual(onCustomised.bundleIDRules.map(\.match), ["com.a", "com.b"], "rules from both are kept")
+    }
+
+    func testRestoreKeepsTheSuffixOnceAppsAreSigned() {
+        var backup = SigningOptions()
+        backup.ppqSuffix = "backup"
+        backup.enableFileSharing = true
+        var established = SigningOptions() // default settings, but apps were signed with this suffix
+        established.ppqSuffix = "mine12"
+        let merged = Backup.mergedDefaults(current: established, backup: backup, hasSignedApps: true)
+        XCTAssertEqual(merged.ppqSuffix, "mine12")
+        XCTAssertFalse(merged.enableFileSharing)
+    }
+
+    func testRestoreMergesRulesTheWayTheyMatch() {
+        var current = SigningOptions()
+        current.nameRules = [.init(match: "YouTube", replacement: "Tube")]
+        current.bundleIDRules = [.init(match: "com.a", replacement: "com.a.mine")]
+        var backup = SigningOptions()
+        backup.nameRules = [.init(match: " youtube ", replacement: "Other"), .init(match: "Maps", replacement: "M")]
+        backup.bundleIDRules = [.init(match: "com.a ", replacement: "com.a.theirs")]
+        let merged = Backup.mergedDefaults(current: current, backup: backup, hasSignedApps: true)
+        XCTAssertEqual(merged.nameRules.map(\.replacement), ["Tube", "M"], "names match ignoring case and spaces")
+        XCTAssertEqual(merged.bundleIDRules.map(\.replacement), ["com.a.mine"])
+    }
+
+    func testMalformedDebMemberRejectsThePackageEvenWithData() throws {
+        // A bad long-name member in front of an otherwise valid package.
+        let original = try Data(contentsOf: try XCTUnwrap(Bundle(for: Self.self).url(forResource: "Fixtures", withExtension: nil))
+            .appendingPathComponent("DebTweak.deb"))
+        var header = Array("#1/-5".utf8) + [UInt8](repeating: 0x20, count: 11)
+        header += [UInt8](repeating: 0x20, count: 32)
+        header += Array("10".utf8) + [UInt8](repeating: 0x20, count: 8)
+        header += Array("`\n".utf8)
+        var bytes = Array("!<arch>\n".utf8) + header + [UInt8](repeating: 0x41, count: 10)
+        bytes += Array(original.dropFirst(8))
+        let deb = try write(bytes).deletingLastPathComponent().appendingPathComponent("bad.deb")
+        try Data(bytes).write(to: deb)
+        let out = try Paths.newTempDirectory()
+        defer { Paths.removeIfTemporary(out) }
+        XCTAssertNoThrow(try DebPackage.extract(Bundle(for: Self.self).url(forResource: "Fixtures", withExtension: nil)!
+            .appendingPathComponent("DebTweak.deb"), to: out), "the package itself is fine")
+        XCTAssertThrowsError(try DebPackage.extract(deb, to: try Paths.newTempDirectory()))
+    }
+
+    func testOverlappingFatSlicesAreRefused() throws {
+        // Two slices whose ranges overlap, each fitting in the file on its own.
+        var bytes = be(0xcafe_babe) + be(2)
+        bytes += be(0x0100_000c) + be(0) + be(64) + be(128) + be(0)
+        bytes += be(0x0100_000c) + be(2) + be(128) + be(128) + be(0)
+        var thin = le(0xfeed_facf) + le(0x0100_000c) + le(0) + le(6) + le(0) + le(0) + le(0) + le(0)
+        thin += [UInt8](repeating: 0, count: 32)
+        bytes += [UInt8](repeating: 0, count: 64 - bytes.count) + thin + thin + [UInt8](repeating: 0, count: 128)
+        XCTAssertFalse(MachO.isMachO(try write(bytes)))
+    }
+
+    func testSigningRefusesANestedExecutableOutsideItsBundle() throws {
+        let app = try Paths.newTempDirectory().appendingPathComponent("A.app", isDirectory: true)
+        defer { Paths.removeIfTemporary(app.deletingLastPathComponent()) }
+        let appex = app.appendingPathComponent("PlugIns/Share.appex", isDirectory: true)
+        try FileManager.default.createDirectory(at: appex, withIntermediateDirectories: true)
+        (["CFBundleExecutable": "A"] as NSDictionary).write(to: app.appendingPathComponent("Info.plist"), atomically: true)
+        try Data().write(to: app.appendingPathComponent("A"))
+        XCTAssertNoThrow(try AppImporter.validateForSigning(app))
+        (["CFBundleExecutable": "../../A"] as NSDictionary).write(to: appex.appendingPathComponent("Info.plist"), atomically: true)
+        XCTAssertThrowsError(try AppImporter.validateForSigning(app)) { error in
+            XCTAssertTrue(error.localizedDescription.contains("PlugIns/Share.appex"))
+        }
     }
 }

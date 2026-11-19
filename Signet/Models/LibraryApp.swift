@@ -46,7 +46,8 @@ struct LibraryApp: Codable, Identifiable, Hashable {
         // Tweaks load in the order they were added, which can matter; older records only have the files.
         let files = ((try? fm.contentsOfDirectory(at: tweaksURL, includingPropertiesForKeys: nil)) ?? [])
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
-        let order = options.injectFiles.map(\.lastPathComponent)
+        var unique = Set<String>()
+        let order = options.injectFiles.map(\.lastPathComponent).filter { unique.insert($0).inserted }
         options.injectFiles = order.compactMap { name in files.first { $0.lastPathComponent == name } }
             + files.filter { !order.contains($0.lastPathComponent) }
         return options

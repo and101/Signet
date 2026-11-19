@@ -510,4 +510,55 @@ final class AppPatchingTests: XCTestCase {
         let decoded = try JSONDecoder().decode(LibraryApp.self, from: JSONEncoder().encode(app))
         XCTAssertEqual(decoded.rememberedOptions?.injectFiles.map(\.lastPathComponent), ["Zebra.dylib", "Apple.dylib"])
     }
+
+    func testSignedRenameOnlyTouchesTheAppsOwnExtensionIDs() async throws {
+        var options = SigningOptions()
+        options.bundleID = "com.example.renamed"
+        let app = try await sign(options) { app in
+            let fm = FileManager.default
+            for (path, id) in [("PlugIns/Share.appex", "com.example.fixture.Share"), ("PlugIns/Other.appex", "com.example.fixtureother")] {
+                let appex = app.appendingPathComponent(path, isDirectory: true)
+                try fm.createDirectory(at: appex, withIntermediateDirectories: true)
+                let name = appex.deletingPathExtension().lastPathComponent
+                (["CFBundleIdentifier": id, "CFBundleExecutable": name] as NSDictionary)
+                    .write(to: appex.appendingPathComponent("Info.plist"), atomically: true)
+                try fm.copyItem(at: app.appendingPathComponent("Fixture"), to: appex.appendingPathComponent(name))
+            }
+        }
+        func id(_ path: String) throws -> String? {
+            try XCTUnwrap(NSDictionary(contentsOf: app.appendingPathComponent("\(path)/Info.plist")) as? [String: Any])["CFBundleIdentifier"] as? String
+        }
+        XCTAssertEqual(try id("PlugIns/Share.appex"), "com.example.renamed.Share")
+        XCTAssertEqual(try id("PlugIns/Other.appex"), "com.example.fixtureother", "zsign no longer renames by substring")
+    }
+
+    func testRunPathIsSkippedWhenAnEquivalentExists() async throws {
+        var options = SigningOptions()
+        options.injectFiles = [try fixture("FixtureTweak.dylib")]
+        let app = try await sign(options) { app in
+            try MachO.addRPath("@loader_path/Frameworks", to: app.appendingPathComponent("Fixture"))
+        }
+        let rpaths = try MachO.rpaths(of: app.appendingPathComponent("Fixture"))
+        XCTAssertTrue(rpaths.contains("@loader_path/Frameworks"))
+        XCTAssertFalse(rpaths.contains("@executable_path/Frameworks"))
+    }
+
+    func testSameNamedTweaksAreInjectedOnce() async throws {
+        let fm = FileManager.default
+        let folder = try Paths.newTempDirectory()
+        defer { Paths.removeIfTemporary(folder) }
+        var copies: [URL] = []
+        for sub in ["a", "b"] {
+            let dir = folder.appendingPathComponent(sub, isDirectory: true)
+            try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+            let copy = dir.appendingPathComponent("FixtureTweak.dylib")
+            try fm.copyItem(at: fixture("FixtureTweak.dylib"), to: copy)
+            copies.append(copy)
+        }
+        var options = SigningOptions()
+        options.injectFiles = copies
+        let app = try await sign(options)
+        let links = try MachO.linkedDylibs(of: app.appendingPathComponent("Fixture"))
+        XCTAssertEqual(links.filter { $0 == "@rpath/FixtureTweak.dylib" }.count, 1)
+    }
 }
