@@ -14,8 +14,25 @@ final class SourceStore {
 
     private let file = JSONFile<[SavedSource]>("sources.json")
 
+    /// Signet's own source, added once on first launch so Signet's updates show up like any other app's.
+    static let signetSourceURL = URL(string: "https://and101.github.io/Signet/source.json")!
+    private static let seededKey = "addedSignetSource"
+
     init() {
         sources = file.load() ?? []
+        addSignetSourceOnce()
+    }
+
+    /// Adds Signet's source the first time Signet runs (or after an update from a version without it). If the user
+    /// deletes it, it stays deleted.
+    private func addSignetSourceOnce() {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: Self.seededKey) else { return }
+        defaults.set(true, forKey: Self.seededKey)
+        guard !sources.contains(where: { $0.url == Self.signetSourceURL }) else { return }
+        sources.insert(SavedSource(url: Self.signetSourceURL, name: "Signet",
+                                   iconURL: URL(string: "https://and101.github.io/Signet/icon.png")), at: 0)
+        save()
     }
 
     func add(_ urlString: String) async throws {
