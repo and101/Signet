@@ -136,7 +136,7 @@ struct InstallProgressView: View {
                 Button("Use the Install Server Instead") { installer.retryWithServer() }
                     .buttonStyle(.borderedProminent)
             }
-            if installer.directLog.outcome == .failed {
+            if installer.failedDirectly {
                 Button {
                     UIPasteboard.general.string = DirectInstallDiagnostics.text(installer.directLog)
                 } label: {

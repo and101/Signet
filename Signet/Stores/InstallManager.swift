@@ -44,9 +44,13 @@ final class InstallManager {
     private(set) var serverFallback: LibraryApp?
     /// The steps of the last direct install, for its Details and Copy Diagnostics.
     private(set) var directLog = ActivityLog()
+    /// Whether the current failure came from a direct install, so its details are the ones on offer.
+    private(set) var failedDirectly = false
     /// After a direct self-update, how it went, shown once on the next launch.
     var selfUpdateResult: String?
     private var pendingSelfUpdateApp: LibraryApp?
+    /// Quits Signet after a self-update request; cancelled if the install fails first.
+    private var selfUpdateExit: Task<Void, Never>?
     /// The team of the certificate an app was signed with, to warn before a self-update changes team.
     var teamLookup: (UUID?) -> String? = { _ in nil }
 
@@ -62,6 +66,7 @@ final class InstallManager {
     func install(_ app: LibraryApp, method: InstallMethod = DirectInstall.method) async {
         serverFallback = nil
         phase = nil
+        failedDirectly = false
         if method == .direct {
             await installDirectly(app)
             return
@@ -324,7 +329,7 @@ extension InstallManager {
             state = .installing(appName: app.name, progress: nil)
             phase = DirectInstaller.phase(forPercent: 0)
             if isSelfUpdate {
-                DirectInstall.pendingSelfUpdate = .init(version: app.version, build: app.build)
+                DirectInstall.pendingSelfUpdate = .init(version: app.version, build: app.build, bundlePath: Bundle.main.bundlePath)
             }
             let bundleID = app.bundleID
             let appName = app.name
@@ -334,7 +339,8 @@ extension InstallManager {
                     Task { @MainActor in self.closeForSelfUpdate(appName: appName) }
                 }) { fraction in
                     Task { @MainActor in
-                        guard self.token == token else { return }
+                        // While closing for a self-update, keep saying so; the install itself carries on.
+                        guard self.token == token, self.selfUpdateExit == nil else { return }
                         self.state = .installing(appName: appName, progress: fraction)
                         self.phase = DirectInstaller.phase(forPercent: Int(fraction * 100))
                     }
@@ -349,12 +355,16 @@ extension InstallManager {
             phase = nil
             finish(.installed(appName: app.name))
         } catch {
+            // Don't quit for a self-update that failed; stay open to show why.
+            selfUpdateExit?.cancel()
+            selfUpdateExit = nil
             DirectInstall.pendingSelfUpdate = nil
             directLog.finish(.failed, error.localizedDescription)
             if let remote { await Self.removeStaged([remote], with: installer) }
             guard self.token == token else { return }
             let stage = (error as? DirectInstaller.Failure)?.stage
             if stage == .connect || stage == .pairingFile { serverFallback = app }
+            failedDirectly = true
             phase = nil
             fail(stage == .pairingFile
                  ? "\(error.localizedDescription). The pairing file may have expired (it does after an iOS update or reset); make a new one with iloader."
@@ -381,11 +391,14 @@ extension InstallManager {
     private func closeForSelfUpdate(appName: String) {
         state = .closingForUpdate(appName: appName)
         endBackgroundTask()
-        Task {
+        selfUpdateExit = Task {
+            // Long enough for a request iOS rejects outright to fail first and cancel this.
             try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
             UserDefaults.standard.synchronize()
             UIApplication.shared.perform(#selector(NSXPCConnection.suspend))
             try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
             exit(0)
         }
     }
@@ -394,9 +407,8 @@ extension InstallManager {
     func checkPendingSelfUpdate() {
         guard let pending = DirectInstall.pendingSelfUpdate else { return }
         DirectInstall.pendingSelfUpdate = nil
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? pending.version
-        selfUpdateResult = build == pending.build
+        selfUpdateResult = pending.wasInstalled(nowAt: Bundle.main.bundlePath)
             ? "Signet updated to \(version)."
             : "Signet didn't update to \(pending.version). Try installing it again."
     }
@@ -415,8 +427,10 @@ extension InstallManager {
         return nil
     }
 
+    /// Deletes IPAs earlier installs left on the iPhone: the recorded ones, plus any found in the staging folder.
     private static func removeLeftovers(with installer: DirectInstaller) async {
-        let leftovers = DirectInstall.stagedPaths
+        let found = (try? await Task.detached(operation: { try installer.listStaged() }).value) ?? []
+        let leftovers = Array(Set(DirectInstall.stagedPaths + found))
         guard !leftovers.isEmpty else { return }
         await removeStaged(leftovers, with: installer)
     }

@@ -80,6 +80,14 @@ enum DirectInstall {
     struct PendingSelfUpdate: Codable, Equatable {
         let version: String
         let build: String
+        /// Where the running copy lived. iOS installs every update into a new bundle container, so a different
+        /// path on the next launch shows the update happened, even when the build number is the same.
+        var bundlePath: String?
+
+        func wasInstalled(nowAt currentPath: String) -> Bool {
+            if let bundlePath { return bundlePath != currentPath }
+            return Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String == build
+        }
     }
 
     /// Recorded just before Signet quits to let iOS replace it; read on the next launch.

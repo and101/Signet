@@ -34,7 +34,7 @@ struct RootView: View {
             set: { if !$0 { installer.dismiss() } }
         )) {
             InstallProgressView()
-                .presentationDetents([.medium])
+                .presentationDetents([.medium, .large]) // long failure messages can be expanded
         }
         .alert("Error", isPresented: Binding(
             get: { router.message != nil || library.lastError != nil },

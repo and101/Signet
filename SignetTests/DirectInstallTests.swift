@@ -53,8 +53,8 @@ final class DirectInstallTests: XCTestCase {
         XCTAssertEqual(DirectInstall.discoveredPort, 62000)
         DirectInstall.discoveredPort = nil
         XCTAssertNil(DirectInstall.discoveredPort)
-        DirectInstall.pendingSelfUpdate = .init(version: "1.1", build: "7")
-        XCTAssertEqual(DirectInstall.pendingSelfUpdate, .init(version: "1.1", build: "7"))
+        DirectInstall.pendingSelfUpdate = .init(version: "1.1", build: "7", bundlePath: "/a")
+        XCTAssertEqual(DirectInstall.pendingSelfUpdate, .init(version: "1.1", build: "7", bundlePath: "/a"))
         DirectInstall.pendingSelfUpdate = nil
         XCTAssertNil(DirectInstall.pendingSelfUpdate)
     }
@@ -165,18 +165,25 @@ final class DirectInstallTests: XCTestCase {
         XCTAssertNil(manager.serverFallback)
     }
 
+    func testSelfUpdateNeedsANewBundleContainer() {
+        // Reinstalling the same build still moves Signet to a new container; staying put means nothing installed.
+        let pending = DirectInstall.PendingSelfUpdate(version: "1.1", build: "2", bundlePath: "/containers/A/Signet.app")
+        XCTAssertTrue(pending.wasInstalled(nowAt: "/containers/B/Signet.app"))
+        XCTAssertFalse(pending.wasInstalled(nowAt: "/containers/A/Signet.app"))
+    }
+
     @MainActor
     func testPendingSelfUpdateIsReportedOnce() {
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
         let manager = InstallManager()
-        DirectInstall.pendingSelfUpdate = .init(version: "9.9", build: build)
+        DirectInstall.pendingSelfUpdate = .init(version: "9.9", build: build, bundlePath: "/elsewhere/Signet.app")
         manager.checkPendingSelfUpdate()
         XCTAssertNotNil(manager.selfUpdateResult)
         XCTAssertTrue(manager.selfUpdateResult?.hasPrefix("Signet updated") ?? false)
         XCTAssertNil(DirectInstall.pendingSelfUpdate)
 
         manager.selfUpdateResult = nil
-        DirectInstall.pendingSelfUpdate = .init(version: "9.9", build: build + "-other")
+        DirectInstall.pendingSelfUpdate = .init(version: "9.9", build: build, bundlePath: Bundle.main.bundlePath)
         manager.checkPendingSelfUpdate()
         XCTAssertTrue(manager.selfUpdateResult?.contains("didn't update") ?? false)
     }

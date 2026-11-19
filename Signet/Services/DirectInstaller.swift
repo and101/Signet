@@ -81,7 +81,7 @@ final class DirectInstaller {
     }
 
     /// Finds this iPhone's remote-pairing port by browsing Bonjour for `_remotepairing._tcp`.
-    static func discoverPort(timeout: TimeInterval = 5) async -> UInt16? {
+    static func discoverPort(timeout: TimeInterval = 3) async -> UInt16? {
         await withCheckedContinuation { continuation in
             let once = Once()
             let browser = NWBrowser(for: .bonjour(type: "_remotepairing._tcp", domain: "local."), using: .tcp)
@@ -194,6 +194,29 @@ final class DirectInstaller {
         closed = true
         try check(.upload, "Couldn't finish the upload", afc_file_close(handle))
         return remote
+    }
+
+    /// Signet's IPAs left in the staging folder, including ones from earlier versions that didn't record them.
+    func listStaged() throws -> [String] {
+        let afc = try connectAFC()
+        defer { afc_client_free(afc) }
+        var entries: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+        var count = 0
+        if let error = afc_list_directory(afc, Self.stagingFolder, &entries, &count) {
+            idevice_error_free(error) // no staging folder yet
+            return []
+        }
+        guard let entries else { return [] }
+        var names: [String] = []
+        for index in 0..<count {
+            guard let entry = entries[index] else { continue }
+            names.append(String(cString: entry))
+            idevice_string_free(entry)
+        }
+        // idevice allocates the array with Rust's default (system) allocator, so it's malloc memory.
+        free(entries)
+        return names.filter { $0.hasPrefix(Self.stagedPrefix) && $0.hasSuffix(".ipa") }
+            .map { "\(Self.stagingFolder)/\($0)" }
     }
 
     /// Deletes staged IPAs (each is as big as its app). Returns the paths that are gone, including ones iOS
