@@ -96,6 +96,7 @@ struct SettingsView: View {
                         }
                     }
                     .foregroundStyle(.primary)
+                    NavigationLink("Acknowledgements") { AcknowledgementsView() }
                 } header: {
                     Text("About")
                 } footer: {
@@ -309,6 +310,30 @@ struct InstallCertificateView: View {
             }
         } catch {
             self.error = error.localizedDescription
+        }
+    }
+}
+
+/// The open-source components in Signet and their licences, from Resources/Acknowledgements.txt
+/// (made by scripts/make-acknowledgements.py).
+private struct AcknowledgementsView: View {
+    @State private var paragraphs: [String] = []
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 10) {
+                ForEach(Array(paragraphs.enumerated()), id: \.offset) { _, paragraph in
+                    Text(verbatim: paragraph).font(.footnote).textSelection(.enabled)
+                }
+            }
+            .padding()
+        }
+        .navigationTitle("Acknowledgements")
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            guard paragraphs.isEmpty, let url = Bundle.main.url(forResource: "Acknowledgements", withExtension: "txt"),
+                  let text = try? String(contentsOf: url, encoding: .utf8) else { return }
+            paragraphs = text.components(separatedBy: "\n\n")
         }
     }
 }
