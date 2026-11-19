@@ -121,7 +121,7 @@ struct SettingsView: View {
     }
 
     private var storageFooter: String {
-        let base = "Clears temporary files and leftovers. To free more space, delete old apps in Library."
+        let base = String(localized: "Clears temporary files and leftovers. To free more space, delete old apps in Library.")
         guard let cleanupResult else { return base }
         return cleanupResult + "\n\n" + base
     }

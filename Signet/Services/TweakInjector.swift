@@ -78,7 +78,7 @@ struct TweakInjector {
         }
 
         if !options.removeLoadCommands.isEmpty {
-            log("Removing \(options.removeLoadCommands.count) load command(s)…")
+            log(String(localized: "Removing \(options.removeLoadCommands.count) load command(s)…"))
             _ = Zsign.removeDylibs(appExecutable: executable.path, using: options.removeLoadCommands)
         }
         guard !options.injectFiles.isEmpty else { return }
@@ -101,7 +101,7 @@ struct TweakInjector {
         }
 
         for (binary, loadPath) in plan.injected {
-            log("Injecting \(binary.lastPathComponent)…")
+            log(String(localized: "Injecting \(binary.lastPathComponent)…"))
             guard Zsign.injectDyLib(appExecutable: executable.path, with: loadPath, weak: options.weakInject) else {
                 throw AppError("Failed to inject \(binary.lastPathComponent).")
             }
@@ -109,7 +109,7 @@ struct TweakInjector {
 
         if options.injectIntoExtensions {
             for executable in extensionExecutables() {
-                log("Injecting into \(executable.deletingLastPathComponent().lastPathComponent)…")
+                log(String(localized: "Injecting into \(executable.deletingLastPathComponent().lastPathComponent)…"))
                 // Extensions sit two levels down; this lets @rpath reach the app's Frameworks folder.
                 try MachO.addRPath(Self.extensionRPath, to: executable)
                 for (binary, loadPath) in plan.injected {
@@ -147,7 +147,7 @@ struct TweakInjector {
     }
 
     private func addDeb(_ file: URL, work: URL, to plan: inout Plan) throws {
-        log("Extracting \(file.lastPathComponent)…")
+        log(String(localized: "Extracting \(file.lastPathComponent)…"))
         let root = work.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try DebPackage.extract(file, to: root)
         var found = 0
@@ -235,7 +235,7 @@ struct TweakInjector {
         guard let archive = Bundle.main.url(forResource: "ElleKit", withExtension: "zip") else {
             throw AppError("ElleKit is missing from this build, so Substrate tweaks can't be injected.")
         }
-        log("Adding ElleKit (CydiaSubstrate.framework)…")
+        log(String(localized: "Adding ElleKit (CydiaSubstrate.framework)…"))
         try fm.unzipItem(at: archive, to: frameworks)
     }
 }

@@ -92,16 +92,16 @@ struct RootView: View {
 
     private func linkTitle(_ link: Router.PendingLink?) -> String {
         switch link {
-        case .source: "Add This Source?"
-        case .download: "Download This App?"
+        case .source: String(localized: "Add This Source?")
+        case .download: String(localized: "Download This App?")
         case nil: ""
         }
     }
 
     private func linkAction(_ link: Router.PendingLink) -> String {
         switch link {
-        case .source: "Add"
-        case .download: "Download"
+        case .source: String(localized: "Add")
+        case .download: String(localized: "Download")
         }
     }
 }

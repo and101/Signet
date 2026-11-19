@@ -225,8 +225,10 @@ final class GitHubStore {
         case 403, 429:
             if http.value(forHTTPHeaderField: "X-RateLimit-Remaining") == "0" || http.statusCode == 429 {
                 let reset = http.value(forHTTPHeaderField: "X-RateLimit-Reset").flatMap(TimeInterval.init).map(Date.init(timeIntervalSince1970:))
-                let when = reset.map { " Try again after \($0.formatted(date: .omitted, time: .shortened))." } ?? " Try again later."
-                throw AppError("GitHub's hourly limit was reached." + when)
+                if let reset {
+                    throw AppError("GitHub's hourly limit was reached. Try again after \(reset.formatted(date: .omitted, time: .shortened)).")
+                }
+                throw AppError("GitHub's hourly limit was reached. Try again later.")
             }
             throw AppError("GitHub refused the request (HTTP \(http.statusCode)).")
         default:

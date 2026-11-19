@@ -1,0 +1,1596 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : {
+
+    },
+    "%@ %lld%%" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$lld%%"
+          }
+        }
+      }
+    },
+    "%@ Installed" : {
+
+    },
+    "%@ Sent to iOS" : {
+
+    },
+    "%@ contains an unsafe path: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ contains an unsafe path: %2$@"
+          }
+        }
+      }
+    },
+    "%@ doesn't contain any dylibs or frameworks to inject." : {
+
+    },
+    "%@ has no .dylib, .framework or .deb." : {
+
+    },
+    "%@ has no data archive." : {
+
+    },
+    "%@ has no executable." : {
+
+    },
+    "%@ has no room to add a run path." : {
+
+    },
+    "%@ has no room to rewrite %@ to %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ has no room to rewrite %2$@ to %3$@."
+          }
+        }
+      }
+    },
+    "%@ is already tracked." : {
+
+    },
+    "%@ is asking for %@ and its password. Anyone with them can sign apps as you, so only send it to apps you trust." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ is asking for %2$@ and its password. Anyone with them can sign apps as you, so only send it to apps you trust."
+          }
+        }
+      }
+    },
+    "%@ is truncated or corrupt." : {
+
+    },
+    "%@ isn't a .dylib, .framework or .deb." : {
+
+    },
+    "%@ isn't a valid .deb package." : {
+
+    },
+    "%@ isn't a valid IPv4 address." : {
+
+    },
+    "%@ isn't a valid SDK version." : {
+
+    },
+    "%@ isn't an entitlements file. It should be a plist dictionary." : {
+
+    },
+    "%@ of %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ of %2$@"
+          }
+        }
+      }
+    },
+    "%@ uses an unknown archive format (%@)." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ uses an unknown archive format (%2$@)."
+          }
+        }
+      }
+    },
+    "%@ uses zstd compression, which isn't supported." : {
+
+    },
+    "%@ ·" : {
+
+    },
+    "%@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "%@ → %@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ → %2$@ · %3$@"
+          }
+        }
+      }
+    },
+    "%@'s files are missing. Re-add the certificate and try again." : {
+
+    },
+    "%@'s password is missing. Re-add the certificate and try again." : {
+
+    },
+    "%@. The pairing file may have expired (it does after an iOS update or reset); make a new one with iloader." : {
+
+    },
+    "%lld" : {
+
+    },
+    "%lld apps · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld apps · %2$@"
+          }
+        }
+      }
+    },
+    "%lld%% installed" : {
+
+    },
+    "%lld%% transferred" : {
+
+    },
+    "1. Download the Profile" : {
+
+    },
+    "2. Install It" : {
+
+    },
+    "3. Turn On Full Trust" : {
+
+    },
+    "A link sent a certificate and provisioning profile. You can check them before saving." : {
+
+    },
+    "About" : {
+
+    },
+    "Ad Hoc" : {
+
+    },
+    "Add" : {
+
+    },
+    "Add .dylib, .framework or .deb" : {
+
+    },
+    "Add App" : {
+
+    },
+    "Add Certificate" : {
+
+    },
+    "Add ElleKit When Needed" : {
+
+    },
+    "Add Rule" : {
+
+    },
+    "Add Source" : {
+
+    },
+    "Add Suffix for PPQ Certificates" : {
+
+    },
+    "Add This Certificate?" : {
+
+    },
+    "Add This Source?" : {
+
+    },
+    "Add a .p12 and its provisioning profile to start signing." : {
+
+    },
+    "Add a Certificate" : {
+
+    },
+    "Add a certificate first." : {
+
+    },
+    "Add an AltStore source or a GitHub repo." : {
+
+    },
+    "Adding ElleKit (CydiaSubstrate.framework)…" : {
+
+    },
+    "Advanced" : {
+
+    },
+    "All Apps" : {
+
+    },
+    "Always Dark" : {
+
+    },
+    "Always Light" : {
+
+    },
+    "App Deleted" : {
+
+    },
+    "App ID" : {
+
+    },
+    "App name" : {
+
+    },
+    "Appearance" : {
+
+    },
+    "Applying changes without signing…" : {
+
+    },
+    "Applying custom icon…" : {
+
+    },
+    "Apps missing from your library can't be recovered after this." : {
+
+    },
+    "Apps you already signed aren't affected." : {
+
+    },
+    "Apps you've already downloaded stay in your library." : {
+
+    },
+    "Automatic" : {
+
+    },
+    "Back Up" : {
+
+    },
+    "Back Up…" : {
+
+    },
+    "Backup" : {
+
+    },
+    "Backup Password" : {
+
+    },
+    "Backup Restored" : {
+
+    },
+    "Bundle ID" : {
+
+    },
+    "Bundle ID Rules" : {
+
+    },
+    "Can't reach this iPhone through the VPN. Check LocalDevVPN is connected and Wi-Fi is on, then try again." : {
+
+    },
+    "Can't reach this iPhone through the VPN. Check LocalDevVPN is connected and Wi-Fi is on." : {
+
+    },
+    "Can't remove %@: it isn't inside the app." : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Cancel %@?" : {
+
+    },
+    "Cancel Download" : {
+
+    },
+    "Certificate" : {
+
+    },
+    "Certificate (.p12)" : {
+
+    },
+    "Certificates" : {
+
+    },
+    "Check Again" : {
+
+    },
+    "Check Status" : {
+
+    },
+    "Check your Home Screen. If it won't open, trust the developer in Settings → General → VPN & Device Management." : {
+
+    },
+    "Checked %@." : {
+
+    },
+    "Checked when you open Signet. Pull to check now." : {
+
+    },
+    "Checking the app…" : {
+
+    },
+    "Checking…" : {
+
+    },
+    "Checks the pairing file and the VPN together. Installs use direct install once this works." : {
+
+    },
+    "Choose" : {
+
+    },
+    "Choose a password for the backup." : {
+
+    },
+    "Choose from Files" : {
+
+    },
+    "Choose from Photos" : {
+
+    },
+    "Classic" : {
+
+    },
+    "Clean Up Storage" : {
+
+    },
+    "Clears temporary files and leftovers. To free more space, delete old apps in Library." : {
+
+    },
+    "Close" : {
+
+    },
+    "Compress IPA" : {
+
+    },
+    "Confirm Password" : {
+
+    },
+    "Connected" : {
+
+    },
+    "Connecting to your iPhone…" : {
+
+    },
+    "Copy Details" : {
+
+    },
+    "Copy Diagnostics" : {
+
+    },
+    "Copy Log" : {
+
+    },
+    "Copy URL" : {
+
+    },
+    "Copying %@…" : {
+
+    },
+    "Couldn't Add" : {
+
+    },
+    "Couldn't Add Certificate" : {
+
+    },
+    "Couldn't Back Up" : {
+
+    },
+    "Couldn't Restore" : {
+
+    },
+    "Couldn't Send" : {
+
+    },
+    "Couldn't Verify" : {
+
+    },
+    "Couldn't create the backup's encryption key." : {
+
+    },
+    "Couldn't decompress %@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Couldn't decompress %1$@: %2$@"
+          }
+        }
+      }
+    },
+    "Couldn't derive the backup key." : {
+
+    },
+    "Couldn't encrypt the backup." : {
+
+    },
+    "Couldn't find the app's main executable." : {
+
+    },
+    "Couldn't finish the upload" : {
+
+    },
+    "Couldn't open a connection to this iPhone" : {
+
+    },
+    "Couldn't open the app that asked for the certificate." : {
+
+    },
+    "Couldn't reach the iPhone's file service" : {
+
+    },
+    "Couldn't reach the iPhone's services" : {
+
+    },
+    "Couldn't reach the installer" : {
+
+    },
+    "Couldn't read GitHub's list of releases." : {
+
+    },
+    "Couldn't read Info.plist." : {
+
+    },
+    "Couldn't read the files in %@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Couldn't read the files in %1$@: %2$@"
+          }
+        }
+      }
+    },
+    "Couldn't read the iOS version" : {
+
+    },
+    "Couldn't read the pairing file" : {
+
+    },
+    "Couldn't read the provisioning profile." : {
+
+    },
+    "Couldn't save the password to the keychain (%d)." : {
+
+    },
+    "Couldn't start the install server." : {
+
+    },
+    "Couldn't start the upload" : {
+
+    },
+    "Couldn't unzip %@." : {
+
+    },
+    "Couldn't unzip the IPA: %@" : {
+
+    },
+    "Couldn't write %@/Info.plist." : {
+
+    },
+    "Couldn't write Info.plist." : {
+
+    },
+    "Create New Certificate" : {
+
+    },
+    "Create a new certificate?" : {
+
+    },
+    "Created" : {
+
+    },
+    "Creating a staging folder…" : {
+
+    },
+    "Creating the app's container…" : {
+
+    },
+    "Custom Entitlements" : {
+
+    },
+    "Customize" : {
+
+    },
+    "Default" : {
+
+    },
+    "Default Options" : {
+
+    },
+    "Default Signing Options" : {
+
+    },
+    "Delete" : {
+
+    },
+    "Delete %@?" : {
+
+    },
+    "Delete %lld App%@?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Delete %1$lld App%2$@?"
+          }
+        }
+      }
+    },
+    "Delete (%lld)" : {
+
+    },
+    "Delete Certificate" : {
+
+    },
+    "Delete Original After Signing" : {
+
+    },
+    "Delete Saved Library List" : {
+
+    },
+    "Delete the saved library list?" : {
+
+    },
+    "Description" : {
+
+    },
+    "Details" : {
+
+    },
+    "Developer" : {
+
+    },
+    "Development" : {
+
+    },
+    "Devices" : {
+
+    },
+    "Direct" : {
+
+    },
+    "Direct (Beta)" : {
+
+    },
+    "Direct install doesn't need the certificate; it's used if you switch back to the install server." : {
+
+    },
+    "Direct install needs a pairing file. Set it up in Settings → Install Method, or use the install server." : {
+
+    },
+    "Direct install stops working until you import a new one." : {
+
+    },
+    "Direct install uses idevice by Jackson Coxson (MIT licence)." : {
+
+    },
+    "Distribution" : {
+
+    },
+    "Do these three steps once." : {
+
+    },
+    "Don't Embed Provisioning Profile" : {
+
+    },
+    "Done" : {
+
+    },
+    "Done — %@" : {
+
+    },
+    "Double-tap to cancel" : {
+
+    },
+    "Download" : {
+
+    },
+    "Download %@" : {
+
+    },
+    "Download IPA" : {
+
+    },
+    "Download New Releases" : {
+
+    },
+    "Download Profile in Safari" : {
+
+    },
+    "Download This App?" : {
+
+    },
+    "Download from URL" : {
+
+    },
+    "Download to Library" : {
+
+    },
+    "Downloading, %lld percent" : {
+
+    },
+    "Downloading…" : {
+
+    },
+    "Downloads" : {
+
+    },
+    "Downloads the new version, then opens it for signing." : {
+
+    },
+    "Edit Rule" : {
+
+    },
+    "ElleKit is missing from this build, so Substrate tweaks can't be injected." : {
+
+    },
+    "Enable File Sharing" : {
+
+    },
+    "Enable Game Mode" : {
+
+    },
+    "Enable ProMotion (120 Hz)" : {
+
+    },
+    "Enabling Liquid Glass…" : {
+
+    },
+    "Enter a repo like owner/repo, or its GitHub link." : {
+
+    },
+    "Enter a valid http(s) URL." : {
+
+    },
+    "Enter the backup's password. Nothing you already have is replaced." : {
+
+    },
+    "Enterprise" : {
+
+    },
+    "Entitlements" : {
+
+    },
+    "Error" : {
+
+    },
+    "Expired" : {
+
+    },
+    "Expires" : {
+
+    },
+    "Export Without Signing" : {
+
+    },
+    "Exported Without Signing" : {
+
+    },
+    "Extracting %@…" : {
+
+    },
+    "Failed" : {
+
+    },
+    "Failed to inject %@ into %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Failed to inject %1$@ into %2$@."
+          }
+        }
+      }
+    },
+    "Failed to inject %@." : {
+
+    },
+    "Featured" : {
+
+    },
+    "File" : {
+
+    },
+    "Finishing up…" : {
+
+    },
+    "First IPA" : {
+
+    },
+    "Fix Jailbreak Paths" : {
+
+    },
+    "Fixed legacy arm64e slices in %@" : {
+
+    },
+    "Force Full Screen (iPad)" : {
+
+    },
+    "Get" : {
+
+    },
+    "Get iloader" : {
+
+    },
+    "Get new releases that include an IPA." : {
+
+    },
+    "GitHub Releases" : {
+
+    },
+    "GitHub Repos" : {
+
+    },
+    "GitHub didn't respond." : {
+
+    },
+    "GitHub refused the request (HTTP %lld)." : {
+
+    },
+    "GitHub returned HTTP %lld." : {
+
+    },
+    "GitHub returned an empty response." : {
+
+    },
+    "GitHub's hourly limit was reached. Try again after %@." : {
+
+    },
+    "GitHub's hourly limit was reached. Try again later." : {
+
+    },
+    "HTTP %lld" : {
+
+    },
+    "IPA" : {
+
+    },
+    "Icon" : {
+
+    },
+    "If it won't open, trust the developer in Settings → General → VPN & Device Management." : {
+
+    },
+    "If the app is installed, it stays on your iPhone." : {
+
+    },
+    "Import Failed" : {
+
+    },
+    "Import Pairing File" : {
+
+    },
+    "Import a pairing file first." : {
+
+    },
+    "Import an IPA from Files, a URL, or a source." : {
+
+    },
+    "Import from Files" : {
+
+    },
+    "Imported" : {
+
+    },
+    "Importing" : {
+
+    },
+    "Importing…" : {
+
+    },
+    "In Library" : {
+
+    },
+    "Include Library" : {
+
+    },
+    "Include Pre-releases" : {
+
+    },
+    "Information" : {
+
+    },
+    "Inject Into Extensions" : {
+
+    },
+    "Inject Tweaks" : {
+
+    },
+    "Injecting %@…" : {
+
+    },
+    "Injecting into %@…" : {
+
+    },
+    "Inspecting the app…" : {
+
+    },
+    "Install" : {
+
+    },
+    "Install After Signing" : {
+
+    },
+    "Install Certificate" : {
+
+    },
+    "Install Failed" : {
+
+    },
+    "Install Method" : {
+
+    },
+    "Install Server" : {
+
+    },
+    "Installed" : {
+
+    },
+    "Installed apps stay on your iPhone." : {
+
+    },
+    "Installed before" : {
+
+    },
+    "Installing %@" : {
+
+    },
+    "Installing…" : {
+
+    },
+    "Installs straight to this iPhone's installer, like a computer does. Faster and more reliable, with no install certificate. Needs a pairing file made once on a computer, and LocalDevVPN." : {
+
+    },
+    "Interface" : {
+
+    },
+    "Its progress will be lost." : {
+
+    },
+    "Keep Downloading" : {
+
+    },
+    "Keep Running During Installs" : {
+
+    },
+    "Keeps the look from before iOS 26. Only affects apps built for iOS 26." : {
+
+    },
+    "Last Checked" : {
+
+    },
+    "Last Signing" : {
+
+    },
+    "Latest Release" : {
+
+    },
+    "Library" : {
+
+    },
+    "Light or Dark" : {
+
+    },
+    "Liquid Glass" : {
+
+    },
+    "LiveContainer gets the certificate and its password." : {
+
+    },
+    "LiveContainer uses it to sign the apps it runs. Anyone with the certificate and password can sign apps as you." : {
+
+    },
+    "LocalDevVPN" : {
+
+    },
+    "LocalDevVPN lets Signet reach this iPhone's installer. Install it from the App Store, connect it, and keep it on while installing. Wi-Fi needs to be on." : {
+
+    },
+    "Make Default" : {
+
+    },
+    "Malformed Mach-O load commands." : {
+
+    },
+    "Marks the app as built for iOS 26 so it uses Liquid Glass. Some apps look wrong or crash." : {
+
+    },
+    "Matches exactly. Leave nothing blank." : {
+
+    },
+    "Merge App Entitlements" : {
+
+    },
+    "Merging the app's entitlements…" : {
+
+    },
+    "Minimum iOS" : {
+
+    },
+    "More" : {
+
+    },
+    "Name" : {
+
+    },
+    "Name Rules" : {
+
+    },
+    "Needed to restore. It can't be recovered." : {
+
+    },
+    "New Rule" : {
+
+    },
+    "New name" : {
+
+    },
+    "New releases are added to your library automatically." : {
+
+    },
+    "News" : {
+
+    },
+    "Nickname" : {
+
+    },
+    "Nickname (optional)" : {
+
+    },
+    "No Apps" : {
+
+    },
+    "No Certificates" : {
+
+    },
+    "No Sources" : {
+
+    },
+    "No certificate in p12." : {
+
+    },
+    "No install certificate yet." : {
+
+    },
+    "No release has an IPA attached." : {
+
+    },
+    "No release has an IPA matching %@." : {
+
+    },
+    "No releases with an IPA" : {
+
+    },
+    "Not Checked" : {
+
+    },
+    "Not a valid AltStore-style source." : {
+
+    },
+    "Not connected" : {
+
+    },
+    "Not connected to this iPhone." : {
+
+    },
+    "Not imported" : {
+
+    },
+    "Not installed." : {
+
+    },
+    "Not shared: %@" : {
+
+    },
+    "Not tested" : {
+
+    },
+    "OK" : {
+
+    },
+    "On a Mac or PC, install iloader, connect this iPhone with a cable and choose Manage Pairing File. Export the remote-pairing file (PairingFile_RemoteRP.plist), send it to this iPhone and import it here. Make a new one after updating or resetting the iPhone." : {
+
+    },
+    "One-Time Setup" : {
+
+    },
+    "Open" : {
+
+    },
+    "Open **Settings → General → About → Certificate Trust Settings** and turn on **%@**." : {
+
+    },
+    "Open **Settings → General → VPN & Device Management**, tap **Signet Install Certificate**, then **Install**." : {
+
+    },
+    "Open LocalDevVPN" : {
+
+    },
+    "Optional. By default the app gets your profile's entitlements, or merged ones if Merge App Entitlements is on." : {
+
+    },
+    "Options" : {
+
+    },
+    "Original" : {
+
+    },
+    "PPQ Check" : {
+
+    },
+    "Packaging IPA…" : {
+
+    },
+    "Pairing File" : {
+
+    },
+    "Pairing Port" : {
+
+    },
+    "Password" : {
+
+    },
+    "Patching Info.plist…" : {
+
+    },
+    "Plays silence while an app installs, so the install can finish with Signet in the background. It doesn't stop your music." : {
+
+    },
+    "Preparing the app…" : {
+
+    },
+    "Provisioning Profile" : {
+
+    },
+    "Read past the end of a Mach-O file." : {
+
+    },
+    "Ready" : {
+
+    },
+    "Ready: iPhone on iOS %@" : {
+
+    },
+    "Registering the app…" : {
+
+    },
+    "Released" : {
+
+    },
+    "Releases" : {
+
+    },
+    "Remove" : {
+
+    },
+    "Remove App Extensions" : {
+
+    },
+    "Remove Custom Entitlements" : {
+
+    },
+    "Remove Device Restrictions" : {
+
+    },
+    "Remove From App" : {
+
+    },
+    "Remove Load Commands" : {
+
+    },
+    "Remove Pairing File" : {
+
+    },
+    "Remove URL Schemes" : {
+
+    },
+    "Remove Watch App" : {
+
+    },
+    "Remove the pairing file?" : {
+
+    },
+    "Removed by Remove App Extensions" : {
+
+    },
+    "Removes dylibs from the app, like tweaks already injected." : {
+
+    },
+    "Removing %@…" : {
+
+    },
+    "Removing %lld load command(s)…" : {
+
+    },
+    "Removing Watch app…" : {
+
+    },
+    "Removing a framework the app uses makes it crash when it opens." : {
+
+    },
+    "Removing app extensions…" : {
+
+    },
+    "Rename Rules" : {
+
+    },
+    "Renamed by your rules in Settings → Default Signing Options." : {
+
+    },
+    "Replace Pairing File" : {
+
+    },
+    "Repo not found. Private repos aren't supported." : {
+
+    },
+    "Repository Removed" : {
+
+    },
+    "Reset Icon" : {
+
+    },
+    "Reset to Defaults" : {
+
+    },
+    "Restore" : {
+
+    },
+    "Restore Backup" : {
+
+    },
+    "Restore from Backup…" : {
+
+    },
+    "Review" : {
+
+    },
+    "Revoked" : {
+
+    },
+    "Save" : {
+
+    },
+    "Save certificates, sources, repos and settings to one file. Keep a copy outside Signet, like in iCloud Drive." : {
+
+    },
+    "Saved in Files → On My iPhone → Signet → Exports. Sign it with another tool before installing it." : {
+
+    },
+    "Saved in the keychain on this iPhone." : {
+
+    },
+    "Screenshots" : {
+
+    },
+    "Security framework could not read the p12 (%d)." : {
+
+    },
+    "Select" : {
+
+    },
+    "Send" : {
+
+    },
+    "Send %@ to LiveContainer?" : {
+
+    },
+    "Send a Certificate?" : {
+
+    },
+    "Send to LiveContainer" : {
+
+    },
+    "Server" : {
+
+    },
+    "Serves the app from Signet and installs it over the air. Needs the install certificate from Settings." : {
+
+    },
+    "Set Up" : {
+
+    },
+    "Set a passcode on this iPhone to share certificates." : {
+
+    },
+    "Set up Settings → Install Certificate first. It's a one-time step." : {
+
+    },
+    "Setting up the sandbox…" : {
+
+    },
+    "Settings" : {
+
+    },
+    "Settings are always included. Apps can make the backup large." : {
+
+    },
+    "Share" : {
+
+    },
+    "Share IPA" : {
+
+    },
+    "Sign" : {
+
+    },
+    "Sign With" : {
+
+    },
+    "Signed" : {
+
+    },
+    "Signed With" : {
+
+    },
+    "Signed before" : {
+
+    },
+    "Signet Updated" : {
+
+    },
+    "Signet can install apps." : {
+
+    },
+    "Signet can only open http and https links." : {
+
+    },
+    "Signet can't see installed apps, and this app hasn't been signed here before." : {
+
+    },
+    "Signet can't see installed apps. These are bundle IDs used here before." : {
+
+    },
+    "Signet didn't update to %@. Try installing it again." : {
+
+    },
+    "Signet is closing so iOS can finish. Open it again in a few seconds." : {
+
+    },
+    "Signet updated to %@." : {
+
+    },
+    "Signet will close while iOS installs the update. Open it again in a few seconds." : {
+
+    },
+    "Signing Defaults" : {
+
+    },
+    "Signing Failed" : {
+
+    },
+    "Signing by zsign (MIT). Only use certificates and apps you're allowed to." : {
+
+    },
+    "Signing failed. Check the certificate's password and that it isn't revoked." : {
+
+    },
+    "Signing with %@…" : {
+
+    },
+    "Signing…" : {
+
+    },
+    "Signs with this file instead of the profile's entitlements. Merge App Entitlements is ignored." : {
+
+    },
+    "Size" : {
+
+    },
+    "Sources" : {
+
+    },
+    "Status" : {
+
+    },
+    "Stop Tracking" : {
+
+    },
+    "Stop Tracking %@?" : {
+
+    },
+    "Storage" : {
+
+    },
+    "Tap **Allow** in Safari, then come back." : {
+
+    },
+    "Tap **Install** when asked, and keep Signet open until it finishes." : {
+
+    },
+    "Team" : {
+
+    },
+    "Temporary Files" : {
+
+    },
+    "Test Connection" : {
+
+    },
+    "Testing…" : {
+
+    },
+    "That certificate link is incomplete." : {
+
+    },
+    "That certificate request isn't valid." : {
+
+    },
+    "That doesn't look like a provisioning profile." : {
+
+    },
+    "That isn't a Signet backup." : {
+
+    },
+    "That isn't a pairing file. Export the remote-pairing file from iloader." : {
+
+    },
+    "That source is already added." : {
+
+    },
+    "That's an older lockdown pairing file, which current iOS doesn't accept over the network. Export the remote-pairing file from iloader instead (PairingFile_RemoteRP.plist)." : {
+
+    },
+    "The App's Own Icons" : {
+
+    },
+    "The app has no entitlements to merge; using the profile's." : {
+
+    },
+    "The app is missing its Info.plist." : {
+
+    },
+    "The backup is damaged." : {
+
+    },
+    "The bundle ID must match your profile: %@." : {
+
+    },
+    "The certificate files are missing. Re-import the certificate." : {
+
+    },
+    "The certificate is a one-time setup needed to install apps." : {
+
+    },
+    "The installed app uses this bundle ID" : {
+
+    },
+    "The original app files are missing. Re-import the IPA." : {
+
+    },
+    "The passwords don't match." : {
+
+    },
+    "The selected icon isn't a valid image." : {
+
+    },
+    "The signed IPA is missing. Sign the app again." : {
+
+    },
+    "The upload was interrupted" : {
+
+    },
+    "This app was %@ with this bundle ID" : {
+
+    },
+    "This backup is damaged." : {
+
+    },
+    "This backup needs a newer version of Signet." : {
+
+    },
+    "This certificate doesn't match its profile. Signing will fail." : {
+
+    },
+    "This certificate is %@, so apps signed with it won't open." : {
+
+    },
+    "This certificate only works for Signet on this iPhone. It can't be used for any website." : {
+
+    },
+    "This copy of Signet has a different bundle ID (%@), so it would install as a separate app without your library or certificates. To update Signet, sign it with %@. To install it as a separate app anyway, use the install server." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "This copy of Signet has a different bundle ID (%1$@), so it would install as a separate app without your library or certificates. To update Signet, sign it with %2$@. To install it as a separate app anyway, use the install server."
+          }
+        }
+      }
+    },
+    "This isn't a valid IPA." : {
+
+    },
+    "This removes it from your library." : {
+
+    },
+    "This update is signed by a different team than this copy of Signet, so saved certificate passwords may not be readable afterwards. Back up first in Settings → Back Up." : {
+
+    },
+    "To add a .framework, compress it in Files first. ElleKit is added when a tweak needs it." : {
+
+    },
+    "Total" : {
+
+    },
+    "Track" : {
+
+    },
+    "Track GitHub Repo" : {
+
+    },
+    "Tracking" : {
+
+    },
+    "Truncated Mach-O header." : {
+
+    },
+    "Trusted" : {
+
+    },
+    "Type" : {
+
+    },
+    "Unchanged" : {
+
+    },
+    "Unpacking the app…" : {
+
+    },
+    "Unsupported file type: .%@" : {
+
+    },
+    "Update" : {
+
+    },
+    "Update Signet" : {
+
+    },
+    "Update to %@?" : {
+
+    },
+    "Updates" : {
+
+    },
+    "Updating Signet" : {
+
+    },
+    "Use My Defaults Instead" : {
+
+    },
+    "Use an Entitlements File" : {
+
+    },
+    "Use the Install Server Instead" : {
+
+    },
+    "Used by the app" : {
+
+    },
+    "Used each time you sign. Changes on the Sign screen are saved here too." : {
+
+    },
+    "Used when signing apps from this repo. Keep the same bundle ID to update the installed app." : {
+
+    },
+    "Using custom entitlements from %@…" : {
+
+    },
+    "Using defaults from %@." : {
+
+    },
+    "Using the settings from when you signed version %@, so this installs over it." : {
+
+    },
+    "VPN Address" : {
+
+    },
+    "Valid" : {
+
+    },
+    "Verifying the signature…" : {
+
+    },
+    "Version" : {
+
+    },
+    "Version %@ (%@) · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Version %1$@ (%2$@) · %3$@"
+          }
+        }
+      }
+    },
+    "Versions" : {
+
+    },
+    "View on GitHub" : {
+
+    },
+    "Weak Inject" : {
+
+    },
+    "Website" : {
+
+    },
+    "When an app with this bundle ID is signed, Signet uses the new one. Rules don't apply when an app is signed with an earlier version's settings." : {
+
+    },
+    "When an app with this name is signed, Signet renames it. Matching ignores upper and lower case." : {
+
+    },
+    "Wrong password, or the .p12 is invalid." : {
+
+    },
+    "Wrong password." : {
+
+    },
+    "You'll need to install and trust it again." : {
+
+    },
+    "Your library list was damaged and a copy was saved. Until you delete it, Clean Up leaves unknown folders alone." : {
+
+    },
+    "Your profile doesn't grant %@, so iOS will refuse to install the app." : {
+
+    },
+    "and101" : {
+
+    },
+    "com.example.app" : {
+
+    },
+    "com.me.app" : {
+
+    },
+    "https://example.com/app.ipa" : {
+
+    },
+    "https://example.com/source.json" : {
+
+    },
+    "iOS couldn't install the app" : {
+
+    },
+    "iOS fetched the install manifest but never downloaded the app. If you tapped Install, check the home screen for an error, then try again with this app kept open." : {
+
+    },
+    "iOS never contacted the install server. Tap Install to try again; the server has been restarted. If it keeps failing, check the Signet certificate is still trusted in Settings → General → About → Certificate Trust Settings." : {
+
+    },
+    "iOS refused to open the install link." : {
+
+    },
+    "owner/repo or github.com link" : {
+
+    },
+    "→ %@" : {
+
+    }
+  },
+  "version" : "1.0"
+}

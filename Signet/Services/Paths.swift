@@ -155,8 +155,11 @@ extension Int64 {
     }
 }
 
+/// An error shown to the user. Messages are written as literals, so they're extracted for translation.
 struct AppError: LocalizedError {
     let message: String
-    init(_ message: String) { self.message = message }
+    init(_ message: String.LocalizationValue) { self.message = String(localized: message) }
+    /// For text that's already been put together, such as another error's description.
+    init(verbatim message: String) { self.message = message }
     var errorDescription: String? { message }
 }

@@ -130,7 +130,7 @@ final class DirectInstaller {
         socketAddress.sin_family = sa_family_t(AF_INET)
         socketAddress.sin_port = port.bigEndian
         guard inet_pton(AF_INET, address, &socketAddress.sin_addr) == 1 else {
-            throw Failure(stage: .connect, message: "\(address) isn't a valid IPv4 address.")
+            throw Failure(stage: .connect, message: String(localized: "\(address) isn't a valid IPv4 address."))
         }
         let error = withUnsafePointer(to: &socketAddress) {
             $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
@@ -259,32 +259,33 @@ final class DirectInstaller {
     /// What iOS is doing at each percentage the installer reports, in plain words.
     static func phase(forPercent percent: Int) -> String {
         switch percent {
-        case ..<5: "Preparing the app…"
-        case ..<15: "Creating a staging folder…"
-        case ..<20: "Unpacking the app…"
-        case ..<30: "Inspecting the app…"
-        case ..<40: "Checking the app…"
-        case ..<50: "Verifying the signature…"
-        case ..<60: "Creating the app's container…"
-        case ..<70: "Installing…"
-        case ..<80: "Finishing up…"
-        case ..<90: "Setting up the sandbox…"
-        case ..<100: "Registering the app…"
-        default: "Installed"
+        case ..<5: String(localized: "Preparing the app…")
+        case ..<15: String(localized: "Creating a staging folder…")
+        case ..<20: String(localized: "Unpacking the app…")
+        case ..<30: String(localized: "Inspecting the app…")
+        case ..<40: String(localized: "Checking the app…")
+        case ..<50: String(localized: "Verifying the signature…")
+        case ..<60: String(localized: "Creating the app's container…")
+        case ..<70: String(localized: "Installing…")
+        case ..<80: String(localized: "Finishing up…")
+        case ..<90: String(localized: "Setting up the sandbox…")
+        case ..<100: String(localized: "Registering the app…")
+        default: String(localized: "Installed")
         }
     }
 
     // MARK: - Helpers
 
     private func connectAFC() throws -> OpaquePointer? {
-        guard let adapter else { throw Failure(stage: .connect, message: "Not connected to this iPhone.") }
+        guard let adapter else { throw Failure(stage: .connect, message: String(localized: "Not connected to this iPhone.")) }
         var afc: OpaquePointer?
         try check(.upload, "Couldn't reach the iPhone's file service", afc_client_connect_rsd(adapter, handshake, &afc))
         return afc
     }
 
-    private func check(_ stage: Failure.Stage, _ summary: String, _ error: UnsafeMutablePointer<IdeviceFfiError>?) throws {
+    private func check(_ stage: Failure.Stage, _ summary: String.LocalizationValue, _ error: UnsafeMutablePointer<IdeviceFfiError>?) throws {
         guard let error else { return }
+        let summary = String(localized: summary)
         defer { idevice_error_free(error) }
         let detail = error.pointee.message.map { String(cString: $0) } ?? "code \(error.pointee.code)"
         log("\(summary): \(detail) [\(error.pointee.code)/\(error.pointee.sub_code)]")

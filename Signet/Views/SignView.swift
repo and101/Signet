@@ -389,11 +389,11 @@ struct SignView: View {
     }
 
     /// A labelled text row. `error` stays inside the row so the bottom bar can't cover it while typing.
-    private func field(_ title: String, text: Binding<String>, placeholder: String, error: String? = nil) -> some View {
+    private func field(_ title: LocalizedStringKey, text: Binding<String>, placeholder: String, error: String? = nil) -> some View {
         LabeledContent {
-            TextField(title, text: text, prompt: Text(placeholder))
+            TextField(title, text: text, prompt: Text(verbatim: placeholder))
                 .multilineTextAlignment(.trailing)
-                .accessibilityLabel(title)
+                .accessibilityLabel(Text(title))
                 .focused($isEditing)
         } label: {
             Text(title)
@@ -450,9 +450,9 @@ struct SignView: View {
 
     private func describe(_ evidence: InstalledApps.Match.Evidence) -> String {
         switch evidence {
-        case .installed: "Installed"
-        case .previouslyInstalled: "Installed before"
-        case .signedBefore: "Signed before"
+        case .installed: String(localized: "Installed")
+        case .previouslyInstalled: String(localized: "Installed before")
+        case .signedBefore: String(localized: "Signed before")
         }
     }
 

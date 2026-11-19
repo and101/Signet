@@ -87,7 +87,7 @@ final class Router {
             guard let template = items.first(where: { $0.name.lowercased() == "callback_template" })?.value
                 .map({ $0.removingPercentEncoding ?? $0 }),
                 CertificateSharing.isAppScheme(template), template.contains("$(BASE64_CERT)") else {
-                message = "That certificate request isn't valid."
+                message = String(localized: "That certificate request isn't valid.")
                 return
             }
             pendingCertificateRequest = template
@@ -96,7 +96,7 @@ final class Router {
         // signet://import-certificate?p12=…&mobileprovision=…&password=… (Feather's format)
         if url.host == "import-certificate" {
             guard let incoming = CertificateSharing.incoming(from: url) else {
-                message = "That certificate link is incomplete."
+                message = String(localized: "That certificate link is incomplete.")
                 return
             }
             pendingIncomingCertificate = incoming
@@ -107,7 +107,7 @@ final class Router {
             .queryItems?.first(where: { $0.name == "url" })?.value else { return }
         // Any web page can open these links, so nothing happens until the user confirms.
         guard let link = Self.link(host: url.host, target: target) else {
-            message = "Signet can only open http and https links."
+            message = String(localized: "Signet can only open http and https links.")
             return
         }
         pendingLink = link
@@ -130,7 +130,7 @@ final class Router {
     func sendCertificate(to template: String, certificate: CertificateRecord?) async {
         pendingCertificateRequest = nil
         guard let certificate else {
-            message = "Add a certificate first."
+            message = String(localized: "Add a certificate first.")
             return
         }
         do {
@@ -138,7 +138,7 @@ final class Router {
             let p12 = try Data(contentsOf: certificate.p12URL)
             guard let url = CertificateSharing.callbackURL(template: template, p12: p12, password: certificate.password),
                   await UIApplication.shared.open(url) else {
-                message = "Couldn't open the app that asked for the certificate."
+                message = String(localized: "Couldn't open the app that asked for the certificate.")
                 return
             }
         } catch {
@@ -216,7 +216,7 @@ final class Router {
             pendingBackup = copy
             tab = .settings
         default:
-            message = "Unsupported file type: .\(url.pathExtension)"
+            message = String(localized: "Unsupported file type: .\(url.pathExtension)")
         }
     }
 }

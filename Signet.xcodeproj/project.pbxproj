@@ -49,6 +49,7 @@
 		917231AB7A1022B5378FDA28 /* IDevice.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 618D0E57280DC2EF8068EEE7 /* IDevice.xcframework */; };
 		974C1DCF3D35FA11CB30C143 /* GitHubRepo.swift in Sources */ = {isa = PBXBuildFile; fileRef = E66D359B5CF7CB9B757A78B7 /* GitHubRepo.swift */; };
 		98B30093B7251DEC2A9AF347 /* EntitlementsMerger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A7318A2E4ABB0409FA10A9B /* EntitlementsMerger.swift */; };
+		9C63228D69D9CC16E7B373F3 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 55A66543AF8D10107E823C51 /* Localizable.xcstrings */; };
 		9D085603DC79007E13211297 /* SourceUpdatesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F334D71B414618C7758430 /* SourceUpdatesTests.swift */; };
 		9E44E414E2D031C52E842F1E /* CertificateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 297D2A0C11CAAB9753BBD2A5 /* CertificateStore.swift */; };
 		A2E4BE457F8806E90827A732 /* LibraryIndexTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5045DDFAAE6576D6F14C4577 /* LibraryIndexTests.swift */; };
@@ -121,6 +122,7 @@
 		4A79448263806321D0FC596E /* InstallServerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallServerTests.swift; sourceTree = "<group>"; };
 		5045DDFAAE6576D6F14C4577 /* LibraryIndexTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryIndexTests.swift; sourceTree = "<group>"; };
 		558CDF12CE81034B95FF02F4 /* SignetTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SignetTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		55A66543AF8D10107E823C51 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		55F7B27BFA81444467EC62D2 /* TweakSupportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TweakSupportTests.swift; sourceTree = "<group>"; };
 		5C06EDB4C94A4894262AD1F9 /* StorageCleanupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageCleanupTests.swift; sourceTree = "<group>"; };
 		5EDCFF8187B4753A2AF14891 /* CryptoSetup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoSetup.swift; sourceTree = "<group>"; };
@@ -290,6 +292,7 @@
 				DC8A76F85DE0CC08F85782C0 /* Assets.xcassets */,
 				B504DC4C346ADBF6E0AA7A09 /* ElleKit.zip */,
 				C4D79B91D832F74D8C930F15 /* Info.plist */,
+				55A66543AF8D10107E823C51 /* Localizable.xcstrings */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -463,6 +466,7 @@
 			files = (
 				BEBA52C6B05825C81E3B0223 /* Assets.xcassets in Resources */,
 				10C8F3763423D8389295A27F /* ElleKit.zip in Resources */,
+				9C63228D69D9CC16E7B373F3 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -642,6 +646,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -649,6 +654,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 			};
@@ -720,12 +726,14 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
 			};

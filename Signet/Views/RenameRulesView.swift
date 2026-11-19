@@ -2,11 +2,11 @@ import SwiftUI
 
 /// Edits a list of "this → that" rename rules (bundle IDs or app names).
 struct RenameRulesView: View {
-    let title: String
+    let title: LocalizedStringKey
     @Binding var rules: [SigningOptions.RenameRule]
-    let matchPrompt: String
-    let replacementPrompt: String
-    let footer: String
+    let matchPrompt: LocalizedStringKey
+    let replacementPrompt: LocalizedStringKey
+    let footer: LocalizedStringKey
 
     @State private var editing: SigningOptions.RenameRule?
     @State private var match = ""
@@ -42,7 +42,7 @@ struct RenameRulesView: View {
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { if !rules.isEmpty { EditButton() } }
-        .alert(editing.map { rule in rules.contains { $0.id == rule.id } ? "Edit Rule" : "New Rule" } ?? "",
+        .alert(editing.map { rule in rules.contains { $0.id == rule.id } ? LocalizedStringKey("Edit Rule") : LocalizedStringKey("New Rule") } ?? LocalizedStringKey(""),
                isPresented: Binding(get: { editing != nil }, set: { if !$0 { editing = nil } })) {
             TextField(matchPrompt, text: $match)
                 .textInputAutocapitalization(.never)

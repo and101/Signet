@@ -80,11 +80,11 @@ actor Signer {
 
         do {
             try fm.createDirectory(at: result.payloadURL, withIntermediateDirectories: true)
-            log("Copying \(source.appFolderName)…")
+            log(String(localized: "Copying \(source.appFolderName)…"))
             try fm.copyItem(at: source.appURL, to: result.appURL)
             let appURL = result.appURL
 
-            log("Patching Info.plist…")
+            log(String(localized: "Patching Info.plist…"))
             try patchInfoPlist(at: appURL, options: options)
             let newName = options.appName.trimmingCharacters(in: .whitespaces)
             if !newName.isEmpty {
@@ -92,12 +92,12 @@ actor Signer {
             }
 
             if let icon = options.customIcon {
-                log("Applying custom icon…")
+                log(String(localized: "Applying custom icon…"))
                 try applyIcon(icon, to: appURL)
             }
 
             if options.removePlugins {
-                log("Removing app extensions…")
+                log(String(localized: "Removing app extensions…"))
                 for folder in ["PlugIns", "Extensions"] {
                     try? fm.removeItem(at: appURL.appendingPathComponent(folder))
                 }
@@ -106,11 +106,11 @@ actor Signer {
                 guard let url = Self.removableURL(path, in: appURL) else {
                     throw AppError("Can't remove \(path): it isn't inside the app.")
                 }
-                log("Removing \(path)…")
+                log(String(localized: "Removing \(path)…"))
                 try? fm.removeItem(at: url)
             }
             if options.removeWatchApp {
-                log("Removing Watch app…")
+                log(String(localized: "Removing Watch app…"))
                 for folder in ["Watch", "com.apple.WatchPlaceholder"] {
                     try? fm.removeItem(at: appURL.appendingPathComponent(folder))
                 }
@@ -119,7 +119,7 @@ actor Signer {
             try TweakInjector(appURL: appURL, options: options, log: log).run()
             try fixLegacyARM64ESlices(in: appURL, log: log)
             if options.interfaceStyle == .liquidGlass, let executable = AppImporter.mainExecutable(of: appURL) {
-                log("Enabling Liquid Glass…")
+                log(String(localized: "Enabling Liquid Glass…"))
                 try MachO.setSDKVersion(in: executable, to: Self.liquidGlassSDK)
             }
 
@@ -128,21 +128,21 @@ actor Signer {
             if let certificate {
                 if let custom = options.entitlementsFile {
                     _ = try EntitlementsMerger.read(custom) // fail early with a clear message
-                    log("Using custom entitlements from \(custom.lastPathComponent)…")
+                    log(String(localized: "Using custom entitlements from \(custom.lastPathComponent)…"))
                     entitlementsPath = custom.path
                 } else if options.mergeEntitlements, let executable = AppImporter.mainExecutable(of: source.appURL) {
                     if let url = try mergedEntitlements(for: executable, certificate: certificate, into: result.directory) {
-                        log("Merging the app's entitlements…")
+                        log(String(localized: "Merging the app's entitlements…"))
                         entitlementsPath = url.path
                         mergedFile = true
                     } else {
-                        log("The app has no entitlements to merge; using the profile's.")
+                        log(String(localized: "The app has no entitlements to merge; using the profile's."))
                     }
                 }
 
                 try Self.replaceNestedProfiles(in: appURL, with: certificate.profileURL,
                                                remove: options.removeProvisioningFile)
-                log("Signing with \(certificate.nickname)…")
+                log(String(localized: "Signing with \(certificate.nickname)…"))
                 let ok = Zsign.sign(
                     appPath: appURL.path,
                     provisionPath: certificate.profileURL.path,
@@ -159,7 +159,7 @@ actor Signer {
                     throw AppError("Signing failed. Check the certificate's password and that it isn't revoked.")
                 }
             } else {
-                log("Applying changes without signing…")
+                log(String(localized: "Applying changes without signing…"))
                 try Self.applyIdentity(in: appURL, from: source.bundleID, to: effectiveID,
                                        name: options.appName.trimmingCharacters(in: .whitespaces),
                                        version: options.version.trimmingCharacters(in: .whitespaces))
@@ -177,7 +177,7 @@ actor Signer {
                 try? fm.copyItem(at: source.iconURL, to: result.iconURL)
             }
 
-            log("Packaging IPA…")
+            log(String(localized: "Packaging IPA…"))
             try fm.zipItem(
                 at: result.payloadURL,
                 to: result.ipaURL,
@@ -188,7 +188,7 @@ actor Signer {
             if mergedFile { try? fm.removeItem(atPath: entitlementsPath) } // never the user's own file
             if certificate != nil { result.signingOptionsData = try Self.remember(options, for: result) }
             result.size = fm.fileSize(at: result.ipaURL)
-            log("Done — \(result.size.formattedBytes)")
+            log(String(localized: "Done — \(result.size.formattedBytes)"))
             return result
         } catch {
             try? fm.removeItem(at: result.directory)
@@ -423,7 +423,10 @@ actor Signer {
                   (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true else { continue }
             if try MachO.fixLegacyARM64ESlices(in: url) { fixed.append(url.lastPathComponent) }
         }
-        if !fixed.isEmpty { log("Fixed legacy arm64e slices in \(fixed.joined(separator: ", "))") }
+        if !fixed.isEmpty {
+            let names = fixed.joined(separator: ", ")
+            log(String(localized: "Fixed legacy arm64e slices in \(names)"))
+        }
     }
 
     // MARK: - Entitlements

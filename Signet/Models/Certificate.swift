@@ -60,15 +60,15 @@ struct CertificateRecord: Codable, Identifiable, Hashable {
     var isWildcard: Bool { bundleIDPattern.hasSuffix("*") }
 
     var distributionKind: String {
-        if provisionsAllDevices { return "Enterprise" }
-        if provisionedDeviceCount != nil { return entitlements["get-task-allow"] == "true" ? "Development" : "Ad Hoc" }
-        return "Distribution"
+        if provisionsAllDevices { return String(localized: "Enterprise") }
+        if provisionedDeviceCount != nil { return entitlements["get-task-allow"] == "true" ? String(localized: "Development") : String(localized: "Ad Hoc") }
+        return String(localized: "Distribution")
     }
 
     /// Why apps signed with this certificate won't open. Nil when nothing is known to be wrong.
     var problem: String? {
-        if isExpired { return "Expired" }
-        return revocation == .revoked ? "Revoked" : nil
+        if isExpired { return String(localized: "Expired") }
+        return revocation == .revoked ? String(localized: "Revoked") : nil
     }
 
     /// Wildcard profiles can't sign IDs outside their namespace (zsign fails). Exact App IDs never block: apps keep

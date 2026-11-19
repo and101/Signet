@@ -190,7 +190,7 @@ struct AddCertificateView: View {
         }
     }
 
-    private func fileButton(_ title: String, file: URL?, action: @escaping () -> Void) -> some View {
+    private func fileButton(_ title: LocalizedStringKey, file: URL?, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             LabeledContent(title) {
                 if let file {
@@ -355,9 +355,9 @@ struct CertificateDetailView: View {
     private func statusText(_ cert: CertificateRecord) -> String {
         if let problem = cert.problem { return problem }
         switch cert.revocation {
-        case .valid: return "Valid"
-        case .unknown: return "Couldn't Verify"
-        default: return "Not Checked"
+        case .valid: return String(localized: "Valid")
+        case .unknown: return String(localized: "Couldn't Verify")
+        default: return String(localized: "Not Checked")
         }
     }
 }

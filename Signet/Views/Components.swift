@@ -13,7 +13,7 @@ extension View {
     /// actions next to the row so they come first. Avoids `.destructive`: SwiftUI removes a destructive
     /// row immediately, before the confirmation can answer.
     func swipeToDelete<Actions: View>(
-        _ title: String = "Delete",
+        _ title: LocalizedStringKey = "Delete",
         systemImage: String = "trash",
         primary: @escaping () -> Void,
         @ViewBuilder actions: () -> Actions = { EmptyView() }
@@ -28,14 +28,14 @@ extension View {
     /// Asks before a destructive action. Presented while `item` is non-nil.
     func destructiveConfirmation<Item>(
         item: Binding<Item?>,
-        title: (Item) -> String,
-        message: (Item) -> String,
-        confirm: String = "Delete",
-        cancel: String = "Cancel",
+        title: (Item) -> LocalizedStringKey,
+        message: (Item) -> LocalizedStringKey,
+        confirm: LocalizedStringKey = "Delete",
+        cancel: LocalizedStringKey = "Cancel",
         perform: @escaping (Item) -> Void
     ) -> some View {
         alert(
-            item.wrappedValue.map(title) ?? "",
+            item.wrappedValue.map(title) ?? LocalizedStringKey(""),
             isPresented: Binding(get: { item.wrappedValue != nil }, set: { if !$0 { item.wrappedValue = nil } }),
             presenting: item.wrappedValue
         ) { value in
@@ -286,11 +286,12 @@ struct Badge: View {
     }
 }
 
+/// A label and a value. The label is translated; the value is shown as it is.
 struct LabeledText: View {
-    let title: String
+    let title: LocalizedStringKey
     let value: String
 
-    init(_ title: String, _ value: String) {
+    init(_ title: LocalizedStringKey, _ value: String) {
         self.title = title
         self.value = value
     }

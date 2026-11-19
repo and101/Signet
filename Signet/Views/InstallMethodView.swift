@@ -91,7 +91,7 @@ struct InstallMethodView: View {
     private var pairingStep: some View {
         Section {
             SetupStepRow(number: 1, title: "Pairing File", done: hasPairingFile,
-                         status: hasPairingFile ? "Imported" : "Not imported")
+                         status: hasPairingFile ? String(localized: "Imported") : String(localized: "Not imported"))
             Button(hasPairingFile ? "Replace Pairing File" : "Import Pairing File") { showPairingPicker = true }
             if !hasPairingFile {
                 Link("Get iloader", destination: Self.iloaderURL)
@@ -106,7 +106,7 @@ struct InstallMethodView: View {
     private var vpnStep: some View {
         Section {
             SetupStepRow(number: 2, title: "LocalDevVPN", done: vpnReachable,
-                         status: vpnReachable == nil ? "Checking…" : vpnReachable == true ? "Connected" : "Not connected")
+                         status: vpnReachable == nil ? String(localized: "Checking…") : vpnReachable == true ? String(localized: "Connected") : String(localized: "Not connected"))
             if vpnReachable != true {
                 Button("Open LocalDevVPN") {
                     Task {
@@ -146,9 +146,9 @@ struct InstallMethodView: View {
 
     private var testStatus: String {
         switch testResult {
-        case nil: testing ? "Testing…" : "Not tested"
-        case .ready(let version): "Ready: iPhone on iOS \(version)"
-        case .failed: "Failed"
+        case nil: testing ? String(localized: "Testing…") : String(localized: "Not tested")
+        case .ready(let version): String(localized: "Ready: iPhone on iOS \(version)")
+        case .failed: String(localized: "Failed")
         }
     }
 
@@ -205,7 +205,7 @@ struct InstallMethodView: View {
 /// A numbered setup step that shows a tick once it's done.
 private struct SetupStepRow: View {
     let number: Int
-    let title: String
+    let title: LocalizedStringKey
     /// nil while unknown.
     let done: Bool?
     let status: String

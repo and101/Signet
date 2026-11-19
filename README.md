@@ -103,6 +103,10 @@ Set your team under **Signing & Capabilities** and run on your device.
 xcodebuild test -project Signet.xcodeproj -scheme Signet -destination 'platform=iOS Simulator,name=iPhone 18 Pro'
 ```
 
+**Translations.** All text is in `Signet/Resources/Localizable.xcstrings`. After changing text in the code, run
+`./scripts/sync-strings.sh` to update it (building in Xcode does the same), then add a language in Xcode's string
+catalog editor.
+
 **Releases.** Set the version in `project.yml` and run `./scripts/release.sh`. It builds an unsigned
 `build/Signet.ipa` and updates the source in `docs/`. Commit, push, then attach the IPA to a release:
 

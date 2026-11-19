@@ -204,21 +204,21 @@ final class InstallManager {
             if case .waiting = self.state {
                 // Start from a fresh server next time in case this one stopped accepting connections.
                 Task.detached { InstallServer.shared.stop() }
-                self.fail("""
+                self.fail(String(localized: """
                 iOS never contacted the install server. Tap Install to try again; the server has been restarted. \
                 If it keeps failing, check the Signet certificate is still trusted in \
                 Settings → General → About → Certificate Trust Settings.
-                """)
+                """))
                 return
             }
             // After the manifest, waiting is normal: the user may not have tapped Install yet.
             try? await Task.sleep(for: .seconds(100))
             guard !Task.isCancelled, self.token == token else { return }
             if case .manifestServed = self.state {
-                self.fail("""
+                self.fail(String(localized: """
                 iOS fetched the install manifest but never downloaded the app. If you tapped Install, \
                 check the home screen for an error, then try again with this app kept open.
-                """)
+                """))
             }
         }
     }
@@ -260,12 +260,12 @@ extension InstallManager {
     /// file's tunnel. Connection problems offer the server method instead.
     private func installDirectly(_ app: LibraryApp, confirmedSelfUpdate: Bool = false) async {
         guard FileManager.default.fileExists(atPath: app.ipaURL.path) else {
-            fail("The signed IPA is missing. Sign the app again.")
+            fail(String(localized: "The signed IPA is missing. Sign the app again."))
             return
         }
         guard DirectInstall.hasPairingFile else {
             serverFallback = app
-            fail("Direct install needs a pairing file. Set it up in Settings → Install Method, or use the install server.")
+            fail(String(localized: "Direct install needs a pairing file. Set it up in Settings → Install Method, or use the install server."))
             return
         }
         let selfUpdate = SelfUpdateCheck.evaluate(app: app, runningBundleID: Bundle.main.bundleIdentifier,
@@ -274,10 +274,8 @@ extension InstallManager {
         switch selfUpdate {
         case .separateCopy:
             serverFallback = app
-            fail("This copy of Signet has a different bundle ID (\(app.bundleID)), so it would install as a separate app "
-                 + "without your library or certificates. To update Signet, sign it with "
-                 + "\(Bundle.main.bundleIdentifier ?? "Signet's own bundle ID"). To install it as a separate app anyway, "
-                 + "use the install server.")
+            let signetID = Bundle.main.bundleIdentifier ?? "ember.wax.signet"
+            fail(String(localized: "This copy of Signet has a different bundle ID (\(app.bundleID)), so it would install as a separate app without your library or certificates. To update Signet, sign it with \(signetID). To install it as a separate app anyway, use the install server."))
             return
         case .update(let differentTeam) where !confirmedSelfUpdate:
             pendingSelfUpdateApp = app
@@ -293,7 +291,7 @@ extension InstallManager {
         directLog.start()
         directLog.append("Installing \(app.name) \(app.version) (\(app.size.formattedBytes)) directly")
         state = .waiting(appName: app.name)
-        phase = "Connecting to your iPhone…"
+        phase = String(localized: "Connecting to your iPhone…")
         if !isSelfUpdate { beginBackgroundTask() }
         DirectInstaller.startLibraryLog()
 
@@ -304,7 +302,7 @@ extension InstallManager {
         do {
             guard let port = await Self.resolvePort() else {
                 throw DirectInstaller.Failure(stage: .connect, message:
-                    "Can't reach this iPhone through the VPN. Check LocalDevVPN is connected and Wi-Fi is on, then try again.")
+                    String(localized: "Can't reach this iPhone through the VPN. Check LocalDevVPN is connected and Wi-Fi is on, then try again."))
             }
             let version = try await Task.detached { try installer.connect(port: port) }.value
             guard self.token == token else { return }
@@ -367,7 +365,7 @@ extension InstallManager {
             failedDirectly = true
             phase = nil
             fail(stage == .pairingFile
-                 ? "\(error.localizedDescription). The pairing file may have expired (it does after an iOS update or reset); make a new one with iloader."
+                 ? String(localized: "\(error.localizedDescription). The pairing file may have expired (it does after an iOS update or reset); make a new one with iloader.")
                  : error.localizedDescription)
         }
     }
@@ -409,8 +407,8 @@ extension InstallManager {
         DirectInstall.pendingSelfUpdate = nil
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? pending.version
         selfUpdateResult = pending.wasInstalled(nowAt: Bundle.main.bundlePath)
-            ? "Signet updated to \(version)."
-            : "Signet didn't update to \(pending.version). Try installing it again."
+            ? String(localized: "Signet updated to \(version).")
+            : String(localized: "Signet didn't update to \(pending.version). Try installing it again.")
     }
 
     /// The manual port, else the last one found, else the usual one, else a Bonjour search.
