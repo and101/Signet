@@ -104,7 +104,9 @@ def main():
             text = get(f'https://raw.githubusercontent.com/spdx/license-list-data/main/text/{spdx}.txt').strip()
         except Exception:
             continue
-        lines += ['', '', '=' * 60, spdx, '=' * 60, '', text]
+        # Licence files are wrapped at 80 columns; reflow each paragraph so it reads well on a phone.
+        paragraphs = [' '.join(p.split()) for p in re.split(r'\n\s*\n', text) if p.strip()]
+        lines += ['', f'# {spdx}', ''] + [line for p in paragraphs for line in (p, '')][:-1]
     with open(OUT, 'w') as f:
         f.write('\n'.join(lines) + '\n')
     print(f'{len(crates)} crates, {len(licences)} licences -> {os.path.relpath(OUT, ROOT)}')

@@ -316,14 +316,18 @@ struct InstallCertificateView: View {
 
 /// The open-source components in Signet and their licences, from Resources/Acknowledgements.txt
 /// (made by scripts/make-acknowledgements.py).
-private struct AcknowledgementsView: View {
+struct AcknowledgementsView: View {
     @State private var paragraphs: [String] = []
 
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 10) { // small enough to lay out at once; lazy left gaps when jumping
                 ForEach(Array(paragraphs.enumerated()), id: \.offset) { _, paragraph in
-                    Text(verbatim: paragraph).font(.footnote).textSelection(.enabled)
+                    if paragraph.hasPrefix("# ") {
+                        Text(verbatim: String(paragraph.dropFirst(2))).font(.headline).padding(.top, 16)
+                    } else {
+                        Text(verbatim: paragraph).font(.footnote).textSelection(.enabled)
+                    }
                 }
             }
             .padding()
@@ -333,7 +337,7 @@ private struct AcknowledgementsView: View {
         .task {
             guard paragraphs.isEmpty, let url = Bundle.main.url(forResource: "Acknowledgements", withExtension: "txt"),
                   let text = try? String(contentsOf: url, encoding: .utf8) else { return }
-            paragraphs = text.components(separatedBy: "\n\n")
+            paragraphs = text.components(separatedBy: "\n\n").map { $0.trimmingCharacters(in: .newlines) }.filter { !$0.isEmpty }
         }
     }
 }
