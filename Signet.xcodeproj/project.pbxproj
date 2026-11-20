@@ -26,6 +26,7 @@
 		48ED82C15208FC428CA4598C /* DirectInstallTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A948BF8525EE414FBE9D516B /* DirectInstallTests.swift */; };
 		49CF34597B2A2941EE015160 /* InstallWatchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F9EA75E3B4C73F1FF9EAE05 /* InstallWatchTests.swift */; };
 		4FBDB066BF229D00D93540F8 /* SourceFormatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 315D472279D20CA59A646D0B /* SourceFormatTests.swift */; };
+		5455B0B3A1998246EADEA0C4 /* IconImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = F453D81D42E073C86DA48CC8 /* IconImage.swift */; };
 		562F0F384BCD082404F9B3A9 /* OpenSSL in Frameworks */ = {isa = PBXBuildFile; productRef = 60766E6B331FE6AE267C6EC7 /* OpenSSL */; };
 		5910435409A44054AA23D628 /* DebPackage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCB2349CE7257F986676843E /* DebPackage.swift */; };
 		59490D9452EDCCBB16F412AF /* KeychainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A671260366594AE81BC9FF6C /* KeychainTests.swift */; };
@@ -47,6 +48,7 @@
 		8E3BA70D585505BA50C89498 /* StorageCleanupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C06EDB4C94A4894262AD1F9 /* StorageCleanupTests.swift */; };
 		8F47930E7BFF27AA2E2FB5BF /* SignedAppView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35B7E211B0BB561DC9DB0DB1 /* SignedAppView.swift */; };
 		917231AB7A1022B5378FDA28 /* IDevice.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 618D0E57280DC2EF8068EEE7 /* IDevice.xcframework */; };
+		92AC60702D4799F81AA5A815 /* ArchiveBudget.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E1BFF60000CC11978E5043 /* ArchiveBudget.swift */; };
 		974C1DCF3D35FA11CB30C143 /* GitHubRepo.swift in Sources */ = {isa = PBXBuildFile; fileRef = E66D359B5CF7CB9B757A78B7 /* GitHubRepo.swift */; };
 		98B30093B7251DEC2A9AF347 /* EntitlementsMerger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A7318A2E4ABB0409FA10A9B /* EntitlementsMerger.swift */; };
 		9C63228D69D9CC16E7B373F3 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 55A66543AF8D10107E823C51 /* Localizable.xcstrings */; };
@@ -55,13 +57,16 @@
 		A2E4BE457F8806E90827A732 /* LibraryIndexTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5045DDFAAE6576D6F14C4577 /* LibraryIndexTests.swift */; };
 		A51D0877D4F0BD233EA96A7D /* InstallProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = E14DE164067464A1DE9F951C /* InstallProgress.swift */; };
 		A52C56EF86AB73E6763FB773 /* CertificateSharing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 974B0FF6906877D55B49280F /* CertificateSharing.swift */; };
+		A6AADC83A79CFFF4D6D0C605 /* ReviewHardeningTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD6D66A4C5B73D80D6F0813C /* ReviewHardeningTests.swift */; };
 		A7FA635BD25C5835E2507C9F /* SourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF5AA7721A8F8B70A76D3EF5 /* SourcesView.swift */; };
 		A9FEA8FD97EBB6CB143DDE3A /* TweakSupportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55F7B27BFA81444467EC62D2 /* TweakSupportTests.swift */; };
 		AA57C3942804408F3D5EB279 /* Certificate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1869B439031756F054DAE63E /* Certificate.swift */; };
 		AC9374CBBD478B005C0D0C5F /* ServerCertificate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA84AA949F6ECE68E28875A /* ServerCertificate.swift */; };
+		AF392CAC12B5BAAB1FE05CE0 /* DownloadPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EE77F7D0C0980AB3B4D5DC6 /* DownloadPolicy.swift */; };
 		B524C5C5CB9EDB46E723471A /* SourceUpdates.swift in Sources */ = {isa = PBXBuildFile; fileRef = A78D6D59B0C70D82414ADEFA /* SourceUpdates.swift */; };
 		B656218500E43C8D68172189 /* HardeningTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29254E315EEA01BE75DFE853 /* HardeningTests.swift */; };
 		B7F0BC8E1035ACB94661E4BD /* BackupViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A16CD9DCD04D27B2D110D43 /* BackupViews.swift */; };
+		B83C4F12699C623ECE7250A9 /* HTTPByteRange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57351E6E15115A8C9411043E /* HTTPByteRange.swift */; };
 		BBAAE29F4A9EBE2973E2838D /* InstallServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89BBF3E483DBA61AC8B186C2 /* InstallServer.swift */; };
 		BEBA52C6B05825C81E3B0223 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DC8A76F85DE0CC08F85782C0 /* Assets.xcassets */; };
 		C12D56DACCEC7554638CD1BF /* BackupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D14ABAC97E087BD623A707 /* BackupTests.swift */; };
@@ -128,9 +133,11 @@
 		558CDF12CE81034B95FF02F4 /* SignetTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SignetTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		55A66543AF8D10107E823C51 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		55F7B27BFA81444467EC62D2 /* TweakSupportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TweakSupportTests.swift; sourceTree = "<group>"; };
+		57351E6E15115A8C9411043E /* HTTPByteRange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPByteRange.swift; sourceTree = "<group>"; };
 		5C06EDB4C94A4894262AD1F9 /* StorageCleanupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageCleanupTests.swift; sourceTree = "<group>"; };
 		5EDCFF8187B4753A2AF14891 /* CryptoSetup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoSetup.swift; sourceTree = "<group>"; };
 		618D0E57280DC2EF8068EEE7 /* IDevice.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = IDevice.xcframework; path = Vendor/IDevice/IDevice.xcframework; sourceTree = "<group>"; };
+		6EE77F7D0C0980AB3B4D5DC6 /* DownloadPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadPolicy.swift; sourceTree = "<group>"; };
 		6F21FD329C6D063DB957CC6D /* Acknowledgements.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = Acknowledgements.txt; sourceTree = "<group>"; };
 		741578A4593491440CA8B0D1 /* LibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStore.swift; sourceTree = "<group>"; };
 		79D5CB622C29F818A4BCF2B8 /* InstallManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallManager.swift; sourceTree = "<group>"; };
@@ -160,9 +167,11 @@
 		B504DC4C346ADBF6E0AA7A09 /* ElleKit.zip */ = {isa = PBXFileReference; lastKnownFileType = archive.zip; path = ElleKit.zip; sourceTree = "<group>"; };
 		B52EE5B717EFA86B0A446963 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		B567FF00BB14FC880B2C81DB /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
+		B62FA3E585A3AC4C5D8DC7D1 /* ZIPFoundation */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ZIPFoundation; path = Vendor/ZIPFoundation; sourceTree = SOURCE_ROOT; };
 		BAD10DD94FA0CFBB8744584D /* Signer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signer.swift; sourceTree = "<group>"; };
 		BFC7070B3A5754283DA58F7D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		C3AD454BB0127FE1F43E845F /* Source.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Source.swift; sourceTree = "<group>"; };
+		C3E1BFF60000CC11978E5043 /* ArchiveBudget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveBudget.swift; sourceTree = "<group>"; };
 		C4D79B91D832F74D8C930F15 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		C5EBE5C2DFD5C955F4F20572 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
 		CCA84AA949F6ECE68E28875A /* ServerCertificate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerCertificate.swift; sourceTree = "<group>"; };
@@ -171,9 +180,11 @@
 		D092F621527D945843BE829A /* DirectInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectInstaller.swift; sourceTree = "<group>"; };
 		DAF5608369595D271FEB3CA5 /* GitHubReleasesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubReleasesTests.swift; sourceTree = "<group>"; };
 		DC8A76F85DE0CC08F85782C0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		DD6D66A4C5B73D80D6F0813C /* ReviewHardeningTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewHardeningTests.swift; sourceTree = "<group>"; };
 		E14DE164067464A1DE9F951C /* InstallProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallProgress.swift; sourceTree = "<group>"; };
 		E66D359B5CF7CB9B757A78B7 /* GitHubRepo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubRepo.swift; sourceTree = "<group>"; };
 		F1D1BD62AE8584730490E140 /* SignView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignView.swift; sourceTree = "<group>"; };
+		F453D81D42E073C86DA48CC8 /* IconImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IconImage.swift; sourceTree = "<group>"; };
 		FB7797CE10F8404DB62EDF62 /* GitHubRepoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubRepoView.swift; sourceTree = "<group>"; };
 		FCB2349CE7257F986676843E /* DebPackage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebPackage.swift; sourceTree = "<group>"; };
 		FF5AA7721A8F8B70A76D3EF5 /* SourcesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourcesView.swift; sourceTree = "<group>"; };
@@ -284,6 +295,7 @@
 				344EFBEA21360EC15A80F0B5 /* LinkTests.swift */,
 				A7C9269E1748A1D5027C719C /* PPQTests.swift */,
 				AA0C4375F5A19A64EDFF69FC /* RenameRulesTests.swift */,
+				DD6D66A4C5B73D80D6F0813C /* ReviewHardeningTests.swift */,
 				2DDA74E1437D8EDEF4867E7E /* SigningPipelineTests.swift */,
 				315D472279D20CA59A646D0B /* SourceFormatTests.swift */,
 				17F334D71B414618C7758430 /* SourceUpdatesTests.swift */,
@@ -323,13 +335,17 @@
 			isa = PBXGroup;
 			children = (
 				06E674667AB2C3E3ADE88164 /* AppImporter.swift */,
+				C3E1BFF60000CC11978E5043 /* ArchiveBudget.swift */,
 				1E2A731FD2F3B7AC211895D2 /* Backup.swift */,
 				CCE623DEBB67EFDD6F4113D3 /* CertificateImporter.swift */,
 				974B0FF6906877D55B49280F /* CertificateSharing.swift */,
 				5EDCFF8187B4753A2AF14891 /* CryptoSetup.swift */,
 				FCB2349CE7257F986676843E /* DebPackage.swift */,
 				D092F621527D945843BE829A /* DirectInstaller.swift */,
+				6EE77F7D0C0980AB3B4D5DC6 /* DownloadPolicy.swift */,
 				8A7318A2E4ABB0409FA10A9B /* EntitlementsMerger.swift */,
+				57351E6E15115A8C9411043E /* HTTPByteRange.swift */,
+				F453D81D42E073C86DA48CC8 /* IconImage.swift */,
 				AD77FFD51835080BE0CBB5D1 /* InstalledApps.swift */,
 				E14DE164067464A1DE9F951C /* InstallProgress.swift */,
 				89BBF3E483DBA61AC8B186C2 /* InstallServer.swift */,
@@ -365,6 +381,7 @@
 		FE68384D6962DAEADDB8883D /* Packages */ = {
 			isa = PBXGroup;
 			children = (
+				B62FA3E585A3AC4C5D8DC7D1 /* ZIPFoundation */,
 				915C559E3CB3B706AAFE9AEC /* Zsign */,
 			);
 			name = Packages;
@@ -454,7 +471,7 @@
 				AD7377174C5B8145B7DAF3EA /* XCRemoteSwiftPackageReference "swift-certificates" */,
 				5480B610C8F865C141EF843A /* XCRemoteSwiftPackageReference "swift-nio" */,
 				BACC2501D72AD1F0B86502BD /* XCRemoteSwiftPackageReference "swift-nio-ssl" */,
-				A00B431273F81F01C44BE66F /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
+				69492BCDAEA1FE6DFC5883B1 /* XCLocalSwiftPackageReference "Vendor/ZIPFoundation" */,
 				A124D7D5FC31BA00B7E1CBC6 /* XCLocalSwiftPackageReference "Vendor/Zsign" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -497,6 +514,7 @@
 			files = (
 				11392443788421F3C6F9DBCB /* ActivityLog.swift in Sources */,
 				20E2F7141296FA5A93E7FD54 /* AppImporter.swift in Sources */,
+				92AC60702D4799F81AA5A815 /* ArchiveBudget.swift in Sources */,
 				CE95A33BE2C3EBD0C10700C5 /* Backup.swift in Sources */,
 				B7F0BC8E1035ACB94661E4BD /* BackupViews.swift in Sources */,
 				AA57C3942804408F3D5EB279 /* Certificate.swift in Sources */,
@@ -509,10 +527,13 @@
 				5910435409A44054AA23D628 /* DebPackage.swift in Sources */,
 				EEF4CCCCA5B8C63DBC33005B /* DirectInstall.swift in Sources */,
 				43D513206F07B5C37748ACD7 /* DirectInstaller.swift in Sources */,
+				AF392CAC12B5BAAB1FE05CE0 /* DownloadPolicy.swift in Sources */,
 				98B30093B7251DEC2A9AF347 /* EntitlementsMerger.swift in Sources */,
 				974C1DCF3D35FA11CB30C143 /* GitHubRepo.swift in Sources */,
 				8D74F0CB335A42FE971FAC17 /* GitHubRepoView.swift in Sources */,
 				843E84420E2BBE1263FCC42D /* GitHubStore.swift in Sources */,
+				B83C4F12699C623ECE7250A9 /* HTTPByteRange.swift in Sources */,
+				5455B0B3A1998246EADEA0C4 /* IconImage.swift in Sources */,
 				1C89FA8A0E70EC856C3D1775 /* InstallManager.swift in Sources */,
 				CA9A549758F9DC665669FA39 /* InstallMethodView.swift in Sources */,
 				A51D0877D4F0BD233EA96A7D /* InstallProgress.swift in Sources */,
@@ -562,6 +583,7 @@
 				D4F6B6549AC254D3E2ED5BF0 /* LinkTests.swift in Sources */,
 				EBAA219750176192DEC70D81 /* PPQTests.swift in Sources */,
 				8723AD9DD1226CBB4D6BB184 /* RenameRulesTests.swift in Sources */,
+				A6AADC83A79CFFF4D6D0C605 /* ReviewHardeningTests.swift in Sources */,
 				87199C0E1EE783803B908E3B /* SigningPipelineTests.swift in Sources */,
 				4FBDB066BF229D00D93540F8 /* SourceFormatTests.swift in Sources */,
 				9D085603DC79007E13211297 /* SourceUpdatesTests.swift in Sources */,
@@ -638,7 +660,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -659,7 +681,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -724,7 +746,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_NS_ASSERTIONS = NO;
@@ -739,7 +761,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -822,6 +844,10 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
+		69492BCDAEA1FE6DFC5883B1 /* XCLocalSwiftPackageReference "Vendor/ZIPFoundation" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Vendor/ZIPFoundation;
+		};
 		A124D7D5FC31BA00B7E1CBC6 /* XCLocalSwiftPackageReference "Vendor/Zsign" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Vendor/Zsign;
@@ -843,14 +869,6 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 2.65.0;
-			};
-		};
-		A00B431273F81F01C44BE66F /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/weichsel/ZIPFoundation";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.9.19;
 			};
 		};
 		AD7377174C5B8145B7DAF3EA /* XCRemoteSwiftPackageReference "swift-certificates" */ = {
@@ -882,7 +900,6 @@
 /* Begin XCSwiftPackageProductDependency section */
 		20AF128BC5072450153025AD /* ZIPFoundation */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = A00B431273F81F01C44BE66F /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
 			productName = ZIPFoundation;
 		};
 		334B0771C1725EBC1869BE69 /* NIOHTTP1 */ = {

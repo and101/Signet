@@ -21,7 +21,7 @@ struct SourcesView: View {
                         NavigationLink {
                             SourceAppsView(title: "All Apps", sourceIDs: nil)
                         } label: {
-                            Label("All Apps", systemImage: "square.stack.3d.up")
+                            Label("All Apps", systemImage: "square.grid.2x2")
                         }
                     }
                 }
@@ -80,7 +80,7 @@ struct SourcesView: View {
                     } header: {
                         Text("GitHub Releases")
                     } footer: {
-                        Text("Checked when you open Signet. Pull to check now.")
+                        Text("Checked when you open Signet. New releases appear in Library. Pull to check now.")
                     }
                 }
             }
@@ -287,7 +287,7 @@ private struct NewsCard: View {
     private var card: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let image = item.imageURL {
-                AsyncImage(url: image) { image in
+                AsyncImage(url: DownloadPolicy.displayURL(image)) { image in
                     image.resizable().scaledToFill()
                 } placeholder: {
                     tint.opacity(0.3)
@@ -355,7 +355,7 @@ struct SourceAppDetailView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         LazyHStack(spacing: 10) {
                             ForEach(screenshots, id: \.self) { url in
-                                AsyncImage(url: url) { image in
+                                AsyncImage(url: DownloadPolicy.displayURL(url)) { image in
                                     image.resizable().scaledToFit()
                                 } placeholder: {
                                     RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.quaternary)

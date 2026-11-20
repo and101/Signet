@@ -30,11 +30,12 @@ actor Signer {
         let result = try run(source, certificate: nil, options: options, log: log)
         defer { try? fm.removeItem(at: result.directory) }
         try fm.createDirectory(at: Paths.exports, withIntermediateDirectories: true)
-        let safeName = result.name.replacingOccurrences(of: "/", with: "-")
-        var destination = Paths.exports.appendingPathComponent("\(safeName)_\(result.version)_unsigned.ipa")
+        let safeName = LibraryApp.safeFileComponent(result.name)
+        let safeVersion = LibraryApp.safeFileComponent(result.version)
+        var destination = Paths.exports.appendingPathComponent("\(safeName)_\(safeVersion)_unsigned.ipa")
         var copy = 2
         while fm.fileExists(atPath: destination.path) {
-            destination = Paths.exports.appendingPathComponent("\(safeName)_\(result.version)_unsigned \(copy).ipa")
+            destination = Paths.exports.appendingPathComponent("\(safeName)_\(safeVersion)_unsigned \(copy).ipa")
             copy += 1
         }
         try fm.moveItem(at: result.ipaURL, to: destination)
@@ -49,10 +50,21 @@ actor Signer {
         log: @escaping @Sendable (String) -> Void
     ) throws -> LibraryApp {
         let fm = FileManager.default
+        try source.validateAppFolder(in: source.directory)
         guard fm.fileExists(atPath: source.appURL.path) else {
             throw AppError("The original app files are missing. Re-import the IPA.")
         }
         if let certificate {
+            // The saved flag may be stale (a profile replaced since, or a record restored by 1.1), so a mismatch is
+            // re-checked against the files; it only stands if they can't be read.
+            if certificate.certificateMatchesProfile == false {
+                let current = (try? ProvisioningProfile(url: certificate.profileURL)).flatMap {
+                    CertificateImporter.certificateMatches(p12: certificate.p12URL, password: certificate.password, profile: $0)
+                }
+                guard current ?? false else {
+                    throw AppError("The signing certificate isn't included in this provisioning profile. Import a matching pair.")
+                }
+            }
             guard fm.fileExists(atPath: certificate.p12URL.path), fm.fileExists(atPath: certificate.profileURL.path) else {
                 throw AppError("The certificate files are missing. Re-import the certificate.")
             }
@@ -124,6 +136,11 @@ actor Signer {
                 log(String(localized: "Enabling Liquid Glass…"))
                 try MachO.setSDKVersion(in: executable, to: Self.liquidGlassSDK)
             }
+
+            // A document group the profile still grants (same team, new bundle ID) keeps working as it is.
+            let grantedGroups = certificate.flatMap { try? ProvisioningProfile(url: $0.profileURL) }
+                .flatMap { $0.entitlements["com.apple.security.application-groups"] as? [String] } ?? []
+            try Self.rewriteExtensionKit(in: appURL, from: source.bundleID, to: effectiveID, keeping: Set(grantedGroups))
 
             var entitlementsPath = ""
             var mergedFile = false
@@ -240,6 +257,65 @@ actor Signer {
         guard let walker = fm.enumerator(at: appURL, includingPropertiesForKeys: nil) else { return }
         for case let url as URL in walker where ["appex", "app"].contains(url.pathExtension) {
             try update(url.appendingPathComponent("Info.plist"), isMain: false)
+        }
+    }
+
+    /// Only app-owned extension point names change. Apple's system extension points retain their names.
+    /// A File Provider's document group (`group.<old ID>…`) is renamed the same way, unless it's in `keeping` (groups
+    /// the signing profile grants); zsign leaves it alone, and another team's profile can never grant the original.
+    static func rewriteExtensionKit(in appURL: URL, from oldID: String, to newID: String, keeping: Set<String> = []) throws {
+        guard oldID != newID, !oldID.isEmpty else { return }
+        func renamed(_ id: String) -> String {
+            id == oldID || id.hasPrefix(oldID + ".") ? newID + id.dropFirst(oldID.count) : id
+        }
+        guard let walker = FileManager.default.enumerator(at: appURL, includingPropertiesForKeys: nil) else { return }
+        for case let url as URL in walker {
+            let parent = url.deletingLastPathComponent()
+            let bundleInfo = url.lastPathComponent == "Info.plist" && (parent == appURL || ["app", "appex"].contains(parent.pathExtension))
+            guard bundleInfo || ["appexpt", "appext"].contains(url.pathExtension) else { continue }
+            // Read at most 4 MiB plus one byte, irrespective of a racing or dishonest file-size value.
+            let reader = try FileHandle(forReadingFrom: url)
+            let data: Data
+            do { data = try reader.read(upToCount: 4 * 1024 * 1024 + 1) ?? Data(); try reader.close() }
+            catch { try? reader.close(); throw error }
+            guard data.count <= 4 * 1024 * 1024 else {
+                throw AppError("Extension metadata in \(url.lastPathComponent) exceeds the size limit.")
+            }
+            var format = PropertyListSerialization.PropertyListFormat.xml
+            guard var plist = try PropertyListSerialization.propertyList(from: data, format: &format) as? [String: Any] else {
+                throw AppError("Couldn't read extension metadata in \(url.lastPathComponent).")
+            }
+            var changed = false
+            if url.lastPathComponent == "Info.plist" {
+                if var attrs = plist["EXAppExtensionAttributes"] as? [String: Any],
+                   let id = attrs["EXExtensionPointIdentifier"] as? String, renamed(id) != id {
+                    attrs["EXExtensionPointIdentifier"] = renamed(id)
+                    plist["EXAppExtensionAttributes"] = attrs
+                    changed = true
+                }
+                if var ext = plist["NSExtension"] as? [String: Any],
+                   let group = ext["NSExtensionFileProviderDocumentGroup"] as? String, group.hasPrefix("group."),
+                   !keeping.contains(group),
+                   case let id = String(group.dropFirst("group.".count)), renamed(id) != id {
+                    ext["NSExtensionFileProviderDocumentGroup"] = "group." + renamed(id)
+                    plist["NSExtension"] = ext
+                    changed = true
+                }
+            } else {
+                var declarations: [String: Any] = [:]
+                for (key, value) in plist {
+                    let replacement = renamed(key)
+                    guard declarations[replacement] == nil else {
+                        throw AppError("Renaming would create duplicate extension point identifiers.")
+                    }
+                    declarations[replacement] = value
+                    changed = changed || replacement != key
+                }
+                plist = declarations
+            }
+            if changed {
+                try PropertyListSerialization.data(fromPropertyList: plist, format: format, options: 0).write(to: url, options: .atomic)
+            }
         }
     }
 
@@ -395,7 +471,10 @@ actor Signer {
     /// Replaces the home screen icon by writing loose PNGs and pointing CFBundleIcons at them.
     /// Dropping CFBundleIconName stops iOS from preferring the compiled Assets.car icon.
     private func applyIcon(_ data: Data, to appURL: URL) throws {
-        guard let image = UIImage(data: data) else { throw AppError("The selected icon isn't a valid image.") }
+        // Normalised again here, so any size of photo works and nothing huge is ever fully decoded.
+        guard let icon = IconImage.normalizedCustomIcon(data), let image = UIImage(data: icon) else {
+            throw AppError("The selected icon isn't a valid image.")
+        }
         let sizes: [(points: CGFloat, scale: CGFloat, suffix: String)] = [
             (60, 2, "60x60@2x"), (60, 3, "60x60@3x"),
             (76, 1, "76x76"), (76, 2, "76x76@2x"), (83.5, 2, "83.5x83.5@2x"),

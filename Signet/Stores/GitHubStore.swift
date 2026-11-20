@@ -62,7 +62,17 @@ final class GitHubStore {
     }
 
     func updateCount(in library: LibraryStore) -> Int {
-        repos.filter { status(of: $0, in: library) == .updateAvailable }.count
+        updates(in: library).count
+    }
+
+    /// Tracked repos with a newer release than the copy in the library, for the Library's Updates list.
+    func updates(in library: LibraryStore) -> [GitHubUpdate] {
+        repos.compactMap { repo in
+            guard status(of: repo, in: library) == .updateAvailable, let latest = latest(for: repo) else { return nil }
+            let local = library.apps.filter { $0.sourceURL.map { GitHub.isDownload($0, from: repo) } ?? false }
+                .max { SourceUpdates.compare($0.version, $1.version) == .orderedAscending }
+            return GitHubUpdate(repo: repo, release: latest.release, asset: latest.asset, local: local)
+        }
     }
 
     // MARK: - Editing
@@ -147,11 +157,15 @@ final class GitHubStore {
         }
     }
 
-    func download(_ asset: GitHubAsset, from release: GitHubRelease, of repo: TrackedRepo, library: LibraryStore) {
+    func download(_ asset: GitHubAsset, from release: GitHubRelease, of repo: TrackedRepo, library: LibraryStore,
+                  onImported: ((LibraryApp) -> Void)? = nil) {
         guard !library.downloads.contains(where: { $0.url == asset.browserDownloadUrl }) else { return }
         let repoID = repo.id
         library.download(from: asset.browserDownloadUrl, name: "\(repo.name) \(release.tagName)",
-                         onImported: { [weak self] _ in self?.markDownloaded(asset, repoID: repoID) },
+                         onImported: { [weak self] app in
+                             self?.markDownloaded(asset, repoID: repoID)
+                             onImported?(app)
+                         },
                          onFailed: { [weak self] in self?.markFailed(asset, repoID: repoID) })
     }
 
@@ -237,4 +251,15 @@ final class GitHubStore {
     }
 
     private func save() { file.save(repos) }
+}
+
+/// A newer release of a tracked repo than the copy in the library.
+struct GitHubUpdate: Identifiable {
+    let repo: TrackedRepo
+    let release: GitHubRelease
+    let asset: GitHubAsset
+    /// The newest copy in the library, if it's still there.
+    let local: LibraryApp?
+    var id: UUID { repo.id }
+    var name: String { local?.name ?? repo.displayName }
 }

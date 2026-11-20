@@ -19,10 +19,11 @@ struct TweakInjector {
     static func unpackPicked(_ url: URL) throws -> [URL] {
         guard url.pathExtension.lowercased() == "zip" else { return [try copyPickedFile(url)] }
         let folder = try Paths.newTempDirectory()
+        defer { try? FileManager.default.removeItem(at: folder) }
         do {
-            try FileManager.default.unzipItem(at: url, to: folder)
+            try ArchiveBudget.unzip(url, to: folder)
         } catch {
-            throw AppError("Couldn't unzip \(url.lastPathComponent).")
+            throw AppError("Couldn't unzip \(url.lastPathComponent): \(error.localizedDescription)")
         }
         var found: [URL] = []
         let walker = FileManager.default.enumerator(at: folder, includingPropertiesForKeys: nil)
@@ -33,7 +34,6 @@ struct TweakInjector {
                 walker?.skipDescendants() // a framework's contents aren't separate tweaks
             }
         }
-        defer { try? FileManager.default.removeItem(at: folder) }
         guard !found.isEmpty else {
             throw AppError("\(url.lastPathComponent) has no .dylib, .framework or .deb.")
         }
@@ -115,20 +115,30 @@ struct TweakInjector {
         }
         // Tweaks are copied into Frameworks and loaded by @rpath; apps that embed no frameworks may not search there.
         // Added after the injections, which need the header space more, and only if nothing equivalent is there.
-        let existing = (try? MachO.rpaths(of: executable)) ?? []
-        if !existing.contains(Self.mainRPath), !existing.contains("@loader_path/Frameworks") {
-            do {
-                try MachO.addRPath(Self.mainRPath, to: executable)
-            } catch {
-                log(String(localized: "Couldn't add a Frameworks run path (\(error.localizedDescription)). Tweaks may not load."))
+        do {
+            try MachO.addRPath(Self.mainRPath, to: executable, equivalents: ["@loader_path/Frameworks"])
+        } catch {
+            // Without the run path a strongly injected @rpath library stops the app launching, so fail;
+            // a weak one just doesn't load, which the warning covers.
+            if !options.weakInject, !plan.injected.isEmpty {
+                throw AppError("Couldn't add a Frameworks run path: \(error.localizedDescription)")
             }
+            log(String(localized: "Couldn't add a Frameworks run path (\(error.localizedDescription)). Tweaks may not load."))
         }
 
-        if options.injectIntoExtensions {
+        if options.injectIntoExtensions, !plan.injected.isEmpty {
             for executable in extensionExecutables() {
                 log(String(localized: "Injecting into \(executable.deletingLastPathComponent().lastPathComponent)…"))
                 // Extensions sit two levels down; this lets @rpath reach the app's Frameworks folder.
-                try MachO.addRPath(Self.extensionRPath, to: executable)
+                do {
+                    try MachO.addRPath(Self.extensionRPath, to: executable, equivalents: ["@loader_path/../../Frameworks"])
+                } catch {
+                    // Same rule as the main executable: only a strong injection makes a missing run path fatal.
+                    if !options.weakInject {
+                        throw AppError("Couldn't add a Frameworks run path to \(executable.lastPathComponent): \(error.localizedDescription)")
+                    }
+                    log(String(localized: "Couldn't add a Frameworks run path to \(executable.lastPathComponent). Tweaks may not load there."))
+                }
                 for (binary, loadPath) in plan.injected {
                     guard Zsign.injectDyLib(appExecutable: executable.path, with: loadPath, weak: options.weakInject) else {
                         throw AppError("Failed to inject \(binary.lastPathComponent) into \(executable.lastPathComponent).")
@@ -144,9 +154,29 @@ struct TweakInjector {
 
     // MARK: - Inputs
 
+    private enum Clash { case refuse, keepExisting }
+
+    /// Copies a tweak file into the app without silently replacing something different already there:
+    /// a file the app ships, or another tweak's file of the same name. Returns false if the existing one was kept.
+    private func place(_ source: URL, at destination: URL, onClash clash: Clash) throws -> Bool {
+        guard (try? fm.attributesOfItem(atPath: destination.path)) != nil else {
+            try fm.copyItem(at: source, to: destination)
+            return true
+        }
+        if fm.contentsEqual(atPath: source.path, andPath: destination.path) { return true }
+        let name = destination.lastPathComponent
+        switch clash {
+        case .refuse:
+            throw AppError("The app already has a different \(name). Remove it in signing options, or rename the tweak.")
+        case .keepExisting:
+            log(String(localized: "Kept the app's own \(name); a tweak ships a different copy."))
+            return false
+        }
+    }
+
     private func addDylib(_ file: URL, to plan: inout Plan) throws {
         let destination = frameworks.appendingPathComponent(file.lastPathComponent)
-        try fm.replaceItem(at: destination, withCopyOf: file)
+        _ = try place(file, at: destination, onClash: .refuse)
         plan.injected.append((destination, "@rpath/\(file.lastPathComponent)"))
         plan.added.append(destination)
     }
@@ -154,11 +184,21 @@ struct TweakInjector {
     private func addFramework(_ file: URL, inject: Bool, to plan: inout Plan) throws {
         let name = file.lastPathComponent
         let destination = frameworks.appendingPathComponent(name)
-        try fm.replaceItem(at: destination, withCopyOf: file)
-        let binaryName = Bundle(url: destination)?.object(forInfoDictionaryKey: "CFBundleExecutable") as? String
+        // A framework a .deb only depends on may already be in the app (e.g. CydiaSubstrate); keep that one.
+        guard try place(file, at: destination, onClash: inject ? .refuse : .keepExisting) else { return }
+        // Read with the size limit: a tweak's Info.plist is as untrusted as an app's.
+        let plistURL = destination.appendingPathComponent("Info.plist")
+        if (try? fm.attributesOfItem(atPath: plistURL.path)) != nil, AppImporter.readPlist(plistURL) == nil {
+            throw AppError("\(name) has an unreadable or oversized Info.plist.")
+        }
+        let binaryName = AppImporter.readPlist(plistURL)?["CFBundleExecutable"] as? String
             ?? file.deletingPathExtension().lastPathComponent
         guard let binary = AppImporter.file(named: binaryName, in: destination), fm.fileExists(atPath: binary.path) else {
             throw AppError("\(name) has no executable.")
+        }
+        // Checked before anything is patched: a link to another binary in the app would redirect the rewrites there.
+        guard AppImporter.executableStaysInside(binary, bundle: destination) else {
+            throw AppError("\(name) points its executable outside itself, so it wasn't injected.")
         }
         if inject { plan.injected.append((binary, "@rpath/\(name)/\(binaryName)")) }
         plan.added.append(binary)
@@ -190,14 +230,13 @@ struct TweakInjector {
             for library in contents(of: base.appendingPathComponent("usr/lib"), withExtension: "dylib") {
                 let name = library.lastPathComponent
                 let destination = frameworks.appendingPathComponent(name)
-                try fm.replaceItem(at: destination, withCopyOf: library)
-                plan.added.append(destination)
+                if try place(library, at: destination, onClash: .keepExisting) { plan.added.append(destination) }
                 found += 1
                 for jbRoot in ["", "/var/jb"] { plan.rewrites["\(jbRoot)/usr/lib/\(name)"] = "@rpath/\(name)" }
             }
             let support = base.appendingPathComponent("Library/Application Support")
             for bundle in bundles(under: support) {
-                try fm.replaceItem(at: appURL.appendingPathComponent(bundle.lastPathComponent), withCopyOf: bundle)
+                _ = try place(bundle, at: appURL.appendingPathComponent(bundle.lastPathComponent), onClash: .keepExisting)
             }
         }
         guard found > 0 else { throw AppError("\(file.lastPathComponent) doesn't contain any dylibs or frameworks to inject.") }

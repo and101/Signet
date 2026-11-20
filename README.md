@@ -28,14 +28,14 @@ while it installs, and later updates reuse the same settings. You can also track
 Track GitHub Repo**, which fills in Signet's bundle ID for you.
 
 Switching to a certificate with a different bundle ID makes iOS treat Signet as a new app. Back up first in
-**Settings → Back Up…** and restore in the new copy.
+**Settings → Backup & Restore** and restore in the new copy.
 
 ## Features
 
-- **Certificates.** Import `.p12` and provisioning profile pairs. See expiry, devices and entitlements, and check
+- **Certificates.** In Settings, import `.p12` and provisioning profile pairs. See expiry, devices and entitlements, and check
   for revocation. Passwords stay in the keychain. Send a certificate to LiveContainer.
 - **Library.** Import IPAs from Files, other apps, a URL, a source or a GitHub release. Updates from your sources
-  appear at the top. Select several apps to delete them.
+  and GitHub repos appear at the top. Select several apps to delete them.
 - **Signing.** Change the name (in every language), bundle ID, version, minimum iOS and icon, including the app's
   own alternate icons. Remove device limits, URL schemes, the Watch app or individual extensions and frameworks.
   Turn on file sharing, ProMotion or Game Mode, force light or dark mode, and choose Liquid Glass or the classic
@@ -54,6 +54,7 @@ Switching to a certificate with a different bundle ID makes iOS treat Signet as 
   certificate for its apps.
 - **Backup.** Save certificates, sources, repos and settings to one file. Certificate passwords are encrypted with
   a backup password.
+- **HTTPS by default.** Sources and downloads use HTTPS unless you turn on **Settings → Allow HTTP**.
 - **Links.** `signet://source?url=…` adds a source and `signet://install?url=…` downloads an IPA. Signet asks
   first.
 
@@ -65,7 +66,7 @@ iOS only installs apps over the air from trusted HTTPS, and not from `127.0.0.1`
 server inside itself and links to it as `local.backloop.dev`, a public name that points back to the phone.
 
 For HTTPS, Signet creates its own certificate authority and deletes its private key straight after use. Install it
-once in **Settings → Install Certificate**. Without the key, it can't vouch for any other site.
+once in **Settings → Install Method → Server Setup**. Without the key, it can't vouch for any other site.
 
 If installs fail:
 
@@ -125,8 +126,10 @@ gh release create v<version> build/Signet.ipa --title "Signet <version>" --notes
 
 Signet is released under the [MIT License](LICENSE). It includes
 [zsign](https://github.com/khcrysalis/Zsign-Package) (MIT, with patches listed in `Vendor/Zsign/PATCHES.md`),
-[ElleKit](https://github.com/tealbathingsuit/ellekit) (BSD-3-Clause) and [idevice](https://github.com/jkcoxson/idevice)
-(MIT). It also uses OpenSSL, SwiftNIO, swift-certificates, ZIPFoundation and SWCompression under their own licences.
+[ZIPFoundation](https://github.com/weichsel/ZIPFoundation) (MIT, with patches listed in
+`Vendor/ZIPFoundation/PATCHES.md`), [ElleKit](https://github.com/tealbathingsuit/ellekit) (BSD-3-Clause) and
+[idevice](https://github.com/jkcoxson/idevice) (MIT). It also uses OpenSSL, SwiftNIO, swift-certificates and
+SWCompression under their own licences.
 
-**Settings → Acknowledgements** lists every component, including idevice's Rust dependencies.
+**Settings → About Signet → Acknowledgements** lists every component, including idevice's Rust dependencies.
 `scripts/make-acknowledgements.py` regenerates the list.

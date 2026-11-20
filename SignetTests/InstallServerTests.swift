@@ -62,6 +62,24 @@ final class InstallServerTests: XCTestCase {
         XCTAssertEqual((partResponse as? HTTPURLResponse)?.statusCode, 206)
         XCTAssertEqual(part, try Data(contentsOf: ipa).subdata(in: 10..<20))
 
+        ranged.setValue("bytes=999999999999-", forHTTPHeaderField: "Range")
+        let (pastEndBody, pastEndResponse) = try await session.data(for: ranged)
+        let pastEnd = try XCTUnwrap(pastEndResponse as? HTTPURLResponse)
+        XCTAssertEqual(pastEnd.statusCode, 416)
+        XCTAssertEqual(pastEnd.value(forHTTPHeaderField: "Content-Range"), "bytes */\(body.count)")
+        XCTAssertTrue(pastEndBody.isEmpty)
+        // Ranges this server doesn't handle are ignored, so the whole file comes back.
+        for ignored in ["bytes=100-50", "bytes=1-2-3", "bytes=0-1,5-6"] {
+            ranged.setValue(ignored, forHTTPHeaderField: "Range")
+            let (fullBody, fullResponse) = try await session.data(for: ranged)
+            XCTAssertEqual((fullResponse as? HTTPURLResponse)?.statusCode, 200, ignored)
+            XCTAssertEqual(fullBody, body, ignored)
+        }
+        ranged.setValue("bytes=-10", forHTTPHeaderField: "Range")
+        let (suffix, suffixResponse) = try await session.data(for: ranged)
+        XCTAssertEqual((suffixResponse as? HTTPURLResponse)?.statusCode, 206)
+        XCTAssertEqual(suffix, body.suffix(10))
+
         // localhost may resolve to ::1 first, so the server must answer over IPv6 too.
         let v6 = try XCTUnwrap(URL(string: "https://[::1]:\(InstallServer.shared.port)/\(token)/manifest.plist"))
         let (v6Data, v6Response) = try await session.data(from: v6)

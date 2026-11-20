@@ -18,6 +18,7 @@ struct InstallMethodView: View {
     @State private var testing = false
     @State private var testResult: TestResult?
     @State private var message: String?
+    @State private var serverTrusted = false
 
     private enum TestResult: Equatable {
         case ready(iOS: String)
@@ -41,7 +42,7 @@ struct InstallMethodView: View {
                 if method == InstallMethod.direct.rawValue {
                     Text("Installs the way a computer does: faster, more reliable, and no install certificate. Needs LocalDevVPN and a pairing file made once on a computer.")
                 } else {
-                    Text("Installs over the air from Signet's own server. Needs the install certificate in Settings.")
+                    Text("Installs over the air from Signet's own server. Needs the one-time server setup below.")
                 }
             }
 
@@ -50,6 +51,14 @@ struct InstallMethodView: View {
                 vpnStep
                 testStep
                 advanced
+            } else {
+                Section {
+                    NavigationLink { ServerSetupView() } label: {
+                        LabeledContent("Server Setup", value: serverTrusted ? String(localized: "Trusted") : String(localized: "Set Up"))
+                    }
+                } footer: {
+                    Text("Done once: Signet's server needs a certificate your iPhone trusts.")
+                }
             }
         }
         .navigationTitle("Install Method")
@@ -59,6 +68,8 @@ struct InstallMethodView: View {
             // Coming back from LocalDevVPN or the Files app.
             if phase == .active { Task { await refreshVPN() } }
         }
+        // On appear rather than once, so it updates on coming back from Server Setup.
+        .onAppear { Task { serverTrusted = await Task.detached { ServerCertificate.isTrusted }.value } }
         .copyingFileImporter(isPresented: $showPairingPicker, allowedContentTypes: [.propertyList, .xml, .data]) { urls in
             guard let url = urls.first else { return }
             defer { Paths.removeIfTemporary(url) }

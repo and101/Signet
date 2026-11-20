@@ -42,7 +42,7 @@ struct BackupSection: View {
     var body: some View {
         Section {
             Button { flow.showExport = true } label: {
-                Label { Text("Back Up…") } icon: { SettingsIcon("arrow.up.doc.fill", color: .blue) }
+                Label { Text("Back Up…") } icon: { SettingsIcon("arrow.up.doc.fill", color: .teal) }
             }
             .tint(.primary)
             Button { flow.showPicker = true } label: {
@@ -50,7 +50,7 @@ struct BackupSection: View {
                     if flow.restoring { ProgressView() }
                 } label: {
                     Label { Text("Restore from Backup…") } icon: {
-                        SettingsIcon("arrow.down.doc.fill", color: .orange)
+                        SettingsIcon("arrow.down.doc.fill", color: .blue)
                     }
                 }
             }
@@ -128,7 +128,7 @@ private struct BackupPresentations: ViewModifier {
         do {
             let opened = try await Task.detached(priority: .userInitiated) { try Backup.open(file, password: password) }.value
             let summary = Backup.apply(opened, certificates: certificates, library: library, sources: sources, github: github)
-            flow.result = summary.message + "\n\nRedo Settings → Install Certificate to install apps."
+            flow.result = summary.message + "\n\nRedo Settings → Install Method → Server Setup to install apps."
             Task {
                 await sources.refreshAll()
                 await github.refreshAll(force: true, library: library)
@@ -154,6 +154,7 @@ struct BackupExportView: View {
     @State private var file: URL?
     @State private var showMover = false
     @State private var error: String?
+    @State private var leftOut: [String] = []
 
     /// Measured off the main thread when the form opens; walking a big library would stall typing.
     @State private var librarySize: Int64?
@@ -209,6 +210,11 @@ struct BackupExportView: View {
                 }
                 finish()
             }
+            .alert("Some Apps Left Out", isPresented: Binding(get: { !leftOut.isEmpty }, set: { if !$0 { leftOut = [] } })) {
+                Button("OK") { showMover = true }
+            } message: {
+                Text("Their files are missing or damaged, so they were left out of the backup: \(leftOut.joined(separator: ", ")).")
+            }
             .alert("Couldn't Back Up", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -248,13 +254,13 @@ struct BackupExportView: View {
         )
         let password = password
         do {
-            let url = try await Task.detached(priority: .userInitiated) {
+            let (url, skipped) = try await Task.detached(priority: .userInitiated) {
                 let url = try Paths.newTempDirectory().appendingPathComponent(Backup.suggestedFileName())
-                try Backup.create(contents, password: password, to: url)
-                return url
+                return (url, try Backup.create(contents, password: password, to: url))
             }.value
             file = url
-            showMover = true
+            // Say which apps were left out before saving; the alert's OK carries on to the save.
+            if skipped.isEmpty { showMover = true } else { leftOut = skipped }
         } catch {
             self.error = error.localizedDescription
         }

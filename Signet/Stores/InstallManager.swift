@@ -93,11 +93,12 @@ final class InstallManager {
                 try InstallServer.shared.restartIfRunning()
             }
             guard await Task.detached(operation: { ServerCertificate.isTrusted }).value else {
-                throw AppError("Set up Settings → Install Certificate first. It's a one-time step.")
+                throw AppError("Finish Settings → Install Method → Server Setup first. It's a one-time step.")
             }
             let hosted = InstallServer.HostedApp(
                 ipa: app.ipaURL,
-                icon: FileManager.default.fileExists(atPath: app.iconURL.path) ? app.iconURL : nil,
+                // Only an icon within the image limits is offered; it may have come from a backup.
+                icon: IconImage.acceptableWidth(of: app.iconURL) != nil ? app.iconURL : nil,
                 bundleID: app.bundleID,
                 // The manifest's bundle-version is compared with CFBundleVersion, the build number.
                 bundleVersion: app.build,

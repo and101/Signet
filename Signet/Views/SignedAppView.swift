@@ -29,7 +29,6 @@ struct SignedAppView: View {
                     if let minOS = app.minimumOSVersion { LabeledText("Minimum iOS", minOS) }
                     if let cert = app.certificateName { LabeledText("Signed With", cert) }
                     LabeledText("Signed", app.dateAdded.formatted(date: .abbreviated, time: .shortened))
-                    LabeledText("File", "Library/\(app.id.uuidString.prefix(8))…/\(app.ipaFileName)")
                 }
 
                 Section {
@@ -99,14 +98,13 @@ struct InstallProgressView: View {
                 .multilineTextAlignment(.center).foregroundStyle(.secondary)
         case .transferring(let name, let progress):
             Text("Installing \(name)").font(.headline)
-            ProgressView(value: progress)
-            Text("\(Int(progress * 100))% transferred").foregroundStyle(.secondary)
+            SteadyProgress(value: progress) { "\($0)% transferred" }
         case .installing(let name, let progress):
             Text("Installing \(name)").font(.headline)
             if let progress {
-                ProgressView(value: progress)
-                Text(installer.phase.map { "\($0) \(Int(progress * 100))%" } ?? "\(Int(progress * 100))% installed")
-                    .foregroundStyle(.secondary)
+                SteadyProgress(value: progress) { percent in
+                    installer.phase.map { "\($0) \(percent)%" } ?? "\(percent)% installed"
+                }
             } else {
                 ProgressView().controlSize(.large)
                 Text(installer.phase ?? "iOS is installing the app…").foregroundStyle(.secondary)
@@ -161,5 +159,26 @@ struct InstallProgressView: View {
             Text("Signet is closing so iOS can finish. Reopen it in a few seconds.")
                 .multilineTextAlignment(.center).font(.callout).foregroundStyle(.secondary)
         }
+    }
+}
+
+/// A progress bar that glides between updates instead of jumping, with a spinner beside the label throughout, so a
+/// pause (iOS verifying, a slow chunk) doesn't look like a freeze.
+private struct SteadyProgress: View {
+    let value: Double
+    let label: (Int) -> String
+
+    var body: some View {
+        let percent = Int(value * 100)
+        ProgressView(value: value)
+            .animation(.easeInOut(duration: 0.6), value: value)
+        HStack(spacing: 6) {
+            ProgressView().controlSize(.small)
+            Text(label(percent))
+                .monospacedDigit()
+                .contentTransition(.numericText(value: Double(percent)))
+                .animation(.default, value: percent)
+        }
+        .foregroundStyle(.secondary)
     }
 }

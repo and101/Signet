@@ -27,6 +27,9 @@ final class BackupTests: XCTestCase {
         let certificates = CertificateStore(), library = LibraryStore(), sources = SourceStore(), github = GitHubStore()
         let record = try await importFixtureCertificate(into: certificates)
         defer { certificates.delete(record.id) }
+        // A stale match flag in the backup must be replaced by a fresh check of the restored files.
+        var stale = record
+        stale.certificateMatchesProfile = record.certificateMatchesProfile == false
         var repo = TrackedRepo(owner: "backup-test", name: "repo-\(UUID().uuidString.prefix(6))")
         repo.certificateID = record.id
         repo.bundleID = "com.example.restored"
@@ -34,7 +37,7 @@ final class BackupTests: XCTestCase {
 
         let url = try Paths.newTempDirectory().appendingPathComponent(Backup.suggestedFileName())
         defer { Paths.removeIfTemporary(url) }
-        try Backup.create(Backup.Contents(certificates: [record], defaultCertificateID: record.id, sources: [source],
+        try Backup.create(Backup.Contents(certificates: [stale], defaultCertificateID: record.id, sources: [source],
                                           repos: [repo], signingDefaults: SigningOptions(), library: []),
                           password: "correct horse", to: url)
 
@@ -57,6 +60,9 @@ final class BackupTests: XCTestCase {
 
         let restored = try XCTUnwrap(certificates.certificate(record.id))
         XCTAssertEqual(restored.password, "fixture")
+        XCTAssertEqual(restored.certificateMatchesProfile, CertificateImporter.certificateMatches(
+            p12: restored.p12URL, password: "fixture", profile: try ProvisioningProfile(url: restored.profileURL)))
+        XCTAssertNotEqual(restored.certificateMatchesProfile, stale.certificateMatchesProfile)
         XCTAssertEqual(github.repo(repo.id)?.certificateID, record.id, "repo defaults still point at the certificate")
 
         let app = try AppImporter.importIPA(at: fixture("Fixture.ipa"))

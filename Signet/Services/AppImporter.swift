@@ -11,8 +11,8 @@ struct BundleInfo {
 
     init(appURL: URL) throws {
         let plistURL = appURL.appendingPathComponent("Info.plist")
-        guard let plist = NSDictionary(contentsOf: plistURL) as? [String: Any] else {
-            throw AppError("The app is missing its Info.plist.")
+        guard let plist = AppImporter.readPlist(plistURL) else {
+            throw AppError("The app is missing its Info.plist, or it's too large.")
         }
         name = plist["CFBundleDisplayName"] as? String
             ?? plist["CFBundleName"] as? String
@@ -32,7 +32,7 @@ enum AppImporter {
         defer { try? fm.removeItem(at: work) }
 
         do {
-            try fm.unzipItem(at: ipa, to: work)
+            try ArchiveBudget.unzip(ipa, to: work)
         } catch {
             throw AppError("Couldn't unzip the IPA: \(error.localizedDescription)")
         }
@@ -73,7 +73,7 @@ enum AppImporter {
     }
 
     static func largestIcon(in appURL: URL) -> UIImage? {
-        let plist = NSDictionary(contentsOf: appURL.appendingPathComponent("Info.plist")) as? [String: Any] ?? [:]
+        let plist = AppImporter.readPlist(appURL.appendingPathComponent("Info.plist")) ?? [:]
         var names: [String] = []
         for key in ["CFBundleIcons", "CFBundleIcons~ipad"] {
             if let icons = plist[key] as? [String: Any],
@@ -91,7 +91,7 @@ enum AppImporter {
     /// The app's alternate icons that ship as loose PNGs, largest image of each, sorted by name.
     /// Icons only inside the compiled Assets.car can't be read, so they're skipped.
     static func alternateIcons(in appURL: URL) -> [(name: String, image: UIImage)] {
-        let plist = NSDictionary(contentsOf: appURL.appendingPathComponent("Info.plist")) as? [String: Any] ?? [:]
+        let plist = AppImporter.readPlist(appURL.appendingPathComponent("Info.plist")) ?? [:]
         var files: [String: [String]] = [:]
         for key in ["CFBundleIcons", "CFBundleIcons~ipad"] {
             guard let icons = plist[key] as? [String: Any],
@@ -114,13 +114,19 @@ enum AppImporter {
         let candidates = files.filter { file in
             file.lowercased().hasSuffix(".png") && names.contains { file.hasPrefix($0) }
         }
-        return candidates
-            .compactMap { UIImage(contentsOfFile: appURL.appendingPathComponent($0).path) }
-            .max { $0.size.width * $0.scale < $1.size.width * $1.scale }
+        // Picked by the size in each file's header, and only that one is decoded: an IPA's PNG can be small on disk
+        // and still decode to gigabytes, so ones over the limit are skipped.
+        let best = candidates
+            .compactMap { name -> (URL, Int)? in
+                let url = appURL.appendingPathComponent(name)
+                return IconImage.acceptableWidth(of: url).map { (url, $0) }
+            }
+            .max { $0.1 < $1.1 }
+        return best.flatMap { UIImage(contentsOfFile: $0.0.path) }
     }
 
     static func mainExecutable(of appURL: URL) -> URL? {
-        let plist = NSDictionary(contentsOf: appURL.appendingPathComponent("Info.plist")) as? [String: Any]
+        let plist = readPlist(appURL.appendingPathComponent("Info.plist"))
         guard let name = plist?["CFBundleExecutable"] as? String else { return nil }
         return file(named: name, in: appURL)
     }
@@ -162,18 +168,61 @@ enum AppImporter {
         let fm = FileManager.default
         var bundles = [appURL]
         if let walker = fm.enumerator(at: appURL, includingPropertiesForKeys: nil) {
-            for case let url as URL in walker where ["app", "appex", "framework"].contains(url.pathExtension.lowercased()) {
+            // Every bundle type zsign signs, including .xctest.
+            for case let url as URL in walker where ["app", "appex", "framework", "xctest"].contains(url.pathExtension.lowercased()) {
                 bundles.append(url)
             }
         }
         for bundle in bundles {
-            let plist = NSDictionary(contentsOf: bundle.appendingPathComponent("Info.plist")) as? [String: Any]
-            guard let name = plist?["CFBundleExecutable"] as? String else { continue }
-            guard file(named: name, in: bundle) != nil else {
+            let plistURL = bundle.appendingPathComponent("Info.plist")
+            // zsign and later steps read every bundle's Info.plist whole, so one that's too large stops here.
+            if (try? fm.attributesOfItem(atPath: plistURL.path)) != nil, readPlist(plistURL) == nil {
                 let relative = bundle == appURL ? appURL.lastPathComponent : String(bundle.path.dropFirst(appURL.path.count + 1))
+                throw AppError("\(relative) has an unreadable or oversized Info.plist, so it can't be signed.")
+            }
+            let plist = readPlist(plistURL)
+            guard let name = plist?["CFBundleExecutable"] as? String else { continue }
+            let relative = bundle == appURL ? appURL.lastPathComponent : String(bundle.path.dropFirst(appURL.path.count + 1))
+            guard let executable = file(named: name, in: bundle), executableStaysInside(executable, bundle: bundle) else {
                 throw AppError("\(relative) points its executable outside itself (\"\(name)\"), so it can't be signed safely.")
             }
         }
+    }
+
+    /// A bundle's executable may be a link (e.g. into its own Versions folder), but it must end at a regular file
+    /// inside that same bundle, not at a sibling bundle's binary elsewhere in the app. A missing one is left to the
+    /// signing steps that need it. Both paths resolved exist, so they get the same /private handling.
+    static func executableStaysInside(_ executable: URL, bundle: URL) -> Bool {
+        let fm = FileManager.default
+        guard let type = (try? fm.attributesOfItem(atPath: executable.path))?[.type] as? FileAttributeType else { return true }
+        if type == .typeRegular { return true }
+        guard type == .typeSymbolicLink else { return false }
+        let target = executable.resolvingSymlinksInPath()
+        guard (try? fm.attributesOfItem(atPath: target.path))?[.type] as? FileAttributeType == .typeRegular else { return false }
+        return target.path.hasPrefix(bundle.resolvingSymlinksInPath().path + "/")
+    }
+
+    static let plistLimit: Int64 = 4 * 1024 * 1024
+
+    /// Reads a bundle's Info.plist if it's a regular file no larger than `plistLimit`. Extraction allows entries of
+    /// gigabytes, and these are decoded whole into memory.
+    /// A link is followed only to a regular file inside the same bundle (as macOS-style frameworks link Info.plist into
+    /// their Versions folder); 1.1 read those too.
+    static func readPlist(_ url: URL) -> [String: Any]? {
+        let fm = FileManager.default
+        guard var attributes = try? fm.attributesOfItem(atPath: url.path) else { return nil }
+        var target = url
+        if attributes[.type] as? FileAttributeType == .typeSymbolicLink {
+            target = url.resolvingSymlinksInPath()
+            let bundle = url.deletingLastPathComponent().resolvingSymlinksInPath().path
+            guard target.path.hasPrefix(bundle + "/"), let resolved = try? fm.attributesOfItem(atPath: target.path) else {
+                return nil
+            }
+            attributes = resolved
+        }
+        guard attributes[.type] as? FileAttributeType == .typeRegular,
+              let size = attributes[.size] as? NSNumber, size.int64Value <= plistLimit else { return nil }
+        return NSDictionary(contentsOf: target) as? [String: Any]
     }
 
     /// A file directly inside a bundle. Names come from the bundle's Info.plist, which an IPA controls, so

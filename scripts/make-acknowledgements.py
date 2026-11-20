@@ -29,6 +29,13 @@ DIRECT = [
     ('ZIPFoundation', 'https://github.com/weichsel/ZIPFoundation', 'MIT'),
     ('SWCompression', 'https://github.com/tsolomko/SWCompression', 'MIT'),
 ]
+# Components copied into Vendor/, with the licence file each ships.
+VENDORED = [
+    ('zsign', 'Vendor/Zsign/LICENSE'),
+    ('ElleKit', 'Vendor/ElleKit/LICENSE'),
+    ('idevice', 'Vendor/IDevice/LICENSE'),
+    ('ZIPFoundation', 'Vendor/ZIPFoundation/LICENSE'),
+]
 SKIP = re.compile(r'^(windows|winapi|wasm|js-sys|web-sys|android|ndk|redox|hermit|wasi|r-efi)')
 # Build-time tools: they generate code or headers but aren't linked into the app.
 BUILD_TOOLS = {'cbindgen'}
@@ -107,6 +114,14 @@ def main():
         # Licence files are wrapped at 80 columns; reflow each paragraph so it reads well on a phone.
         paragraphs = [' '.join(p.split()) for p in re.split(r'\n\s*\n', text) if p.strip()]
         lines += ['', f'# {spdx}', ''] + [line for p in paragraphs for line in (p, '')][:-1]
+    # Vendored copies ship with their own licence files; include them verbatim so each copyright notice travels with
+    # the app.
+    lines += ['', '# Licences of components shipped in source form', '',
+              'These are copied from each component, with its copyright notice.']
+    for name, path in VENDORED:
+        with open(os.path.join(ROOT, path)) as f:
+            paragraphs = [' '.join(p.split()) for p in re.split(r'\n\s*\n', f.read().strip()) if p.strip()]
+        lines += ['', f'## {name}', ''] + [line for p in paragraphs for line in (p, '')][:-1]
     with open(OUT, 'w') as f:
         f.write('\n'.join(lines) + '\n')
     print(f'{len(crates)} crates, {len(licences)} licences -> {os.path.relpath(OUT, ROOT)}')

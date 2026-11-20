@@ -110,7 +110,8 @@ struct AppIcon: View {
 
     var body: some View {
         Group {
-            if let url, let image = UIImage(contentsOfFile: url.path) {
+            // Library icons can come from a backup; check the header before decoding.
+            if let url, IconImage.acceptableWidth(of: url) != nil, let image = UIImage(contentsOfFile: url.path) {
                 Image(uiImage: image).resizable()
             } else {
                 ZStack {
@@ -139,7 +140,8 @@ struct RemoteIcon: View {
     private var size: CGFloat { baseSize * scale }
 
     var body: some View {
-        AsyncImage(url: url) { image in
+        // Source artwork follows the same rule as sources and downloads: http over https unless Allow HTTP is on.
+        AsyncImage(url: DownloadPolicy.displayURL(url)) { image in
             image.resizable()
         } placeholder: {
             ZStack {
@@ -182,7 +184,7 @@ struct AppRow: View {
 struct SettingsIcon: View {
     let systemImage: String
     let color: Color
-    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 29
+    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 30
 
     init(_ systemImage: String, color: Color) {
         self.systemImage = systemImage
@@ -191,10 +193,10 @@ struct SettingsIcon: View {
 
     var body: some View {
         Image(systemName: systemImage)
-            .font(.system(size: size * 0.55, weight: .medium))
+            .font(.system(size: size * 0.53, weight: .semibold))
             .foregroundStyle(.white)
             .frame(width: size, height: size)
-            .background(color.gradient, in: RoundedRectangle(cornerRadius: size * 0.26, style: .continuous))
+            .background(color, in: RoundedRectangle(cornerRadius: size * 0.23, style: .continuous))
             .accessibilityHidden(true)
     }
 }

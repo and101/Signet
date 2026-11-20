@@ -53,13 +53,11 @@ enum CertificateImporter {
 
         // Security.framework gives us the certificate's common name and DER bytes.
         // It can reject some newer p12 encodings even when OpenSSL accepts them, so this part is best-effort.
-        var commonName: String?
-        var matches: Bool?
-        if let identityCert = try? loadCertificate(p12: p12, password: password) {
-            commonName = SecCertificateCopySubjectSummary(identityCert) as String?
-            let der = SecCertificateCopyData(identityCert) as Data
-            matches = parsed.developerCertificates.contains(der)
-        }
+        // Decrypted once (key derivation can be slow on a phone) and used for both the name and the profile match.
+        let identityCerts = (try? loadCertificates(p12: p12, password: password)) ?? []
+        let commonName = identityCerts.first.flatMap { SecCertificateCopySubjectSummary($0) as String? }
+        let matches: Bool? = identityCerts.isEmpty ? nil
+            : identityCerts.contains { parsed.developerCertificates.contains(SecCertificateCopyData($0) as Data) }
 
         var record = CertificateRecord(
             nickname: nickname.isEmpty ? parsed.name : nickname,
@@ -104,20 +102,32 @@ enum CertificateImporter {
         }
     }
 
+    /// Whether the profile includes one of the p12's certificates; nil when Security.framework can't read the p12.
+    /// Every identity is checked: a p12 may hold several, and zsign may use one that isn't listed first.
+    static func certificateMatches(p12: URL, password: String, profile: ProvisioningProfile) -> Bool? {
+        guard let certificates = try? loadCertificates(p12: p12, password: password), !certificates.isEmpty else { return nil }
+        return certificates.contains { profile.developerCertificates.contains(SecCertificateCopyData($0) as Data) }
+    }
+
     private static func loadCertificate(p12: URL, password: String) throws -> SecCertificate {
+        guard let first = try loadCertificates(p12: p12, password: password).first else { throw AppError("No certificate in p12.") }
+        return first
+    }
+
+    /// The certificate of every identity in the p12, in the order Security.framework lists them.
+    private static func loadCertificates(p12: URL, password: String) throws -> [SecCertificate] {
         let data = try Data(contentsOf: p12)
         var items: CFArray?
         let status = SecPKCS12Import(data as CFData, [kSecImportExportPassphrase as String: password] as CFDictionary, &items)
-        guard status == errSecSuccess,
-              let first = (items as? [[String: Any]])?.first,
-              let identityRef = first[kSecImportItemIdentity as String] else {
+        guard status == errSecSuccess, let entries = items as? [[String: Any]] else {
             throw AppError("Couldn't read the .p12 (\(status)).")
         }
-        let identity = identityRef as! SecIdentity
-        var certificate: SecCertificate?
-        SecIdentityCopyCertificate(identity, &certificate)
-        guard let certificate else { throw AppError("No certificate in p12.") }
-        return certificate
+        return entries.compactMap { entry in
+            guard let identityRef = entry[kSecImportItemIdentity as String] else { return nil }
+            var certificate: SecCertificate?
+            SecIdentityCopyCertificate(identityRef as! SecIdentity, &certificate)
+            return certificate
+        }
     }
 
     private static func describe(_ value: Any) -> String {

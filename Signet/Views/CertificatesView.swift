@@ -8,55 +8,52 @@ struct CertificatesView: View {
     @State private var certificateToDelete: CertificateRecord?
 
     var body: some View {
-        @Bindable var router = router
-        NavigationStack {
-            List {
-                ForEach(store.certificates) { cert in
-                    NavigationLink(value: cert.id) { CertificateRow(cert: cert, isDefault: cert.id == store.defaultID) }
-                        .swipeToDelete {
-                            certificateToDelete = cert
-                        } actions: {
-                            if cert.id != store.defaultID {
-                                Button { store.defaultID = cert.id } label: {
-                                    Label("Make Default", systemImage: "star")
-                                }
-                                .tint(.orange)
-                            }
-                        }
+        List {
+            ForEach(store.certificates) { cert in
+                NavigationLink { CertificateDetailView(id: cert.id) } label: {
+                    CertificateRow(cert: cert, isDefault: cert.id == store.defaultID)
                 }
-            }
-            .overlay {
-                if store.certificates.isEmpty {
-                    ContentUnavailableView {
-                        Label("No Certificates", systemImage: "checkmark.seal")
-                    } description: {
-                        Text("Add a .p12 and its provisioning profile to start signing.")
+                    .swipeToDelete {
+                        certificateToDelete = cert
                     } actions: {
-                        Button("Add Certificate") { router.showAddCertificate = true }
-                    }
-                }
-            }
-            .certificateDeleteConfirmation(item: $certificateToDelete) { store.delete($0.id) }
-            .navigationTitle("Certificates")
-            .navigationDestination(for: UUID.self) { CertificateDetailView(id: $0) }
-            .refreshable { await store.checkAll() }
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    if !store.certificates.isEmpty {
-                        Button {
-                            Task { checking = true; await store.checkAll(); checking = false }
-                        } label: {
-                            if checking { ProgressView() } else { Label("Check Status", systemImage: "arrow.clockwise") }
+                        if cert.id != store.defaultID {
+                            Button { store.defaultID = cert.id } label: {
+                                Label("Make Default", systemImage: "star")
+                            }
+                            .tint(.orange)
                         }
-                        .disabled(checking)
                     }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { router.showAddCertificate = true } label: { Label("Add Certificate", systemImage: "plus") }
+            }
+        }
+        .overlay {
+            if store.certificates.isEmpty {
+                ContentUnavailableView {
+                    Label("No Certificates", systemImage: "checkmark.seal")
+                } description: {
+                    Text("Add a .p12 and its provisioning profile to start signing.")
+                } actions: {
+                    Button("Add Certificate") { router.showAddCertificate = true }
                 }
             }
-            .sheet(isPresented: $router.showAddCertificate) {
-                AddCertificateView()
+        }
+        .certificateDeleteConfirmation(item: $certificateToDelete) { store.delete($0.id) }
+        .navigationTitle("Certificates")
+        .navigationBarTitleDisplayMode(.inline)
+        .refreshable { await store.checkAll() }
+        .toolbar {
+            // Both trailing: on a pushed page the leading side holds the back button.
+            ToolbarItem(placement: .topBarTrailing) {
+                if !store.certificates.isEmpty {
+                    Button {
+                        Task { checking = true; await store.checkAll(); checking = false }
+                    } label: {
+                        if checking { ProgressView() } else { Label("Check Status", systemImage: "arrow.clockwise") }
+                    }
+                    .disabled(checking)
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { router.showAddCertificate = true } label: { Label("Add Certificate", systemImage: "plus") }
             }
         }
     }
@@ -320,7 +317,7 @@ struct CertificateDetailView: View {
 
                 Section {
                     Button { confirmSendToLiveContainer = true } label: {
-                        Label("Send to LiveContainer", systemImage: "square.and.arrow.up.on.square")
+                        Label("Send to LiveContainer", systemImage: "square.and.arrow.up")
                     }
                 } footer: {
                     Text("LiveContainer uses it to sign the apps it runs. Anyone with it can sign apps as you.")

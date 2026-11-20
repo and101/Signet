@@ -4,18 +4,18 @@
     "" : {
 
     },
-    "%@ %lld%%" : {
+    "%@ Installed" : {
+
+    },
+    "%@ Is %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%1$@ %2$lld%%"
+            "value" : "%1$@ Is %2$@"
           }
         }
       }
-    },
-    "%@ Installed" : {
-
     },
     "%@ Sent to iOS" : {
 
@@ -31,6 +31,12 @@
       }
     },
     "%@ doesn't contain any dylibs or frameworks to inject." : {
+
+    },
+    "%@ has an unreadable or oversized Info.plist, so it can't be signed." : {
+
+    },
+    "%@ has an unreadable or oversized Info.plist." : {
 
     },
     "%@ has no .dylib, .framework or .deb." : {
@@ -62,6 +68,9 @@
 
     },
     "%@ isn't a .dylib, .framework or .deb." : {
+
+    },
+    "%@ isn't a readable entitlements file, or it's too large." : {
 
     },
     "%@ isn't a valid .deb package." : {
@@ -96,6 +105,9 @@
         }
       }
     },
+    "%@ points its executable outside itself, so it wasn't injected." : {
+
+    },
     "%@ uses an unknown archive format (%@)." : {
       "localizations" : {
         "en" : {
@@ -122,6 +134,16 @@
         }
       }
     },
+    "%@ · Expires %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · Expires %2$@"
+          }
+        }
+      }
+    },
     "%@ → %@ · %@" : {
       "localizations" : {
         "en" : {
@@ -133,6 +155,9 @@
       }
     },
     "%@'s files are missing. Re-add the certificate and try again." : {
+
+    },
+    "%@'s files are too large or aren't regular files, so it can't be backed up." : {
 
     },
     "%@'s password is missing. Re-add the certificate and try again." : {
@@ -154,12 +179,6 @@
         }
       }
     },
-    "%lld%% installed" : {
-
-    },
-    "%lld%% transferred" : {
-
-    },
     "1. Download the Profile" : {
 
     },
@@ -175,13 +194,10 @@
     "A link sent a certificate and profile. You can review them before saving." : {
 
     },
-    "A one-time setup needed to install apps." : {
-
-    },
     "A tweak has a link pointing outside the app (%@), so it wasn't injected." : {
 
     },
-    "About" : {
+    "About Signet" : {
 
     },
     "Acknowledgements" : {
@@ -232,13 +248,22 @@
     "Add an AltStore source or a GitHub repo." : {
 
     },
+    "Add one to start signing." : {
+
+    },
     "Adding ElleKit (CydiaSubstrate.framework)…" : {
 
     },
     "Advanced" : {
 
     },
+    "After Signing" : {
+
+    },
     "All Apps" : {
+
+    },
+    "Allow HTTP" : {
 
     },
     "Always Dark" : {
@@ -257,10 +282,19 @@
         }
       }
     },
+    "An archive entry exceeds the extraction size limit." : {
+
+    },
     "Another direct install is still finishing. Try again in a moment." : {
 
     },
+    "App" : {
+
+    },
     "App Deleted" : {
+
+    },
+    "App Extensions" : {
 
     },
     "App ID" : {
@@ -279,6 +313,9 @@
 
     },
     "Apps missing from your library can't be recovered after this." : {
+
+    },
+    "Apps signed with it won't open." : {
 
     },
     "Apps with this bundle ID are signed with the new one. Updates reusing earlier settings keep theirs." : {
@@ -303,6 +340,9 @@
 
     },
     "Backup" : {
+
+    },
+    "Backup & Restore" : {
 
     },
     "Backup Password" : {
@@ -356,7 +396,7 @@
     "Checked %@." : {
 
     },
-    "Checked when you open Signet. Pull to check now." : {
+    "Checked when you open Signet. New releases appear in Library. Pull to check now." : {
 
     },
     "Checking the app…" : {
@@ -425,6 +465,9 @@
     "Couldn't Add Certificate" : {
 
     },
+    "Couldn't Add File" : {
+
+    },
     "Couldn't Back Up" : {
 
     },
@@ -438,6 +481,22 @@
 
     },
     "Couldn't add a Frameworks run path (%@). Tweaks may not load." : {
+
+    },
+    "Couldn't add a Frameworks run path to %@. Tweaks may not load there." : {
+
+    },
+    "Couldn't add a Frameworks run path to %@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Couldn't add a Frameworks run path to %1$@: %2$@"
+          }
+        }
+      }
+    },
+    "Couldn't add a Frameworks run path: %@" : {
 
     },
     "Couldn't create the backup's encryption key." : {
@@ -480,10 +539,29 @@
     "Couldn't reach the installer" : {
 
     },
+    "Couldn't reach this source over HTTPS. To use HTTP, turn on Allow HTTP in Settings." : {
+
+    },
+    "Couldn't read %@ for the backup." : {
+
+    },
+    "Couldn't read %@ for the backup: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Couldn't read %1$@ for the backup: %2$@"
+          }
+        }
+      }
+    },
     "Couldn't read GitHub's list of releases." : {
 
     },
     "Couldn't read Info.plist." : {
+
+    },
+    "Couldn't read extension metadata in %@." : {
 
     },
     "Couldn't read the .p12 (%d)." : {
@@ -520,8 +598,15 @@
     "Couldn't start the upload" : {
 
     },
-    "Couldn't unzip %@." : {
-
+    "Couldn't unzip %@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Couldn't unzip %1$@: %2$@"
+          }
+        }
+      }
     },
     "Couldn't unzip the IPA: %@" : {
 
@@ -547,19 +632,22 @@
     "Creating the app's container…" : {
 
     },
+    "Custom" : {
+
+    },
     "Custom Entitlements" : {
 
     },
     "Customize" : {
 
     },
+    "Data" : {
+
+    },
     "Default" : {
 
     },
     "Default Options" : {
-
-    },
-    "Default Signing Options" : {
 
     },
     "Delete" : {
@@ -635,6 +723,9 @@
     "Done" : {
 
     },
+    "Done once: Signet's server needs a certificate your iPhone trusts." : {
+
+    },
     "Done — %@" : {
 
     },
@@ -698,7 +789,10 @@
     "Enter a repo like owner/repo, or its GitHub link." : {
 
     },
-    "Enter a valid http(s) URL." : {
+    "Enter a valid HTTPS URL." : {
+
+    },
+    "Enter a valid web URL." : {
 
     },
     "Enter the backup's password. Nothing you already have is replaced." : {
@@ -723,6 +817,9 @@
 
     },
     "Exported Without Signing" : {
+
+    },
+    "Extension metadata in %@ exceeds the size limit." : {
 
     },
     "Extracting %@…" : {
@@ -750,6 +847,9 @@
     "File" : {
 
     },
+    "Finish Settings → Install Method → Server Setup first. It's a one-time step." : {
+
+    },
     "Finishing up…" : {
 
     },
@@ -763,6 +863,12 @@
 
     },
     "Force Full Screen (iPad)" : {
+
+    },
+    "Frameworks & Extensions" : {
+
+    },
+    "From Profile" : {
 
     },
     "Get" : {
@@ -870,9 +976,6 @@
     "Install After Signing" : {
 
     },
-    "Install Certificate" : {
-
-    },
     "Install Failed" : {
 
     },
@@ -891,13 +994,16 @@
     "Installed before" : {
 
     },
+    "Installing" : {
+
+    },
     "Installing %@" : {
 
     },
     "Installing…" : {
 
     },
-    "Installs over the air from Signet's own server. Needs the install certificate in Settings." : {
+    "Installs over the air from Signet's own server. Needs the one-time server setup below." : {
 
     },
     "Installs the way a computer does: faster, more reliable, and no install certificate. Needs LocalDevVPN and a pairing file made once on a computer." : {
@@ -915,7 +1021,13 @@
     "Keep Running During Installs" : {
 
     },
+    "Keep Running plays silence so installs finish in the background. Your music keeps playing." : {
+
+    },
     "Keeps the look from before iOS 26. Only affects apps built for iOS 26." : {
+
+    },
+    "Kept the app's own %@; a tweak ships a different copy." : {
 
     },
     "Last Checked" : {
@@ -928,6 +1040,9 @@
 
     },
     "Lets Signet reach this iPhone's installer. Get it from the App Store and keep it connected while installing, with Wi-Fi on." : {
+
+    },
+    "Lets sources and downloads use plain http. Anyone on your network could change what you download." : {
 
     },
     "Library" : {
@@ -952,6 +1067,9 @@
 
     },
     "Malformed Mach-O load commands." : {
+
+    },
+    "Manage Certificates" : {
 
     },
     "Marks the app as built for iOS 26 so it gets Liquid Glass. Some apps may break." : {
@@ -1023,6 +1141,9 @@
     "No releases with an IPA" : {
 
     },
+    "None" : {
+
+    },
     "Not Checked" : {
 
     },
@@ -1035,13 +1156,20 @@
     "Not connected to this iPhone." : {
 
     },
+    "Not enough free space. Needs about %@, %@ free." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Not enough free space. Needs about %1$@, %2$@ free."
+          }
+        }
+      }
+    },
     "Not imported" : {
 
     },
     "Not installed." : {
-
-    },
-    "Not needed for direct install. Used if you switch back to the install server." : {
 
     },
     "Not tested" : {
@@ -1095,9 +1223,6 @@
     "Patching Info.plist…" : {
 
     },
-    "Plays silence while installing so installs finish in the background. Your music keeps playing." : {
-
-    },
     "Preparing the app…" : {
 
     },
@@ -1125,9 +1250,6 @@
     "Remove" : {
 
     },
-    "Remove App Extensions" : {
-
-    },
     "Remove Custom Entitlements" : {
 
     },
@@ -1141,12 +1263,6 @@
 
     },
     "Remove Pairing File" : {
-
-    },
-    "Remove URL Schemes" : {
-
-    },
-    "Remove Watch App" : {
 
     },
     "Remove the pairing file?" : {
@@ -1176,7 +1292,10 @@
     "Rename Rules" : {
 
     },
-    "Renamed by your rules in Settings → Default Signing Options." : {
+    "Renamed by your rules in Settings → Default Options." : {
+
+    },
+    "Renaming would create duplicate extension point identifiers." : {
 
     },
     "Replace Pairing File" : {
@@ -1242,13 +1361,16 @@
     "Server" : {
 
     },
+    "Server Setup" : {
+
+    },
     "Set Up" : {
 
     },
-    "Set a passcode on this iPhone first." : {
+    "Set Up Needed" : {
 
     },
-    "Set up Settings → Install Certificate first. It's a one-time step." : {
+    "Set a passcode on this iPhone first." : {
 
     },
     "Setting up the sandbox…" : {
@@ -1287,9 +1409,6 @@
     "Signet can install apps." : {
 
     },
-    "Signet can only open http and https links." : {
-
-    },
     "Signet can't see installed apps, and this app hasn't been signed here before." : {
 
     },
@@ -1306,6 +1425,9 @@
 
     },
     "Signet will close while iOS installs it. Reopen it in a few seconds." : {
+
+    },
+    "Signing" : {
 
     },
     "Signing Defaults" : {
@@ -1329,7 +1451,13 @@
     "Size" : {
 
     },
+    "Some Apps Left Out" : {
+
+    },
     "Sources" : {
+
+    },
+    "Sources require an HTTPS URL." : {
 
     },
     "Status" : {
@@ -1377,6 +1505,9 @@
     "That isn't a pairing file. Export PairingFile_RemoteRP.plist from iloader." : {
 
     },
+    "That isn't a web link." : {
+
+    },
     "That source is already added." : {
 
     },
@@ -1386,19 +1517,49 @@
     "The App's Own Icons" : {
 
     },
+    "The app already has a different %@. Remove it in signing options, or rename the tweak." : {
+
+    },
+    "The app bundle is missing." : {
+
+    },
     "The app has a link pointing outside it (%@), so it can't be signed safely." : {
 
     },
     "The app has no entitlements to merge. Using the profile's." : {
 
     },
-    "The app is missing its Info.plist." : {
+    "The app is missing its Info.plist, or it's too large." : {
 
     },
-    "The backup is damaged (%@ doesn't match its checksum)." : {
+    "The app record contains an unsafe bundle folder name." : {
+
+    },
+    "The app record points outside its Payload directory." : {
+
+    },
+    "The archive contains a duplicate or unwritable file." : {
+
+    },
+    "The archive contains an oversized symbolic link." : {
+
+    },
+    "The archive contains an unsafe path." : {
+
+    },
+    "The archive exceeds the extraction size limit." : {
+
+    },
+    "The archive has too many files or an oversized entry." : {
+
+    },
+    "The archive is damaged." : {
 
     },
     "The backup is damaged." : {
+
+    },
+    "The backup manifest is too large." : {
 
     },
     "The bundle ID must match your profile: %@." : {
@@ -1413,6 +1574,9 @@
     "The installed app uses this bundle ID" : {
 
     },
+    "The library is too large to back up (over %@). Turn off Include Library, or remove some apps." : {
+
+    },
     "The original app files are missing. Re-import the IPA." : {
 
     },
@@ -1422,10 +1586,22 @@
     "The selected icon isn't a valid image." : {
 
     },
+    "The signed IPA is missing." : {
+
+    },
     "The signed IPA is missing. Sign the app again." : {
 
     },
+    "The signing certificate isn't included in this provisioning profile. Import a matching pair." : {
+
+    },
+    "The suffix stops a signed app sharing an App Store app's ID, which can get the certificate revoked." : {
+
+    },
     "The upload was interrupted" : {
+
+    },
+    "Their files are missing or damaged, so they were left out of the backup: %@." : {
 
     },
     "This IPA has a link pointing outside the app (%@), so it wasn't imported." : {
@@ -1471,6 +1647,9 @@
     "This removes it from your library." : {
 
     },
+    "This source is too large." : {
+
+    },
     "This update is signed by a different team, so saved certificate passwords may be lost. Back up first in Settings → Back Up." : {
 
     },
@@ -1492,7 +1671,13 @@
     "Trusted" : {
 
     },
+    "Tweaks" : {
+
+    },
     "Type" : {
+
+    },
+    "URL Schemes" : {
 
     },
     "Unchanged" : {
@@ -1577,6 +1762,9 @@
     "View on GitHub" : {
 
     },
+    "Watch App" : {
+
+    },
     "Weak Inject" : {
 
     },
@@ -1592,10 +1780,16 @@
     "You'll need to install and trust it again." : {
 
     },
+    "Your default certificate. Tap to see all %lld." : {
+
+    },
     "Your library list was damaged and a copy was saved. Until you delete it, Clean Up keeps unknown folders." : {
 
     },
     "Your profile doesn't grant %@, so iOS will refuse to install the app." : {
+
+    },
+    "Your profile doesn't grant some custom entitlements, so iOS will refuse to install the app." : {
 
     },
     "Zip a .framework in Files before adding it. ElleKit is added when needed." : {

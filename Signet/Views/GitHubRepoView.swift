@@ -88,7 +88,7 @@ struct GitHubRepoView: View {
                 .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
                 Link(destination: repo.webURL) {
                     LabeledContent("View on GitHub") {
-                        Image(systemName: "arrow.up.forward").font(.footnote.weight(.semibold)).accessibilityHidden(true)
+                        Image(systemName: "arrow.up.right").font(.footnote.weight(.semibold)).accessibilityHidden(true)
                     }
                 }
                 .tint(.primary)

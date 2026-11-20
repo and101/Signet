@@ -54,6 +54,9 @@ enum Backup {
         let manifest: Manifest
         let passwords: [UUID: String]
         let folder: URL
+        /// Certificates whose staged files passed the checks in `open` (small regular files, readable profile, correct
+        /// password), with whether the profile includes the certificate. Done while opening, off the main actor.
+        var verifiedCertificates: [UUID: Bool?] = [:]
 
         var certificates: [CertificateRecord] { manifest.certificates.compactMap(\.value) }
         var library: [LibraryApp] { manifest.library.compactMap(\.value) }
@@ -86,8 +89,10 @@ enum Backup {
 
     /// Writes a backup to `url`. Fails if a certificate's saved password can't be read, rather than backing up
     /// a certificate that couldn't be used after restoring.
+    /// - Returns: the names of library apps left out because restoring them would fail.
+    @discardableResult
     static func create(_ contents: Contents, password: String, to url: URL,
-                       readPassword: (UUID) -> String? = { Keychain.get($0.uuidString) }) throws {
+                       readPassword: (UUID) -> String? = { Keychain.get($0.uuidString) }) throws -> [String] {
         guard !password.isEmpty else { throw AppError("Choose a password for the backup.") }
         let fm = FileManager.default
 
@@ -99,10 +104,26 @@ enum Backup {
             guard fm.fileExists(atPath: record.p12URL.path), fm.fileExists(atPath: record.profileURL.path) else {
                 throw AppError("\(record.nickname)'s files are missing. Re-add the certificate and try again.")
             }
+            // Restore only accepts small regular files, so check here rather than make a backup that can't restore it.
+            guard isSmallRegularFile(record.p12URL), isSmallRegularFile(record.profileURL) else {
+                throw AppError("\(record.nickname)'s files are too large or aren't regular files, so it can't be backed up.")
+            }
             passwords[record.id.uuidString] = saved
         }
 
-        let library = contents.library.filter { fm.fileExists(atPath: $0.directory.path) }
+        // An app that restore would refuse (unsafe record, or an imported app whose bundle is gone) is left out
+        // rather than failing the whole backup.
+        let library = contents.library.filter {
+            fm.fileExists(atPath: $0.directory.path) && (try? $0.validateAppFolder(in: $0.directory)) != nil
+                && isFullyReadable($0.directory)
+        }
+        let leftOut = contents.library.filter { app in !library.contains { $0.id == app.id } }.map(\.name)
+        // Checked before writing anything: restore refuses backups over this size, so don't make one.
+        let total = library.reduce(Int64(0)) { $0 + fm.directorySize(at: $1.directory) }
+            + contents.certificates.reduce(Int64(0)) { $0 + fm.directorySize(at: $1.directory) }
+        guard UInt64(max(0, total)) <= ArchiveBudget.backup.remaining else {
+            throw AppError("The library is too large to back up (over \(ByteCountFormatter.string(fromByteCount: Int64(ArchiveBudget.backup.remaining), countStyle: .file))). Turn off Include Library, or remove some apps.")
+        }
         let manifest = Manifest(
             version: currentVersion,
             created: Date(),
@@ -122,6 +143,7 @@ enum Backup {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             let manifestData = try encoder.encode(manifest)
+            guard manifestData.count <= ArchiveBudget.manifestLimit else { throw AppError("The backup manifest is too large.") }
             try archive.addEntry(with: "manifest.json", type: .file, uncompressedSize: Int64(manifestData.count),
                                  compressionMethod: .deflate) { position, size in
                 manifestData.subdata(in: Int(position)..<Int(position) + size)
@@ -133,25 +155,48 @@ enum Backup {
                 // IPAs and app bundles are already compressed or large; storing keeps backups fast.
                 try add(folder: app.directory, as: "Library/\(app.id.uuidString)", to: archive, compression: .none)
             }
+            try ArchiveBudget.backup.validate(archive)
         } catch {
             try? fm.removeItem(at: url)
             throw error
         }
+        return leftOut
+    }
+
+    /// Whether every item under `folder` can be listed, so an app isn't backed up with parts silently missing.
+    static func isFullyReadable(_ folder: URL) -> Bool {
+        var failed = false
+        let walker = FileManager.default.enumerator(at: folder, includingPropertiesForKeys: nil) { _, _ in
+            failed = true
+            return false
+        }
+        guard let walker else { return false }
+        while walker.nextObject() != nil, !failed {}
+        return !failed
     }
 
     private static func add(folder: URL, as prefix: String, to archive: Archive,
                             compression: CompressionMethod = .deflate) throws {
         let fm = FileManager.default
         let base = folder.resolvingSymlinksInPath().path
-        guard let enumerator = fm.enumerator(at: folder, includingPropertiesForKeys: [.isDirectoryKey]) else { return }
+        // A folder that can't be read fails the backup rather than leaving files out of it without a word.
+        var readError: Error?
+        let enumerator = fm.enumerator(at: folder, includingPropertiesForKeys: [.isDirectoryKey]) { url, error in
+            readError = AppError("Couldn't read \(url.lastPathComponent) for the backup: \(error.localizedDescription)")
+            return false
+        }
+        guard let enumerator else { throw AppError("Couldn't read \(folder.lastPathComponent) for the backup.") }
         for case let item as URL in enumerator {
+            if let readError { throw readError }
             // Resolve the parent only, so a symlink inside an app bundle is stored as a link, under its own name.
+            // Restoring checks each link's size and that it stays inside the bundle.
             let full = item.deletingLastPathComponent().resolvingSymlinksInPath()
                 .appendingPathComponent(item.lastPathComponent).path
             guard full.hasPrefix(base + "/") else { continue }
             let relative = String(full.dropFirst(base.count + 1))
             try archive.addEntry(with: "\(prefix)/\(relative)", fileURL: item, compressionMethod: compression)
         }
+        if let readError { throw readError }
     }
 
     // MARK: - Opening
@@ -164,9 +209,19 @@ enum Backup {
         } catch {
             throw AppError("That isn't a Signet backup.")
         }
+        let needed = try ArchiveBudget.backup.validate(archive)
+        try ArchiveBudget.checkFreeSpace(needed: needed, at: FileManager.default.temporaryDirectory)
         guard let manifestEntry = archive["manifest.json"] else { throw AppError("That isn't a Signet backup.") }
         var manifestData = Data()
-        let manifestChecksum = try archive.extract(manifestEntry) { manifestData.append($0) }
+        guard manifestEntry.type == .file, manifestEntry.uncompressedSize <= ArchiveBudget.manifestLimit else {
+            throw AppError("The backup manifest is too large.")
+        }
+        let manifestChecksum = try archive.extract(manifestEntry) { chunk in
+            guard UInt64(chunk.count) <= ArchiveBudget.manifestLimit - UInt64(manifestData.count) else {
+                throw AppError("The backup manifest is too large.")
+            }
+            manifestData.append(chunk)
+        }
         guard manifestChecksum == manifestEntry.checksum else { throw AppError("This backup is damaged.") }
         let manifest: Manifest
         do {
@@ -184,21 +239,39 @@ enum Backup {
 
         let folder = try Paths.newTempDirectory()
         do {
-            for entry in archive where entry.type != .directory {
+            var budget = ArchiveBudget.backup
+            // Directories are restored too, so empty folders in app bundles survive.
+            for entry in archive {
                 guard let destination = safeDestination(for: entry.path, in: folder) else { continue }
-                try FileManager.default.createDirectory(at: destination.deletingLastPathComponent(),
-                                                        withIntermediateDirectories: true)
-                let checksum = try archive.extract(entry, to: destination)
-                // ZIPFoundation leaves the comparison to the caller; a damaged file would otherwise restore as if fine.
-                guard checksum == entry.checksum else {
-                    throw AppError("The backup is damaged (\(entry.path) doesn't match its checksum).")
-                }
+                // extract creates parent folders itself, after checking they don't lead through a link.
+                try budget.extract(entry, from: archive, to: destination, root: folder)
             }
         } catch {
             try? FileManager.default.removeItem(at: folder)
             throw error
         }
-        return Opened(manifest: manifest, passwords: passwords, folder: folder)
+        var opened = Opened(manifest: manifest, passwords: passwords, folder: folder)
+        for record in opened.certificates {
+            let source = folder.appendingPathComponent("Certificates/\(record.id.uuidString)", isDirectory: true)
+            let p12 = source.appendingPathComponent(record.p12URL.lastPathComponent)
+            let profileURL = source.appendingPathComponent(record.profileURL.lastPathComponent)
+            // Real p12s and profiles are kilobytes; the limit keeps a crafted backup from reading gigabytes.
+            guard let password = passwords[record.id], isSmallRegularFile(p12), isSmallRegularFile(profileURL),
+                  let profile = try? ProvisioningProfile(url: profileURL), p12_password_check(p12.path, password) else { continue }
+            opened.verifiedCertificates[record.id] = .some(CertificateImporter.certificateMatches(
+                p12: p12, password: password, profile: profile))
+        }
+        return opened
+    }
+
+    static let certificateFileLimit: Int64 = 4 * 1024 * 1024
+
+    /// A regular file (not a link, which readers would follow) no larger than `certificateFileLimit`.
+    static func isSmallRegularFile(_ url: URL) -> Bool {
+        guard let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
+              attributes[.type] as? FileAttributeType == .typeRegular,
+              let size = attributes[.size] as? NSNumber else { return false }
+        return size.int64Value <= certificateFileLimit
     }
 
     /// Only `Certificates/<uuid>/…` and `Library/<uuid>/…` are unpacked, and never outside `folder`.
@@ -222,12 +295,19 @@ enum Backup {
         for record in backup.certificates where certificates.certificate(record.id) == nil {
             let source = backup.folder.appendingPathComponent("Certificates/\(record.id.uuidString)", isDirectory: true)
             let p12 = source.appendingPathComponent(record.p12URL.lastPathComponent)
-            guard let password = backup.passwords[record.id], fm.fileExists(atPath: p12.path),
-                  fm.fileExists(atPath: source.appendingPathComponent(record.profileURL.lastPathComponent).path),
-                  p12_password_check(p12.path, password) else {
+            let profileURL = source.appendingPathComponent(record.profileURL.lastPathComponent)
+            guard let password = backup.passwords[record.id], fm.fileExists(atPath: p12.path), fm.fileExists(atPath: profileURL.path) else {
                 summary.skipped.append("\(record.nickname) (files or password missing)")
                 continue
             }
+            // Checked in `open` (off the main actor), before anything is moved or saved here.
+            guard let match = backup.verifiedCertificates[record.id] else {
+                summary.skipped.append("\(record.nickname) (certificate or profile unreadable)")
+                continue
+            }
+            // The pair's match comes from the restored files, not the flag saved in the backup.
+            var restored = record
+            restored.certificateMatchesProfile = match
             do {
                 try? fm.removeItem(at: record.directory)
                 try fm.createDirectory(at: Paths.certificates, withIntermediateDirectories: true)
@@ -242,7 +322,7 @@ enum Backup {
                 summary.skipped.append("\(record.nickname) (couldn't save its password)")
                 continue
             }
-            certificates.restore(record)
+            certificates.restore(restored)
             summary.certificates += 1
         }
         if !hadCertificates, let id = backup.manifest.defaultCertificateID, certificates.certificate(id) != nil {
@@ -258,8 +338,12 @@ enum Backup {
 
         for app in backup.library where library.app(app.id) == nil {
             let source = backup.folder.appendingPathComponent("Library/\(app.id.uuidString)", isDirectory: true)
-            guard fm.fileExists(atPath: source.path) else { continue }
+            guard fm.fileExists(atPath: source.path) else {
+                summary.skipped.append("\(app.name) (files missing from the backup)")
+                continue
+            }
             do {
+                try app.validateAppFolder(in: source)
                 try? fm.removeItem(at: app.directory)
                 try fm.createDirectory(at: Paths.library, withIntermediateDirectories: true)
                 try fm.moveItem(at: source, to: app.directory)

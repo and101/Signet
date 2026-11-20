@@ -6,6 +6,8 @@ struct LibraryView: View {
     @Environment(InstallManager.self) private var installer
     @Environment(SourceStore.self) private var sources
     @Environment(GitHubStore.self) private var github
+    @Environment(CertificateStore.self) private var certificates
+    @Environment(Router.self) private var router
     @State private var path = NavigationPath()
     @State private var selection = Set<UUID>()
     @State private var editMode = EditMode.inactive
@@ -27,11 +29,34 @@ struct LibraryView: View {
     var body: some View {
         NavigationStack(path: $path) {
             List(selection: $selection) {
+                if search.isEmpty, let cert = certificates.defaultCertificate, let problem = cert.problem {
+                    Section {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\(cert.nickname) Is \(problem)").font(.headline)
+                                Text("Apps signed with it won't open.").font(.subheadline).foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.red)
+                        }
+                        Button("Manage Certificates") {
+                            router.tab = .settings
+                            router.showCertificates = true
+                        }
+                    }
+                    .selectionDisabled()
+                }
+
                 let updates = sources.updates(for: library, github: github)
-                if !updates.isEmpty, search.isEmpty {
+                let repoUpdates = github.updates(in: library)
+                if !updates.isEmpty || !repoUpdates.isEmpty, search.isEmpty {
                     Section {
                         ForEach(updates) { update in
                             UpdateRow(update: update) { imported in path.append(imported) }
+                                .selectionDisabled()
+                        }
+                        ForEach(repoUpdates) { update in
+                            GitHubUpdateRow(update: update) { imported in path.append(imported) }
                                 .selectionDisabled()
                         }
                     } header: {
@@ -127,7 +152,12 @@ struct LibraryView: View {
             }
             .navigationTitle("Library")
             .searchable(text: $search)
-            .refreshable { await sources.refreshAll() }
+            .refreshable {
+                // Both kinds of update are listed here, so pulling checks both.
+                async let sourceCheck: Void = sources.refreshAll()
+                async let repoCheck: Void = github.refreshAll(force: true, library: library)
+                _ = await (sourceCheck, repoCheck)
+            }
             .navigationDestination(for: LibraryApp.self) { app in
                 if app.kind == .signed {
                     SignedAppView(appID: app.id)
@@ -175,10 +205,12 @@ struct LibraryView: View {
                     .textInputAutocapitalization(.never)
                     .keyboardType(.URL)
                 Button("Download") {
-                    if let url = URL(string: urlText.trimmingCharacters(in: .whitespaces)), url.scheme?.hasPrefix("http") == true {
+                    // The store resolves http itself; passing the link as typed keeps it as the app's source.
+                    if let url = URL(string: urlText.trimmingCharacters(in: .whitespaces)),
+                       DownloadPolicy.allows(DownloadPolicy.resolved(url)) {
                         library.download(from: url)
                     } else {
-                        importError = "That isn't a valid URL."
+                        importError = DownloadPolicy.httpAllowed ? "Enter a valid web link." : "Enter a valid HTTPS link."
                     }
                     urlText = ""
                 }
@@ -224,6 +256,46 @@ private struct UpdateRow: View {
                 .font(.subheadline.bold())
             }
         }
+    }
+}
+
+/// An update from a tracked GitHub repo, shown with the source updates.
+private struct GitHubUpdateRow: View {
+    let update: GitHubUpdate
+    let onImported: (LibraryApp) -> Void
+    @Environment(LibraryStore.self) private var library
+    @Environment(GitHubStore.self) private var github
+
+    var body: some View {
+        HStack(spacing: 12) {
+            if let local = update.local {
+                AppIcon(url: local.iconURL, size: 44)
+            } else {
+                RemoteIcon(url: update.repo.avatarURL, size: 44)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(update.name).lineLimit(1)
+                Text(versions).font(.footnote).foregroundStyle(.secondary).lineLimit(1)
+            }
+            Spacer()
+            if let download = library.download(for: update.asset.browserDownloadUrl) {
+                DownloadRing(download: download).frame(minWidth: 56)
+            } else {
+                Button("Update") {
+                    github.download(update.asset, from: update.release, of: update.repo, library: library,
+                                    onImported: onImported)
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.capsule)
+                .font(.subheadline.bold())
+            }
+        }
+    }
+
+    private var versions: String {
+        let remote = update.release.tagName
+        guard let local = update.local?.version else { return "\(remote) · \(update.repo.fullName)" }
+        return "\(local) → \(remote) · \(update.repo.fullName)"
     }
 }
 

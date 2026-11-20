@@ -12,8 +12,8 @@ settings:
     # Text is extracted into Signet/Resources/Localizable.xcstrings at build time, ready for translation.
     SWIFT_EMIT_LOC_STRINGS: YES
     LOCALIZATION_PREFERS_STRING_CATALOGS: YES
-    MARKETING_VERSION: "1.1"
-    CURRENT_PROJECT_VERSION: "2"
+    MARKETING_VERSION: "1.2"
+    CURRENT_PROJECT_VERSION: "3"
     DEVELOPMENT_TEAM: ""
     CODE_SIGN_STYLE: Automatic
 
@@ -24,8 +24,7 @@ packages:
     url: https://github.com/krzyzanowskim/OpenSSL
     from: "3.3.3001"
   ZIPFoundation:
-    url: https://github.com/weichsel/ZIPFoundation
-    from: "0.9.19"
+    path: Vendor/ZIPFoundation
   SwiftCertificates:
     url: https://github.com/apple/swift-certificates
     from: "1.21.0"

@@ -134,10 +134,11 @@ enum MachO {
         return String(decoding: command.data[(command.data.startIndex + offset)...].prefix { $0 != 0 }, as: UTF8.self)
     }
 
-    /// Appends an LC_RPATH to every slice that lacks it, using the padding after the load commands.
+    /// Appends an LC_RPATH to every slice that lacks it (or any of `equivalents`), using the padding after the
+    /// load commands. Each slice is checked on its own.
     /// - Returns: true if the file was changed.
     @discardableResult
-    static func addRPath(_ path: String, to url: URL) throws -> Bool {
+    static func addRPath(_ path: String, to url: URL, equivalents: Set<String> = []) throws -> Bool {
         let size = (12 + path.utf8.count + 1 + 7) & ~7
         var command = Data(count: size)
         command.setU32(lcRPath, at: 0)
@@ -150,7 +151,7 @@ enum MachO {
         for slice in try slices(of: reader) {
             guard try reader.u32(slice.offset) == magic64 else { continue }
             let commands = try loadCommands(of: reader, slice: slice)
-            if commands.contains(where: { rpath(in: $0) == path }) { continue }
+            if commands.contains(where: { rpath(in: $0).map { $0 == path || equivalents.contains($0) } ?? false }) { continue }
             let used = commands.reduce(0) { $0 + $1.data.count }
             let available = min(try firstSectionOffset(of: reader, slice: slice, commands: commands), slice.size) - (headerSize + used)
             guard size <= available else { throw AppError("\(url.lastPathComponent) has no room to add a run path.") }

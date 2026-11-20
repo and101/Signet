@@ -133,12 +133,20 @@ final class LibraryStore {
 
     func download(from url: URL, name: String? = nil, onImported: ((LibraryApp) -> Void)? = nil,
                   onFailed: (() -> Void)? = nil) {
+        // Sources may list http links; they're fetched over https unless Allow HTTP is on. The download keeps the
+        // published link, which the Get buttons and update matching look it up by.
+        let request = DownloadPolicy.resolved(url)
+        guard DownloadPolicy.allows(request) else {
+            lastError = "App downloads require an HTTPS URL."
+            onFailed?()
+            return
+        }
         let download = Download(url: url, name: name ?? url.lastPathComponent)
         download.onImported = onImported
         download.onFailed = onFailed
         downloads.append(download)
 
-        let task = URLSession.shared.downloadTask(with: url) { [weak self] location, response, error in
+        let task = DownloadPolicy.session.downloadTask(with: request) { [weak self] location, response, error in
             // Move the file before this callback returns; URLSession deletes it afterwards.
             var saved: URL?
             if let location {
@@ -182,7 +190,12 @@ final class LibraryStore {
         if let error = error as? URLError, error.code == .cancelled { return }
         guard let file, error == nil, (200..<300).contains(status) else {
             download.onFailed?()
-            lastError = "Download of \(download.name) failed: \(error?.localizedDescription ?? "HTTP \(status)")"
+            if let urlError = error as? URLError, download.url.scheme?.lowercased() == "http", !DownloadPolicy.httpAllowed,
+               DownloadPolicy.httpsUnavailable.contains(urlError.code) {
+                lastError = "Couldn't download \(download.name) over HTTPS. To use HTTP, turn on Allow HTTP in Settings."
+            } else {
+                lastError = "Download of \(download.name) failed: \(error?.localizedDescription ?? "HTTP \(status)")"
+            }
             return
         }
         download.isImporting = true

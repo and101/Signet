@@ -276,7 +276,7 @@ private final class RequestHandler: ChannelInboundHandler, @unchecked Sendable {
         case "manifest.plist":
             sendData(server.manifest(token: token, app: app), contentType: "text/xml", context: context, head: head)
         case "icon.png":
-            guard let icon = app.icon, let data = try? Data(contentsOf: icon) else {
+            guard let icon = app.icon, IconImage.acceptableWidth(of: icon) != nil, let data = try? Data(contentsOf: icon) else {
                 return sendStatus(.notFound, context: context, head: head)
             }
             sendData(data, contentType: "image/png", context: context, head: head)
@@ -325,17 +325,22 @@ private final class RequestHandler: ChannelInboundHandler, @unchecked Sendable {
             return sendStatus(.notFound, context: context, head: head)
         }
 
-        // Honour a single "bytes=start-[end]" range if the installer asks for one.
         var start: Int64 = 0
-        var end: Int64 = total - 1
+        var end = total - 1
         var status: HTTPResponseStatus = .ok
-        if let range = head.headers.first(name: "Range"), range.hasPrefix("bytes=") {
-            let bounds = range.dropFirst(6).split(separator: "-", omittingEmptySubsequences: false)
-            if let lower = bounds.first.flatMap({ Int64($0) }), lower < total {
-                start = lower
-                if bounds.count > 1, let upper = Int64(bounds[1]) { end = min(upper, total - 1) }
-                status = .partialContent
-            }
+        switch HTTPByteRange.parse(head.headers.first(name: "Range"), size: total) {
+        case .full: break
+        case .partial(let lower, let upper):
+            start = lower
+            end = upper
+            status = .partialContent
+        case .unsatisfiable:
+            try? handle.close()
+            let headers = HTTPHeaders([("Content-Range", "bytes */\(total)"), ("Content-Length", "0")])
+            context.write(wrapOutboundOut(.head(HTTPResponseHead(version: head.version,
+                status: .rangeNotSatisfiable, headers: headers))), promise: nil)
+            context.writeAndFlush(wrapOutboundOut(.end(nil)), promise: nil)
+            return
         }
         let length = end - start + 1
 

@@ -14,22 +14,24 @@ struct RootView: View {
         TabView(selection: $router.tab) {
             LibraryView()
                 .tabItem { Label("Library", systemImage: "square.grid.2x2") }
-                .badge(sources.updates(for: library, github: github).count)
+                // Every update is listed in Library, so it alone carries the badge.
+                .badge(sources.updates(for: library, github: github).count + github.updateCount(in: library))
                 .tag(Router.Tab.library)
             SourcesView()
                 .tabItem { Label("Sources", systemImage: "globe") }
-                .badge(github.updateCount(in: library))
                 .tag(Router.Tab.sources)
-            CertificatesView()
-                .tabItem { Label("Certificates", systemImage: "checkmark.seal") }
-                .tag(Router.Tab.certificates)
             SettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape") }
                 .tag(Router.Tab.settings)
         }
+        .sidebarOnWideScreens()
         // Scene phase changes cover returning to the app; this covers a cold launch. Checks are throttled.
         .task { await github.refreshAll(library: library) }
         .task { await sources.refreshIfStale() }
+        // Here rather than on a screen: certificate links and files open it from any tab.
+        .sheet(isPresented: $router.showAddCertificate) {
+            AddCertificateView()
+        }
         .sheet(isPresented: Binding(
             get: { installer.state != .idle },
             set: { if !$0 { installer.dismiss() } }
@@ -102,6 +104,17 @@ struct RootView: View {
         switch link {
         case .source: String(localized: "Add")
         case .download: String(localized: "Download")
+        }
+    }
+}
+
+private extension View {
+    /// On iPad, iOS 18 can show the tabs as a sidebar; on iPhone the tab bar stays as it is.
+    @ViewBuilder func sidebarOnWideScreens() -> some View {
+        if #available(iOS 18, *) {
+            tabViewStyle(.sidebarAdaptable)
+        } else {
+            self
         }
     }
 }

@@ -37,13 +37,18 @@ final class SourceStore {
 
     func add(_ urlString: String) async throws {
         let trimmed = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = URL(string: trimmed), url.scheme?.hasPrefix("http") == true else {
-            throw AppError("Enter a valid http(s) URL.")
+        // Saved as typed; fetch resolves it, so an http source works again if Allow HTTP is turned on later.
+        guard let url = URL(string: trimmed), DownloadPolicy.allows(DownloadPolicy.resolved(url)) else {
+            throw AppError(DownloadPolicy.httpAllowed ? "Enter a valid web URL." : "Enter a valid HTTPS URL.")
         }
-        guard !sources.contains(where: { $0.url == url }) else {
+        guard !sources.contains(where: { DownloadPolicy.upgraded($0.url) == DownloadPolicy.upgraded(url) }) else {
             throw AppError("That source is already added.")
         }
         let repo = try await Self.fetch(url)
+        // Another add may have finished while this one was fetching.
+        guard !sources.contains(where: { DownloadPolicy.upgraded($0.url) == DownloadPolicy.upgraded(url) }) else {
+            throw AppError("That source is already added.")
+        }
         let source = SavedSource(url: url, name: repo.name ?? url.host ?? "Source", iconURL: repo.iconURL)
         sources.append(source)
         repositories[source.id] = repo
@@ -53,7 +58,18 @@ final class SourceStore {
     /// Adds sources restored from a backup, skipping URLs that are already added. Returns how many were added.
     @discardableResult
     func restore(_ restored: [SavedSource]) -> Int {
-        let new = restored.filter { source in !sources.contains { $0.url == source.url || $0.id == source.id } }
+        // Compared as https, and against what this restore has already accepted, so a backup holding both the http
+        // and https spelling of a source adds it once.
+        var urls = Set(sources.map { DownloadPolicy.upgraded($0.url) })
+        var ids = Set(sources.map(\.id))
+        let new = restored.filter { source in
+            let url = DownloadPolicy.upgraded(source.url)
+            // Check both before reserving either, so a rejected record doesn't block a later valid one.
+            guard !urls.contains(url), !ids.contains(source.id) else { return false }
+            urls.insert(url)
+            ids.insert(source.id)
+            return true
+        }
         guard !new.isEmpty else { return 0 }
         sources.append(contentsOf: new)
         save()
@@ -107,8 +123,27 @@ final class SourceStore {
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
-    private static func fetch(_ url: URL) async throws -> SourceRepository {
-        let (data, response) = try await URLSession.shared.data(from: url)
+    /// Off the main actor: the body is read a byte at a time to enforce the limit, which on the main actor costs a
+    /// hop per byte (seconds for a few megabytes). The decoded repository is published by the callers.
+    nonisolated private static func fetch(_ saved: URL) async throws -> SourceRepository {
+        let url = DownloadPolicy.resolved(saved)
+        guard DownloadPolicy.allows(url) else { throw AppError("Sources require an HTTPS URL.") }
+        var data = Data()
+        let response: URLResponse
+        do {
+            // Read with a limit: a misconfigured source serving something huge would otherwise fill memory.
+            let (bytes, received) = try await DownloadPolicy.session.bytes(from: url)
+            response = received
+            guard received.expectedContentLength <= Self.responseLimit else { throw AppError("This source is too large.") }
+            if received.expectedContentLength > 0 { data.reserveCapacity(Int(received.expectedContentLength)) }
+            for try await byte in bytes {
+                guard data.count < Self.responseLimit else { throw AppError("This source is too large.") }
+                data.append(byte)
+            }
+        } catch let error as URLError where url != saved && DownloadPolicy.httpsUnavailable.contains(error.code) {
+            // Only failures that suggest the server has no working HTTPS; offline and the like pass through.
+            throw AppError("Couldn't reach this source over HTTPS. To use HTTP, turn on Allow HTTP in Settings.")
+        }
         if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
             throw AppError("HTTP \(http.statusCode)")
         }
@@ -118,6 +153,10 @@ final class SourceStore {
             throw AppError("Not a valid AltStore-style source.")
         }
     }
+
+    /// Far above any real source (large ones are a few megabytes of JSON).
+    nonisolated static let responseLimit = 32 * 1024 * 1024
+
 
     private func save() { file.save(sources) }
 }

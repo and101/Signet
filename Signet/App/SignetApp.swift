@@ -45,7 +45,7 @@ struct SignetApp: App {
 /// Handles files and links opened from other apps.
 @MainActor @Observable
 final class Router {
-    enum Tab: Hashable { case library, sources, certificates, settings }
+    enum Tab: Hashable { case library, sources, settings }
 
     var tab: Tab = .library
     var pendingP12: URL?
@@ -57,6 +57,8 @@ final class Router {
     /// A certificate sent to Signet in a link, waiting for the user to agree to add it.
     var pendingIncomingCertificate: CertificateSharing.IncomingCertificate?
     var showAddCertificate = false
+    /// Opens Settings → Certificates, e.g. from the Library's warning about the default certificate.
+    var showCertificates = false
     /// A backup opened from another app, waiting for its password in Settings.
     var pendingBackup: URL?
     /// A `signet://` link waiting for the user to confirm it.
@@ -107,18 +109,19 @@ final class Router {
             .queryItems?.first(where: { $0.name == "url" })?.value else { return }
         // Any web page can open these links, so nothing happens until the user confirms.
         guard let link = Self.link(host: url.host, target: target) else {
-            message = String(localized: "Signet can only open http and https links.")
+            message = String(localized: "That isn't a web link.")
             return
         }
         pendingLink = link
     }
 
     /// Parses a `signet://` link's target, accepting only web URLs. Returns nil for unknown hosts or other schemes.
-    nonisolated static func link(host: String?, target: String) -> PendingLink? {
+    /// An http target is accepted when it can be fetched (over https unless Allow HTTP is on, like a pasted link); the
+    /// link keeps the original URL, which the stores resolve and use to match sources and downloads.
+    nonisolated static func link(host: String?, target: String, http: Bool = DownloadPolicy.httpAllowed) -> PendingLink? {
         let trimmed = target.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let remote = URL(string: trimmed),
-              let scheme = remote.scheme?.lowercased(), scheme == "http" || scheme == "https",
-              remote.host?.isEmpty == false else { return nil }
+              DownloadPolicy.allows(DownloadPolicy.resolved(remote, http: http), http: http) else { return nil }
         switch host {
         case "source": return .source(remote)
         case "install", "download": return .download(remote)
@@ -159,7 +162,6 @@ final class Router {
             pendingP12 = p12
             pendingProfile = profile
             pendingPassword = incoming.password
-            tab = .certificates
             showAddCertificate = true
         } catch {
             message = error.localizedDescription
@@ -206,11 +208,9 @@ final class Router {
             }
         case "p12":
             pendingP12 = copy
-            tab = .certificates
             showAddCertificate = true
         case "mobileprovision":
             pendingProfile = copy
-            tab = .certificates
             showAddCertificate = true
         case Backup.fileExtension:
             pendingBackup = copy

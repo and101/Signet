@@ -81,6 +81,46 @@ final class SigningPipelineTests: XCTestCase {
         if let matches = cert.certificateMatchesProfile { XCTAssertTrue(matches) }
     }
 
+    func testKnownCertificateProfileMismatchStopsBeforeSigning() async throws {
+        let app = try AppImporter.importIPA(at: fixture("Fixture.ipa"))
+        defer { try? FileManager.default.removeItem(at: app.directory) }
+        var cert = try CertificateImporter.importCertificate(
+            p12: fixture("test.p12"), profile: fixture("test.mobileprovision"), password: "fixture", nickname: "")
+        defer { try? FileManager.default.removeItem(at: cert.directory); Keychain.delete(cert.id.uuidString) }
+        cert.certificateMatchesProfile = false
+        // A stale flag alone doesn't block signing: the files are re-checked. Make them really mismatch by giving the
+        // stored profile a different developer certificate.
+        let profileData = try Data(contentsOf: cert.profileURL)
+        let start = try XCTUnwrap(profileData.range(of: Data("<?xml".utf8)))
+        let end = try XCTUnwrap(profileData.range(of: Data("</plist>".utf8)))
+        var plist = try XCTUnwrap(PropertyListSerialization.propertyList(
+            from: profileData.subdata(in: start.lowerBound..<end.upperBound), format: nil) as? [String: Any])
+        plist["DeveloperCertificates"] = [Data([1, 2, 3])]
+        try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0).write(to: cert.profileURL)
+        do {
+            _ = try await Signer.shared.sign(app, with: cert, options: SigningOptions(), log: { _ in })
+            XCTFail("A known mismatch must be rejected")
+        } catch {
+            XCTAssertTrue(error.localizedDescription.contains("isn't included"), error.localizedDescription)
+        }
+    }
+
+    func testStaleMismatchFlagIsRecheckedAgainstTheFiles() async throws {
+        let app = try AppImporter.importIPA(at: fixture("Fixture.ipa"))
+        defer { try? FileManager.default.removeItem(at: app.directory) }
+        var cert = try CertificateImporter.importCertificate(
+            p12: fixture("test.p12"), profile: fixture("test.mobileprovision"), password: "fixture", nickname: "")
+        defer { try? FileManager.default.removeItem(at: cert.directory); Keychain.delete(cert.id.uuidString) }
+        let fresh = CertificateImporter.certificateMatches(p12: cert.p12URL, password: "fixture",
+                                                           profile: try ProvisioningProfile(url: cert.profileURL))
+        guard fresh == true else { throw XCTSkip("Security.framework can't read the fixture p12 here") }
+        // e.g. restored verbatim by 1.1: the pair matches, but the saved flag says it doesn't. Signing must go ahead.
+        cert.certificateMatchesProfile = false
+        let signed = try await Signer.shared.sign(app, with: cert, options: SigningOptions(), log: { _ in })
+        defer { try? FileManager.default.removeItem(at: signed.directory) }
+        XCTAssertTrue(FileManager.default.fileExists(atPath: signed.ipaURL.path))
+    }
+
     func testWrongPasswordIsRejected() throws {
         XCTAssertThrowsError(try CertificateImporter.importCertificate(
             p12: fixture("test.p12"), profile: fixture("test.mobileprovision"), password: "nope", nickname: ""))

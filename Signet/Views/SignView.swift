@@ -15,6 +15,8 @@ struct SignView: View {
     @State private var certificateID: UUID?
     @State private var automaticBundleID: String?
     @State private var iconItem: PhotosPickerItem?
+    /// The icon file being read and scaled, if any; cleared by any other icon choice so a slow file can't override it.
+    @State private var iconFilePick: UUID?
     @State private var showPhotoPicker = false
     @State private var showIconFilePicker = false
     @State private var alternateIcons: [(name: String, image: UIImage, thumbnail: UIImage)] = []
@@ -36,6 +38,8 @@ struct SignView: View {
     @State private var renamedByRule = false
     @State private var appliedRepoDefaults = false
     @FocusState private var isEditing: Bool
+    /// Whether a page under Advanced is showing, so errors are shown there rather than on the covered form.
+    @State private var onAdvancedPage = false
 
     private let bundleIDRow = "bundleID"
 
@@ -67,7 +71,6 @@ struct SignView: View {
             Section {
                 if certificates.certificates.isEmpty {
                     Button("Add a Certificate") {
-                        router.tab = .certificates
                         router.showAddCertificate = true
                     }
                 } else {
@@ -102,7 +105,7 @@ struct SignView: View {
                     .keyboardType(.decimalPad)
                 iconRow
                 if options.customIcon != nil {
-                    Button("Reset Icon", role: .destructive) { options.customIcon = nil; iconItem = nil }
+                    Button("Reset Icon", role: .destructive) { options.customIcon = nil; iconItem = nil; iconFilePick = nil }
                 }
             } header: {
                 Text("Customize")
@@ -116,123 +119,36 @@ struct SignView: View {
                 } else if let repoDefaults {
                     Text("Using defaults from \(repoDefaults.fullName).")
                 } else if renamedByRule {
-                    Text("Renamed by your rules in Settings → Default Signing Options.")
+                    Text("Renamed by your rules in Settings → Default Options.")
                 }
             }
 
             Section {
-                ForEach(options.injectFiles, id: \.self) { file in
-                    Label(file.lastPathComponent, systemImage: tweakIcon(for: file))
+                NavigationLink { advancedPage("Tweaks") { tweaksSection } } label: {
+                    LabeledContent("Tweaks", value: options.injectFiles.isEmpty ? String(localized: "None") : "\(options.injectFiles.count)")
                 }
-                .onDelete { offsets in
-                    for file in offsets.map({ options.injectFiles[$0] }) { Paths.removeIfTemporary(file) }
-                    options.injectFiles.remove(atOffsets: offsets)
+                if !existingDylibs.isEmpty || !removableItems.isEmpty {
+                    NavigationLink { advancedPage("Remove From App") { removalSections } } label: {
+                        LabeledContent("Remove From App", value: removalCount == 0 ? String(localized: "None") : "\(removalCount)")
+                    }
                 }
-                Button { showTweakPicker = true } label: { Label("Add .dylib, .framework or .deb", systemImage: "plus") }
-                if !options.injectFiles.isEmpty {
-                    Toggle("Weak Inject", isOn: $options.weakInject)
-                    Toggle("Fix Jailbreak Paths", isOn: $options.fixSubstratePaths)
-                    Toggle("Add ElleKit When Needed", isOn: $options.bundleElleKit)
-                    Toggle("Inject Into Extensions", isOn: $options.injectIntoExtensions)
+                NavigationLink { advancedPage("Appearance") { appearanceSection } } label: {
+                    LabeledContent("Appearance", value: options.interfaceStyle == .unchanged && options.appearance == .unchanged
+                                   ? String(localized: "Unchanged") : String(localized: "Custom"))
+                }
+                NavigationLink { advancedPage("Entitlements") { entitlementsSection } } label: {
+                    LabeledContent("Entitlements", value: options.entitlementsFile?.lastPathComponent ?? String(localized: "From Profile"))
+                }
+                NavigationLink { advancedPage("Options") { SigningToggles(options: $options) } } label: {
+                    Text("Options")
                 }
             } header: {
-                Text("Inject Tweaks")
+                Text("Advanced")
             } footer: {
-                Text("Zip a .framework in Files before adding it. ElleKit is added when needed.")
-            }
-
-            if !existingDylibs.isEmpty {
-                Section {
-                    ForEach(existingDylibs, id: \.self) { dylib in
-                        Toggle(isOn: Binding(
-                            get: { options.removeLoadCommands.contains(dylib) },
-                            set: { remove in
-                                options.removeLoadCommands.removeAll { $0 == dylib }
-                                if remove { options.removeLoadCommands.append(dylib) }
-                            }
-                        )) {
-                            Text(dylib).font(.caption.monospaced()).lineLimit(2)
-                        }
-                    }
-                } header: {
-                    Text("Remove Load Commands")
-                } footer: {
-                    Text("Removes dylibs from the app, like tweaks already injected.")
+                if !ungrantedEntitlements.isEmpty {
+                    Text("Your profile doesn't grant some custom entitlements, so iOS will refuse to install the app.")
+                        .foregroundStyle(.orange)
                 }
-            }
-
-            if !removableItems.isEmpty {
-                Section {
-                    ForEach(removableItems, id: \.path) { item in
-                        removalRow(item)
-                    }
-                } header: {
-                    Text("Remove From App")
-                } footer: {
-                    Text("Removing a framework the app uses makes it crash when it opens.")
-                }
-            }
-
-            Section {
-                Picker("Interface", selection: $options.interfaceStyle) {
-                    Text("Unchanged").tag(SigningOptions.InterfaceStyle.unchanged)
-                    Text("Classic").tag(SigningOptions.InterfaceStyle.classic)
-                    Text("Liquid Glass").tag(SigningOptions.InterfaceStyle.liquidGlass)
-                }
-                Picker("Light or Dark", selection: $options.appearance) {
-                    Text("Unchanged").tag(SigningOptions.Appearance.unchanged)
-                    Text("Always Light").tag(SigningOptions.Appearance.light)
-                    Text("Always Dark").tag(SigningOptions.Appearance.dark)
-                }
-            } header: {
-                Text("Appearance")
-            } footer: {
-                switch options.interfaceStyle {
-                case .unchanged: EmptyView()
-                case .classic: Text("Keeps the look from before iOS 26. Only affects apps built for iOS 26.")
-                case .liquidGlass: Text("Marks the app as built for iOS 26 so it gets Liquid Glass. Some apps may break.")
-                }
-            }
-
-            Section {
-                if let file = options.entitlementsFile {
-                    LabeledContent("Custom Entitlements", value: file.lastPathComponent)
-                    Button("Remove Custom Entitlements", role: .destructive) {
-                        Paths.removeIfTemporary(file)
-                        options.entitlementsFile = nil
-                    }
-                } else {
-                    Button { showEntitlementsPicker = true } label: { Label("Use an Entitlements File", systemImage: "doc.badge.gearshape") }
-                        // On the button rather than the form, which already has the tweak picker's sheet.
-                        .copyingFileImporter(isPresented: $showEntitlementsPicker, allowedContentTypes: [.propertyList, .xml, .data]) { urls in
-                            guard let url = urls.first else { return }
-                            do {
-                                _ = try EntitlementsMerger.read(url)
-                                options.entitlementsFile = url
-                            } catch {
-                                Paths.removeIfTemporary(url)
-                                self.error = error.localizedDescription
-                            }
-                        }
-                }
-            } header: {
-                Text("Entitlements")
-            } footer: {
-                if options.entitlementsFile != nil {
-                    let missing = ungrantedEntitlements
-                    if missing.isEmpty {
-                        Text("Used instead of the profile's entitlements. Merge App Entitlements is ignored.")
-                    } else {
-                        Text("Your profile doesn't grant \(missing.joined(separator: ", ")), so iOS will refuse to install the app.")
-                            .foregroundStyle(.orange)
-                    }
-                } else {
-                    Text("Optional. By default, apps get the profile's entitlements, or merged ones if that's on.")
-                }
-            }
-
-            Section("Options") {
-                SigningToggles(options: $options)
             }
 
             if !log.isEmpty, !signing {
@@ -254,7 +170,7 @@ struct SignView: View {
                         Label("Export Without Signing", systemImage: "square.and.arrow.up")
                     }
                 } label: {
-                    Label("More", systemImage: "ellipsis.circle")
+                    Label("More", systemImage: "ellipsis")
                 }
                 .disabled(signing)
             }
@@ -314,21 +230,166 @@ struct SignView: View {
         .onChange(of: iconItem) { _, item in
             // Cleared when another source picks the icon; that choice must stand.
             guard let item else { return }
+            iconFilePick = nil
             Task {
-                if let data = try? await item.loadTransferable(type: Data.self), iconItem == item {
-                    options.customIcon = data
+                // Scaled to icon size when chosen, so a full-size photo isn't kept or decoded again.
+                guard let data = try? await item.loadTransferable(type: Data.self), iconItem == item else { return }
+                let icon = await Task.detached(operation: { IconImage.normalizedCustomIcon(data) }).value
+                // Checked again after scaling: another icon may have been chosen meanwhile, and that choice stands.
+                guard iconItem == item else { return }
+                guard let icon else {
+                    error = "That photo isn't an image Signet can use."
+                    return
                 }
+                options.customIcon = icon
             }
         }
-        .copyingFileImporter(isPresented: $showTweakPicker, allowedContentTypes: [.dylib, .zip, .data], allowsMultipleSelection: true) { urls in
-            for url in urls {
-                do { options.injectFiles.append(contentsOf: try TweakInjector.unpackPicked(url)) } catch { self.error = error.localizedDescription }
-            }
-        }
-        .alert("Signing Failed", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
+        .alert("Signing Failed", isPresented: Binding(get: { !onAdvancedPage && error != nil }, set: { if !$0 { error = nil } })) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(error ?? "")
+        }
+    }
+
+    // MARK: - Advanced pages
+
+    /// Removals chosen on the Remove From App page.
+    private var removalCount: Int {
+        let removable = Set(removableItems.map(\.path))
+        return options.removeLoadCommands.filter(existingDylibs.contains).count
+            + options.removePaths.filter(removable.contains).count
+    }
+
+    /// A page under Advanced. Errors from its pickers show here, since the sign form underneath can't present.
+    private func advancedPage<Content: View>(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
+        Form { content() }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .onAppear { onAdvancedPage = true }
+            .onDisappear { onAdvancedPage = false }
+            .alert("Couldn't Add File", isPresented: Binding(get: { onAdvancedPage && error != nil }, set: { if !$0 { error = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(error ?? "")
+            }
+    }
+
+    @ViewBuilder private var tweaksSection: some View {
+        Section {
+            ForEach(options.injectFiles, id: \.self) { file in
+                Label(file.lastPathComponent, systemImage: tweakIcon(for: file))
+            }
+            .onDelete { offsets in
+                for file in offsets.map({ options.injectFiles[$0] }) { Paths.removeIfTemporary(file) }
+                options.injectFiles.remove(atOffsets: offsets)
+            }
+            Button { showTweakPicker = true } label: { Label("Add .dylib, .framework or .deb", systemImage: "plus") }
+                .copyingFileImporter(isPresented: $showTweakPicker, allowedContentTypes: [.dylib, .zip, .data], allowsMultipleSelection: true) { urls in
+                    for url in urls {
+                        do { options.injectFiles.append(contentsOf: try TweakInjector.unpackPicked(url)) } catch { self.error = error.localizedDescription }
+                    }
+                }
+            if !options.injectFiles.isEmpty {
+                Toggle("Weak Inject", isOn: $options.weakInject)
+                Toggle("Fix Jailbreak Paths", isOn: $options.fixSubstratePaths)
+                Toggle("Add ElleKit When Needed", isOn: $options.bundleElleKit)
+                Toggle("Inject Into Extensions", isOn: $options.injectIntoExtensions)
+            }
+        } header: {
+            Text("Inject Tweaks")
+        } footer: {
+            Text("Zip a .framework in Files before adding it. ElleKit is added when needed.")
+        }
+    }
+
+    @ViewBuilder private var removalSections: some View {
+        if !existingDylibs.isEmpty {
+            Section {
+                ForEach(existingDylibs, id: \.self) { dylib in
+                    Toggle(isOn: Binding(
+                        get: { options.removeLoadCommands.contains(dylib) },
+                        set: { remove in
+                            options.removeLoadCommands.removeAll { $0 == dylib }
+                            if remove { options.removeLoadCommands.append(dylib) }
+                        }
+                    )) {
+                        Text(dylib).font(.caption.monospaced()).lineLimit(2)
+                    }
+                }
+            } header: {
+                Text("Remove Load Commands")
+            } footer: {
+                Text("Removes dylibs from the app, like tweaks already injected.")
+            }
+        }
+
+        if !removableItems.isEmpty {
+            Section {
+                ForEach(removableItems, id: \.path) { item in
+                    removalRow(item)
+                }
+            } header: {
+                Text("Frameworks & Extensions")
+            } footer: {
+                Text("Removing a framework the app uses makes it crash when it opens.")
+            }
+        }
+    }
+
+    @ViewBuilder private var appearanceSection: some View {
+        Section {
+            Picker("Interface", selection: $options.interfaceStyle) {
+                Text("Unchanged").tag(SigningOptions.InterfaceStyle.unchanged)
+                Text("Classic").tag(SigningOptions.InterfaceStyle.classic)
+                Text("Liquid Glass").tag(SigningOptions.InterfaceStyle.liquidGlass)
+            }
+            Picker("Light or Dark", selection: $options.appearance) {
+                Text("Unchanged").tag(SigningOptions.Appearance.unchanged)
+                Text("Always Light").tag(SigningOptions.Appearance.light)
+                Text("Always Dark").tag(SigningOptions.Appearance.dark)
+            }
+        } footer: {
+            switch options.interfaceStyle {
+            case .unchanged: EmptyView()
+            case .classic: Text("Keeps the look from before iOS 26. Only affects apps built for iOS 26.")
+            case .liquidGlass: Text("Marks the app as built for iOS 26 so it gets Liquid Glass. Some apps may break.")
+            }
+        }
+    }
+
+    @ViewBuilder private var entitlementsSection: some View {
+        Section {
+            if let file = options.entitlementsFile {
+                LabeledContent("Custom Entitlements", value: file.lastPathComponent)
+                Button("Remove Custom Entitlements", role: .destructive) {
+                    Paths.removeIfTemporary(file)
+                    options.entitlementsFile = nil
+                }
+            } else {
+                Button { showEntitlementsPicker = true } label: { Label("Use an Entitlements File", systemImage: "doc.badge.gearshape") }
+                    .copyingFileImporter(isPresented: $showEntitlementsPicker, allowedContentTypes: [.propertyList, .xml, .data]) { urls in
+                        guard let url = urls.first else { return }
+                        do {
+                            _ = try EntitlementsMerger.read(url)
+                            options.entitlementsFile = url
+                        } catch {
+                            Paths.removeIfTemporary(url)
+                            self.error = error.localizedDescription
+                        }
+                    }
+            }
+        } footer: {
+            if options.entitlementsFile != nil {
+                let missing = ungrantedEntitlements
+                if missing.isEmpty {
+                    Text("Used instead of the profile's entitlements. Merge App Entitlements is ignored.")
+                } else {
+                    Text("Your profile doesn't grant \(missing.joined(separator: ", ")), so iOS will refuse to install the app.")
+                        .foregroundStyle(.orange)
+                }
+            } else {
+                Text("Optional. By default, apps get the profile's entitlements, or merged ones if that's on.")
+            }
         }
     }
 
@@ -341,6 +402,7 @@ struct SignView: View {
                     ForEach(alternateIcons, id: \.name) { icon in
                         Button {
                             iconItem = nil
+                            iconFilePick = nil
                             options.customIcon = icon.image.pngData()
                         } label: {
                             Label { Text(icon.name) } icon: { Image(uiImage: icon.thumbnail) }
@@ -363,13 +425,22 @@ struct SignView: View {
         // Attached here rather than to the form, which already has the tweak picker's sheet.
         .copyingFileImporter(isPresented: $showIconFilePicker, allowedContentTypes: [.image]) { urls in
             guard let url = urls.first else { return }
-            defer { Paths.removeIfTemporary(url) }
-            guard let data = try? Data(contentsOf: url), UIImage(data: data) != nil else {
-                error = "That file isn't an image Signet can read."
-                return
-            }
             iconItem = nil
-            options.customIcon = data
+            // Read and scaled off the main thread; a later choice made meanwhile wins.
+            let pick = UUID()
+            iconFilePick = pick
+            Task {
+                let icon = await Task.detached(operation: { () -> Data? in
+                    defer { Paths.removeIfTemporary(url) }
+                    return (try? Data(contentsOf: url)).flatMap(IconImage.normalizedCustomIcon)
+                }).value
+                guard iconFilePick == pick, iconItem == nil else { return }
+                guard let icon else {
+                    error = "That file isn't an image Signet can read."
+                    return
+                }
+                options.customIcon = icon
+            }
         }
     }
 
@@ -486,7 +557,7 @@ struct SignView: View {
             } icon: {
                 switch item.kind {
                 case .appExtension: Image(systemName: "puzzlepiece.extension")
-                case .framework: Image(systemName: "shippingbox")
+                case .framework: Image(systemName: "square.stack.3d.up")
                 case .library: Image(systemName: "doc")
                 }
             }
@@ -504,9 +575,9 @@ struct SignView: View {
 
     private func tweakIcon(for file: URL) -> String {
         switch file.pathExtension.lowercased() {
-        case "framework": "shippingbox"
+        case "framework": "square.stack.3d.up"
         case "deb": "archivebox"
-        default: "puzzlepiece.extension"
+        default: "doc"
         }
     }
 
@@ -544,6 +615,7 @@ struct SignView: View {
     }
 
     private func useDefaults() {
+        iconFilePick = nil
         options = SigningOptions.defaults
         previousSigning = nil
         iconItem = nil
@@ -673,24 +745,42 @@ private struct ExportedIPASheet: View {
     }
 }
 
-/// Behaviour toggles shared by the sign screen and the defaults screen in Settings.
+/// Behaviour toggles shared by the sign screen and the defaults screen in Settings, in their own sections.
 struct SigningToggles: View {
     @Binding var options: SigningOptions
+    /// Footer for the last section, e.g. how the defaults screen's values are used.
+    var note: LocalizedStringKey?
 
     var body: some View {
-        Toggle("Remove Device Restrictions", isOn: $options.removeSupportedDevices)
-        Toggle("Enable File Sharing", isOn: $options.enableFileSharing)
-        Toggle("Remove URL Schemes", isOn: $options.removeURLSchemes)
-        Toggle("Remove App Extensions", isOn: $options.removePlugins)
-        Toggle("Remove Watch App", isOn: $options.removeWatchApp)
-        Toggle("Force Full Screen (iPad)", isOn: $options.forceFullScreen)
-        Toggle("Enable ProMotion (120 Hz)", isOn: $options.enableProMotion)
-        Toggle("Enable Game Mode", isOn: $options.enableGameMode)
-        Toggle("Don't Embed Provisioning Profile", isOn: $options.removeProvisioningFile)
-        Toggle("Merge App Entitlements", isOn: $options.mergeEntitlements)
-        Toggle("Compress IPA", isOn: $options.compressIPA)
-        Toggle("Install After Signing", isOn: $options.installAfterSigning)
-        Toggle("Delete Original After Signing", isOn: $options.deleteOriginalAfterSigning)
-        Toggle("Add Suffix for PPQ Certificates", isOn: $options.ppqProtection)
+        Section("App") {
+            Toggle("Remove Device Restrictions", isOn: $options.removeSupportedDevices)
+            Toggle("Enable File Sharing", isOn: $options.enableFileSharing)
+            Toggle("Force Full Screen (iPad)", isOn: $options.forceFullScreen)
+            Toggle("Enable ProMotion (120 Hz)", isOn: $options.enableProMotion)
+            Toggle("Enable Game Mode", isOn: $options.enableGameMode)
+        }
+        Section("Remove") {
+            Toggle("URL Schemes", isOn: $options.removeURLSchemes)
+            Toggle("App Extensions", isOn: $options.removePlugins)
+            Toggle("Watch App", isOn: $options.removeWatchApp)
+        }
+        Section {
+            Toggle("Merge App Entitlements", isOn: $options.mergeEntitlements)
+            Toggle("Don't Embed Provisioning Profile", isOn: $options.removeProvisioningFile)
+            Toggle("Add Suffix for PPQ Certificates", isOn: $options.ppqProtection)
+        } header: {
+            Text("Signing")
+        } footer: {
+            Text("The suffix stops a signed app sharing an App Store app's ID, which can get the certificate revoked.")
+        }
+        Section {
+            Toggle("Compress IPA", isOn: $options.compressIPA)
+            Toggle("Install After Signing", isOn: $options.installAfterSigning)
+            Toggle("Delete Original After Signing", isOn: $options.deleteOriginalAfterSigning)
+        } header: {
+            Text("After Signing")
+        } footer: {
+            if let note { Text(note) }
+        }
     }
 }
