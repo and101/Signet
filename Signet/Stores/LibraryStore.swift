@@ -175,7 +175,9 @@ final class LibraryStore {
         downloads.first { $0.url == url }
     }
 
+    /// Does nothing once the IPA is being imported, which can't be stopped.
     func cancel(_ download: Download) {
+        guard !download.isImporting else { return }
         download.onFailed?()
         download.onFailed = nil
         download.task?.cancel()
@@ -188,6 +190,8 @@ final class LibraryStore {
             downloads.removeAll { $0.id == download.id }
         }
         if let error = error as? URLError, error.code == .cancelled { return }
+        // Cancelled just as the download finished: the file is here, but it's no longer wanted.
+        guard downloads.contains(where: { $0.id == download.id }) else { return }
         guard let file, error == nil, (200..<300).contains(status) else {
             download.onFailed?()
             if let urlError = error as? URLError, download.url.scheme?.lowercased() == "http", !DownloadPolicy.httpAllowed,

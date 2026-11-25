@@ -69,9 +69,13 @@ struct LibraryView: View {
                 if !library.downloads.isEmpty {
                     Section("Downloads") {
                         ForEach(library.downloads) { download in
-                            DownloadRow(download: download)
-                                .selectionDisabled()
-                                .swipeToDelete("Cancel", systemImage: "xmark") { downloadToCancel = download }
+                            if download.isImporting {
+                                DownloadRow(download: download).selectionDisabled()
+                            } else {
+                                DownloadRow(download: download)
+                                    .selectionDisabled()
+                                    .swipeToDelete("Cancel", systemImage: "xmark") { downloadToCancel = download }
+                            }
                         }
                     }
                 }
@@ -306,7 +310,7 @@ private struct DownloadRow: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(download.name).lineLimit(1)
             ProgressView(value: download.progress)
-            Text(download.expected > 0
+            Text(download.expected > 0 && !download.isImporting
                  ? "\(download.received.formattedBytes) of \(download.expected.formattedBytes)"
                  : download.status)
                 .font(.footnote).foregroundStyle(.secondary)

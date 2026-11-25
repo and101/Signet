@@ -186,7 +186,7 @@ int zsign(
 	bool bForce = true;
 	bool bWeakInject = false;
 	bool bAdhoc = adhoc;
-	bool bSHA256Only = false;
+	bool bSHA256Only = true; // PATCH(signet): SHA-256 only, as upstream now defaults to (iOS 11+)
 	
 	string strCertFile;
 	string strPKeyFile;
@@ -272,26 +272,28 @@ int checkCert(
 		completionHandler(2, nil, @"Error loading certificate");
 		return -4;
 	}
-	BIO *brother1;
-	unsigned long issuerHash = X509_issuer_name_hash((X509*)cert);
-	if (0x817d2f7a == issuerHash) {
-		brother1 = BIO_new_mem_buf(ZSignAsset::s_szAppleDevCACert, (int)strlen(ZSignAsset::s_szAppleDevCACert));
-	} else if (0x9b16b75c == issuerHash) {
-		brother1 = BIO_new_mem_buf(ZSignAsset::s_szAppleDevCACertG3, (int)strlen(ZSignAsset::s_szAppleDevCACertG3));
-	} else {
-		completionHandler(2, nil, @"Unable to determine issuer of the certificate. It is signed by Apple Developer?");
-		return -2;
+	// PATCH(signet): the issuers signing accepts (the p12's own CA chain, or any embedded WWDR intermediate), not just
+	// G1 and G3. `issuer` is owned here either way.
+	X509 *issuer = NULL;
+	STACK_OF(X509) *caCerts = (STACK_OF(X509) *)zsa.m_caCerts;
+	for (int i = 0; caCerts && i < sk_X509_num(caCerts); i++) {
+		X509 *candidate = sk_X509_value(caCerts, i);
+		if (X509_check_issued(candidate, cert) == X509_V_OK && X509_up_ref(candidate)) {
+			issuer = candidate;
+			break;
+		}
 	}
-		
-	if (!brother1)
-	{
-		completionHandler(2, nil, @"Unable to initialize issuer certificate.");
-		return -3;
+	if (!issuer) {
+		const char *issuerPEM = ZSignAsset::WWDRIntermediatePEM(X509_issuer_name_hash(cert));
+		if (!issuerPEM) {
+			completionHandler(2, nil, @"Unable to determine issuer of the certificate. It is signed by Apple Developer?");
+			return -2;
+		}
+		BIO *issuerBIO = BIO_new_mem_buf(issuerPEM, (int)strlen(issuerPEM));
+		issuer = issuerBIO ? PEM_read_bio_X509(issuerBIO, NULL, 0, NULL) : NULL;
+		BIO_free(issuerBIO);
 	}
-		
-	X509 *issuer = PEM_read_bio_X509(brother1, NULL, 0, NULL);
-	
-	if (!cert || !issuer) {
+	if (!issuer) {
 		completionHandler(2, nil, @"Error loading cert or issuer");
 		return -4;
 	}
@@ -338,7 +340,6 @@ int checkCert(
 	}
 	OCSP_REQUEST_free(req);
 	X509_free(issuer);
-	BIO_free(brother1);
 	
 	// Read the date before starting the request, so the asynchronous
 	// completion does not need a borrowed certificate pointer.

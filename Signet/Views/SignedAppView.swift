@@ -148,7 +148,7 @@ struct InstallProgressView: View {
             Text("Signet will close while iOS installs it. Reopen it in a few seconds.")
                 .multilineTextAlignment(.center).font(.callout).foregroundStyle(.secondary)
             if differentTeam {
-                Text("This update is signed by a different team, so saved certificate passwords may be lost. Back up first in Settings → Back Up.")
+                Text("This update is signed by a different team, so saved certificate passwords may be lost. Back up first in Settings → Backup & Restore.")
                     .multilineTextAlignment(.center).font(.callout).foregroundStyle(.orange)
             }
             Button("Update Signet") { installer.confirmSelfUpdate() }

@@ -23,4 +23,28 @@ Only `src/`, `swift/`, `Package.swift` and `LICENSE` were copied. Local patches 
    replace, so renaming `com.foo` also changed `com.foobar.ext`. Only the old ID itself and IDs under it
    (`com.foo.widget`) are renamed now.
 
-`SignetTests/SigningPipelineTests` cover both: embedding by default and omitting when requested.
+7. `swift/zsign.mm` — sign with a SHA-256 code directory only, not SHA-1 + SHA-256. Upstream made this the
+   default (`fe1750d`); dual hashes are only needed for iOS 10 and earlier.
+
+8. `swift/zsign.mm` — `checkCert` only knew the WWDR G1 and G3 issuers. It now uses the ones signing accepts: the
+   p12's own CA chain or any embedded intermediate. (`certcheck.cpp` isn't part of the package.)
+9. `src/archo.cpp` — `BuildCodeSignature` ignored failures building the CMS signature and the DER entitlements, so an
+   app with no signature counted as signed. Both now fail signing.
+10. `src/signing.cpp` — DER entitlements: integers were written with their value as the length (and 0 appended 512 MB),
+    and dates, decimals and data hit an assert. Integers are encoded properly; the others fail signing.
+11. `src/archo.cpp` — patch 3 added an integer 0 `keychain-access-groups` to wildcard entitlements without that key.
+
+## Upstream fixes
+
+Picked from https://github.com/zhlynn/zsign (`master`), which the package branch hasn't merged:
+
+- `a98b1ce` — signatures that pass macOS `codesign --verify`.
+- `fe1750d` — DER entitlements in Apple's form (versioned wrapper, sorted keys, `true` as `0xff`). The CLI's
+  SHA-256 default doesn't reach the package; see patch 7.
+- `6c1870f` — support WWDR G2–G8 issuers and prefer the p12's own CA chain.
+- `57e6463` — check that the p12's CA chain issued the leaf and pick a matching root.
+
+The package branch's `src/openssl.h` lacked the G2, G4–G8 and RootCA G3 declarations and `m_caCerts`; they were
+added by hand when applying these.
+
+`SignetTests/SigningPipelineTests` cover patch 1: embedding by default and omitting when requested.

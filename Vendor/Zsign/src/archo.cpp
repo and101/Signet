@@ -357,8 +357,9 @@ bool ZArchO::BuildCodeSignature(ZSignAsset* pSignAsset,
 				return false;
 			}
 			entitlements["application-identifier"] = appId;
-			jvalue& groups = entitlements["keychain-access-groups"];
-			if (groups.is_array()) {
+			// Looked up only if present: [] adds a missing key, which was then signed in as the integer 0.
+			if (entitlements.has("keychain-access-groups") && entitlements["keychain-access-groups"].is_array()) {
+				jvalue& groups = entitlements["keychain-access-groups"];
 				for (size_t i = 0; i < groups.size(); i++) {
 					string group = groups[i].as_cstr();
 					if (!group.empty() && group.back() == '*') {
@@ -374,7 +375,12 @@ bool ZArchO::BuildCodeSignature(ZSignAsset* pSignAsset,
 	}
 	ZSign::SlotBuildRequirements(strBundleId, pSignAsset->m_strSubjectCN, strRequirementsSlot);
 	ZSign::SlotBuildEntitlements(IsExecute() ? strExecutableEntitlements : strEmptyEntitlements, strEntitlementsSlot);
-	ZSign::SlotBuildDerEntitlements(IsExecute() ? strExecutableEntitlements : "", strDerEntitlementsSlot);
+	// PATCH(signet): upstream ignored the result. Only executables carry entitlements; without any there's no slot.
+	if (IsExecute() && !strExecutableEntitlements.empty()
+		&& !ZSign::SlotBuildDerEntitlements(strExecutableEntitlements, strDerEntitlementsSlot)) {
+		ZLog::Error(">>> Can't encode signing entitlements!\n");
+		return false;
+	}
 
 	string strRequirementsSlotSHA1;
 	string strRequirementsSlotSHA256;
@@ -413,14 +419,27 @@ bool ZArchO::BuildCodeSignature(ZSignAsset* pSignAsset,
 
 	uint64_t uExecSegFlags = 0;
 	if (MH_EXECUTE == m_uFileType) {
-		if (pSignAsset->m_bAdhoc || pSignAsset->m_bSingleBinary) {
-			uExecSegFlags = CS_EXECSEG_MAIN_BINARY;
-		}
+		// MAIN_BINARY must be set on the main executable for any signature flavour
+		// (ad-hoc, single-binary, or full CMS). Without it, codesign --verify on
+		// macOS rejects the signature as "invalid".
+		uExecSegFlags = CS_EXECSEG_MAIN_BINARY;
 	}
 
-	if (NULL != strstr(strEntitlementsSlot.data() + 8, "<key>get-task-allow</key>")) {
-		// TODO: Check if get-task-allow is actually set to true
-		uExecSegFlags |= CS_EXECSEG_MAIN_BINARY | CS_EXECSEG_ALLOW_UNSIGNED;
+	// ALLOW_UNSIGNED is a development-only flag. It must be set *only* when
+	// get-task-allow is actually true (debug build), not merely present in
+	// the entitlements plist. Distribution profiles include
+	// <key>get-task-allow</key><false/> and must keep this flag cleared — Apple
+	// codesign never sets ALLOW_UNSIGNED for such signatures.
+	if (!strEntitlementsSlot.empty()) {
+		const char* pEnt = strEntitlementsSlot.data() + 8; // skip blob header
+		const char* pKey = strstr(pEnt, "<key>get-task-allow</key>");
+		if (NULL != pKey) {
+			const char* pTrue  = strstr(pKey, "<true/>");
+			const char* pFalse = strstr(pKey, "<false/>");
+			if (NULL != pTrue && (NULL == pFalse || pTrue < pFalse)) {
+				uExecSegFlags |= CS_EXECSEG_ALLOW_UNSIGNED;
+			}
+		}
 	}
 
 	string strCodeDirectorySlot;
@@ -470,7 +489,11 @@ bool ZArchO::BuildCodeSignature(ZSignAsset* pSignAsset,
 
 	string strCMSSignatureSlot;
 	if (!pSignAsset->m_bAdhoc) { //adhoc remove cms signature slot
-		ZSign::SlotBuildCMSSignature(pSignAsset, strCodeDirectorySlot, strAltnateCodeDirectorySlot, strCMSSignatureSlot);
+		// PATCH(signet): upstream ignored the result, so an app without a signature counted as signed.
+		if (!ZSign::SlotBuildCMSSignature(pSignAsset, strCodeDirectorySlot, strAltnateCodeDirectorySlot, strCMSSignatureSlot)) {
+			ZLog::Error(">>> Can't build the CMS signature!\n");
+			return false;
+		}
 	}
 
 	uint32_t uCodeDirectorySlotLength = (uint32_t)strCodeDirectorySlot.size();

@@ -219,8 +219,9 @@ struct SourceAppsView: View {
                         .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                     }
                 }
+                // With a single app, Featured would only repeat the list below.
                 let featured = repository.featured
-                if !featured.isEmpty {
+                if apps.count > 1, !featured.isEmpty {
                     Section("Featured") {
                         ForEach(featured) { app in appRow(app) }
                     }

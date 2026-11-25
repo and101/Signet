@@ -12,8 +12,8 @@ settings:
     # Text is extracted into Signet/Resources/Localizable.xcstrings at build time, ready for translation.
     SWIFT_EMIT_LOC_STRINGS: YES
     LOCALIZATION_PREFERS_STRING_CATALOGS: YES
-    MARKETING_VERSION: "1.2"
-    CURRENT_PROJECT_VERSION: "3"
+    MARKETING_VERSION: "1.2.1"
+    CURRENT_PROJECT_VERSION: "4"
     DEVELOPMENT_TEAM: ""
     CODE_SIGN_STYLE: Automatic
 

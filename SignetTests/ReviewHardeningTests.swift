@@ -518,6 +518,59 @@ final class ReviewHardeningTests: XCTestCase {
         XCTAssertThrowsError(try EntitlementsMerger.read(link), "Links aren't followed")
     }
 
+    func testEntitlementsFilesOnlyHoldValuesThatCanBeSigned() throws {
+        let root = try Paths.newTempDirectory()
+        defer { Paths.removeIfTemporary(root) }
+        let file = root.appendingPathComponent("custom.plist")
+        func read(_ value: Any) throws {
+            try PropertyListSerialization.data(fromPropertyList: ["key": value], format: .xml, options: 0).write(to: file)
+            _ = try EntitlementsMerger.read(file)
+        }
+        for value in [true, 0, 70_000, "text", ["a", "b"], ["nested": [1, false]]] as [Any] {
+            XCTAssertNoThrow(try read(value), "\(value)")
+        }
+        for value in [Date(), 1.5, Data([1]), [Date()], ["nested": [1.5]]] as [Any] {
+            XCTAssertThrowsError(try read(value), "\(value)")
+        }
+    }
+
+    @MainActor
+    func testImportingDownloadsCantBeCancelled() throws {
+        let library = LibraryStore()
+        let download = LibraryStore.Download(url: try XCTUnwrap(URL(string: "https://example.com/app.ipa")), name: "App")
+        var failed = false
+        download.onFailed = { failed = true }
+        library.downloads.append(download)
+        download.isImporting = true
+        library.cancel(download)
+        XCTAssertFalse(failed)
+        XCTAssertEqual(library.downloads.count, 1)
+        download.isImporting = false
+        library.cancel(download)
+        XCTAssertTrue(failed)
+        XCTAssertTrue(library.downloads.isEmpty)
+    }
+
+    @MainActor
+    func testBlankNicknamesKeepTheCurrentOne() {
+        let store = CertificateStore()
+        let record = CertificateRecord(
+            nickname: "Mine", certificateName: "", teamName: "", teamID: "TEAM000001", profileName: "",
+            applicationIdentifier: "TEAM000001.*", creationDate: Date(), expirationDate: Date(),
+            provisionsAllDevices: false, entitlements: [:])
+        store.restore(record)
+        defer { store.delete(record.id) }
+        store.rename(record.id, to: "  ")
+        XCTAssertEqual(store.certificate(record.id)?.nickname, "Mine")
+        store.rename(record.id, to: " New ")
+        XCTAssertEqual(store.certificate(record.id)?.nickname, "New")
+    }
+
+    func testTypedVersionsUseDots() {
+        XCTAssertEqual(SigningOptions.versionWithDots("16,0"), "16.0")
+        XCTAssertEqual(SigningOptions.versionWithDots("1\u{066B}2.3"), "1.2.3")
+    }
+
     func testCustomIconsOfAnySizeAreScaledDown() throws {
         let root = try Paths.newTempDirectory()
         defer { Paths.removeIfTemporary(root) }

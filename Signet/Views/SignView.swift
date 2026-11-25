@@ -99,9 +99,9 @@ struct SignView: View {
                 if let detection {
                     installedAppRow(detection)
                 }
-                field("Version", text: $options.version, placeholder: app.version)
+                field("Version", text: versionText($options.version), placeholder: app.version)
                     .keyboardType(.decimalPad)
-                field("Minimum iOS", text: $options.minimumOSVersion, placeholder: app.minimumOSVersion ?? "Unchanged")
+                field("Minimum iOS", text: versionText($options.minimumOSVersion), placeholder: app.minimumOSVersion ?? "Unchanged")
                     .keyboardType(.decimalPad)
                 iconRow
                 if options.customIcon != nil {
@@ -470,6 +470,11 @@ struct SignView: View {
             Text(title)
             if let error { Text(error).foregroundStyle(.red) }
         }
+    }
+
+    /// The decimal pad types the region's separator, often a comma; versions always use dots.
+    private func versionText(_ text: Binding<String>) -> Binding<String> {
+        Binding(get: { text.wrappedValue }, set: { text.wrappedValue = SigningOptions.versionWithDots($0) })
     }
 
     /// Offers the bundle ID of an installed copy of this app, so signing updates it instead of adding another.

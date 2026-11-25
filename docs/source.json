@@ -18,12 +18,12 @@
       "category": "utilities",
       "versions": [
         {
-          "version": "1.2",
-          "buildVersion": "3",
-          "date": "2026-11-20",
-          "localizedDescription": "New\n\n- Simpler layout. Three tabs: Library, Sources and Settings. Certificates now live in Settings.\n- Settings in groups. Signing, Installing, Downloads, Data and About each have their own section.\n- GitHub updates in the Library. New releases from tracked repos appear next to source updates.\n- Simpler Sign screen. Certificate and Customize come first. Tweaks, removals, appearance, entitlements and options are under Advanced.\n- Signing options in groups, on the Sign screen and in Default Options.\n- Install progress bar for both install methods.\n- Allow HTTP. Sources and downloads use HTTPS by default. Turn this on to allow plain http.\n- iPad sidebar on iOS 18 and later.\n- New icons that match iOS.\n- The Library warns you when your default certificate has expired or been revoked.\n\nImproved\n\n- Stricter checks on IPAs, tweaks, icons and backups.\n- The install server can resume interrupted downloads.\n- Going back from a certificate's details now returns to the list.\n\nRequirements\n\niOS 17 or later. Direct install needs LocalDevVPN and a pairing file made on a computer.",
-          "size": 12227655,
-          "downloadURL": "https://github.com/and101/Signet/releases/download/v1.2/Signet.ipa",
+          "version": "1.2.1",
+          "buildVersion": "4",
+          "date": "2026-11-25",
+          "localizedDescription": "Improved\n\n- Signatures and entitlements now match Apple's own format more closely.\n- Signing fails with a message if the signature can't be made, instead of producing an app that won't install.\n- Sources with one app no longer list it twice.\n\nFixed\n\n- Some custom entitlements files could crash Signet or produce an app that won't install.\n- Cancelling a download just as it finishes no longer adds the app.\n- A certificate's nickname can't be left blank.\n- Versions typed with a comma are saved with a dot.\n\nRequirements\n\niOS 17 or later. Direct install needs LocalDevVPN and a pairing file made on a computer.",
+          "size": 12241033,
+          "downloadURL": "https://github.com/and101/Signet/releases/download/v1.2.1/Signet.ipa",
           "minOSVersion": "17.0"
         }
       ],

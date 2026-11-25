@@ -53,8 +53,10 @@ final class CertificateStore {
         save()
     }
 
+    /// A blank nickname is ignored, keeping the current one.
     func rename(_ id: UUID, to nickname: String) {
-        guard let index = certificates.firstIndex(where: { $0.id == id }) else { return }
+        let nickname = nickname.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !nickname.isEmpty, let index = certificates.firstIndex(where: { $0.id == id }) else { return }
         certificates[index].nickname = nickname
         save()
     }

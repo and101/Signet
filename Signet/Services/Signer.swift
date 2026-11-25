@@ -177,7 +177,7 @@ actor Signer {
                     removeProvision: options.removeProvisioningFile
                 )
                 guard ok else {
-                    throw AppError("Signing failed. Check the certificate's password and that it isn't revoked.")
+                    throw AppError("Signing failed. Check that Apple issued the certificate and that it isn't revoked.")
                 }
             } else {
                 log(String(localized: "Applying changes without signing…"))

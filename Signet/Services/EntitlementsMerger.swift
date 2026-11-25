@@ -54,7 +54,22 @@ enum EntitlementsMerger {
               let plist = (try? PropertyListSerialization.propertyList(from: data, format: nil)) as? [String: Any] else {
             throw AppError("\(url.lastPathComponent) isn't an entitlements file. It should be a plist dictionary.")
         }
+        guard isSignable(plist) else {
+            throw AppError("\(url.lastPathComponent) has a date, decimal or data value, which entitlements can't hold.")
+        }
         return plist
+    }
+
+    /// Whether a value is a kind entitlements can hold: text, true/false, whole numbers, arrays and dictionaries.
+    private static func isSignable(_ value: Any) -> Bool {
+        switch value {
+        case is String: return true
+        case let number as NSNumber:
+            return CFGetTypeID(number) == CFBooleanGetTypeID() || !CFNumberIsFloatType(number)
+        case let array as [Any]: return array.allSatisfy(isSignable)
+        case let dictionary as [String: Any]: return dictionary.values.allSatisfy(isSignable)
+        default: return false
+        }
     }
 
     /// Entitlements a custom file claims that the profile doesn't grant. iOS refuses to install an app that claims

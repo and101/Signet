@@ -261,7 +261,10 @@ struct CertificateDetailView: View {
                             .multilineTextAlignment(.trailing)
                             .foregroundStyle(.secondary)
                             .submitLabel(.done)
-                            .onSubmit { store.rename(id, to: nickname) }
+                            .onSubmit {
+                                store.rename(id, to: nickname)
+                                nickname = store.certificate(id)?.nickname ?? nickname
+                            }
                     }
                     LabeledText("Status", statusText(cert))
                     Button {
@@ -345,7 +348,7 @@ struct CertificateDetailView: View {
             .navigationTitle(cert.nickname)
             .navigationBarTitleDisplayMode(.inline)
             .onAppear { nickname = cert.nickname }
-            .onDisappear { if !nickname.isEmpty, nickname != cert.nickname { store.rename(id, to: nickname) } }
+            .onDisappear { if nickname != cert.nickname { store.rename(id, to: nickname) } }
         }
     }
 

@@ -107,6 +107,11 @@ struct SigningOptions: Codable, Equatable {
         return value
     }
 
+    /// A typed version with the decimal separators other regions use turned into dots: "16,0" → "16.0".
+    static func versionWithDots(_ text: String) -> String {
+        text.replacingOccurrences(of: ",", with: ".").replacingOccurrences(of: "\u{066B}", with: ".")
+    }
+
     private static let key = "defaultSigningOptions"
 
     static var defaults: SigningOptions {

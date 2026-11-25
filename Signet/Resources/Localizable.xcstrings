@@ -33,6 +33,9 @@
     "%@ doesn't contain any dylibs or frameworks to inject." : {
 
     },
+    "%@ has a date, decimal or data value, which entitlements can't hold." : {
+
+    },
     "%@ has an unreadable or oversized Info.plist, so it can't be signed." : {
 
     },
@@ -1439,7 +1442,7 @@
     "Signing by zsign (MIT). Only use certificates and apps you're allowed to." : {
 
     },
-    "Signing failed. Check the certificate's password and that it isn't revoked." : {
+    "Signing failed. Check that Apple issued the certificate and that it isn't revoked." : {
 
     },
     "Signing with %@…" : {
@@ -1650,7 +1653,7 @@
     "This source is too large." : {
 
     },
-    "This update is signed by a different team, so saved certificate passwords may be lost. Back up first in Settings → Back Up." : {
+    "This update is signed by a different team, so saved certificate passwords may be lost. Back up first in Settings → Backup & Restore." : {
 
     },
     "Total" : {

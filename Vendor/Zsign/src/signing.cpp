@@ -3,6 +3,7 @@
 #include "mach-o.h"
 #include "openssl.h"
 #include "signing.h"
+#include <algorithm>
 #include <openssl/sha.h>
 
 void ZSign::_DERLength(string& strBlob, uint64_t uLength)
@@ -19,23 +20,26 @@ void ZSign::_DERLength(string& strBlob, uint64_t uLength)
 	}
 }
 
-string ZSign::_DER(const jvalue& data)
+// PATCH(signet): upstream returned a string, asserted on values it can't encode (asserts are live in release builds),
+// wrote an integer's value as its length, and appended 512 MB for a zero.
+bool ZSign::_DER(const jvalue& data, string& strOutput)
 {
-	string strOutput;
 	if (data.is_bool()) {
 		strOutput.append(1, 0x01);
 		strOutput.append(1, 1);
-		strOutput.append(1, data.as_bool() ? 1 : 0);
+		strOutput.append(1, data.as_bool() ? (char)0xff : (char)0x00);
 	} else if (data.is_int()) {
-		uint64_t uVal = data.as_int64();
+		// Two's complement in as few bytes as keep the sign.
+		int64_t nVal = data.as_int64();
+		int nBytes = 1;
+		while (nBytes < 8 && (nVal >> (nBytes * 8 - 1)) != 0 && (nVal >> (nBytes * 8 - 1)) != -1) {
+			nBytes++;
+		}
 		strOutput.append(1, 0x02);
-		_DERLength(strOutput, uVal);
-
-		uint32_t sLength = (64 - ZUtil::builtin_clzll(uVal) + 7) / 8;
-		sLength *= 8;
-		do {
-			strOutput.append(1, (char)(uVal >> (sLength -= 8)));
-		} while (sLength != 0);
+		_DERLength(strOutput, nBytes);
+		for (int i = nBytes - 1; i >= 0; i--) {
+			strOutput.append(1, (char)(nVal >> (i * 8)));
+		}
 	} else if (data.is_string()) {
 		string strVal = data.as_cstr();
 		strOutput.append(1, 0x0c);
@@ -45,43 +49,43 @@ string ZSign::_DER(const jvalue& data)
 		string strArray;
 		size_t size = data.size();
 		for (size_t i = 0; i < size; i++) {
-			strArray += _DER(data[i]);
+			if (!_DER(data[i], strArray)) {
+				return false;
+			}
 		}
 		strOutput.append(1, 0x30);
 		_DERLength(strOutput, strArray.size());
 		strOutput += strArray;
 	} else if (data.is_object()) {
-		string strDict;
 		vector<string> arrKeys;
 		data.get_keys(arrKeys);
+		std::sort(arrKeys.begin(), arrKeys.end());
+
+		string strDict;
 		for (size_t i = 0; i < arrKeys.size(); i++) {
 			string& strKey = arrKeys[i];
-			string strVal = _DER(data[strKey]);
+			string strEntry;
+			strEntry.append(1, 0x0c);
+			_DERLength(strEntry, strKey.size());
+			strEntry += strKey;
+			if (!_DER(data[strKey], strEntry)) {
+				return false;
+			}
 
 			strDict.append(1, 0x30);
-			_DERLength(strDict, (2 + strKey.size() + strVal.size()));
-
-			strDict.append(1, 0x0c);
-			_DERLength(strDict, strKey.size());
-			strDict += strKey;
-
-			strDict += strVal;
+			_DERLength(strDict, strEntry.size());
+			strDict += strEntry;
 		}
 
-		strOutput.append(1, 0x31);
+		strOutput.append(1, (char)0xb0);
 		_DERLength(strOutput, strDict.size());
 		strOutput += strDict;
-	} else if (data.is_double()) {
-		assert(false);
-	} else if (data.is_date()) {
-		assert(false);
-	} else if (data.is_data()) {
-		assert(false);
 	} else {
-		assert(false && "Unsupported Entitlements DER Type");
+		ZLog::Error(">>> Entitlements can only hold text, true/false, whole numbers, arrays and dictionaries!\n");
+		return false;
 	}
 
-	return strOutput;
+	return true;
 }
 
 uint32_t ZSign::SlotParseGeneralHeader(const char* szSlotName, uint8_t* pSlotBase, CS_BlobIndex* pbi)
@@ -317,7 +321,23 @@ bool ZSign::SlotBuildDerEntitlements(const string& strEntitlements, string& strO
 	jvalue jvInfo;
 	jvInfo.read_plist(strEntitlements);
 
-	string strRawEntitlementsData = _DER(jvInfo);
+	string strInnerDict;
+	if (!_DER(jvInfo, strInnerDict)) {
+		return false;
+	}
+
+	string strVersion;
+	strVersion.append(1, 0x02);
+	strVersion.append(1, 0x01);
+	strVersion.append(1, 0x01);
+
+	string strBody = strVersion + strInnerDict;
+
+	string strRawEntitlementsData;
+	strRawEntitlementsData.append(1, (char)0x70);
+	_DERLength(strRawEntitlementsData, strBody.size());
+	strRawEntitlementsData += strBody;
+
 	uint32_t uMagic = BE((uint32_t)CSMAGIC_EMBEDDED_DER_ENTITLEMENTS);
 	uint32_t uLength = BE((uint32_t)strRawEntitlementsData.size() + 8);
 
@@ -662,20 +682,56 @@ bool ZSign::SlotBuildCMSSignature(ZSignAsset* pSignAsset,
 		return true;
 	}
 
+	// The CMS "cdhashes" plist (attr 1.2.840.113635.100.9.1) and the "CDHashes2"
+	// attribute (1.2.840.113635.100.9.2) must only contain hashes of CodeDirectory
+	// blobs that actually exist in the signature. When only one CodeDirectory is
+	// serialized (SHA256-only mode), emitting hashes for a non-existent alternate
+	// CD breaks Apple's code signature verification with errSecCSSignatureFailed
+	// (`codesign --verify` reports "code or signature have been modified"):
+	// verification computes hashes of the real CDs and finds the second entry
+	// doesn't match any actual CD.
+	//
+	// Format rules derived from Apple codesign output:
+	// - cdhashes plist: one entry per CD, value = first 20 bytes of the CD's
+	//   "best" hash. For dual-hash builds (SHA1+SHA256) the primary CD uses SHA1
+	//   directly (20 bytes) and the alternate uses SHA256 truncated to 20.
+	//   For SHA256-only builds the single entry uses SHA256 truncated to 20.
+	// - CDHashes2 attribute: full hash (32 bytes for SHA256) of each CD wrapped
+	//   in `SEQUENCE { OID sha256, OCTET STRING hash }`. The current
+	//   GenerateCMS() implementation consumes a single `strAltnateCodeDirectorySlot256`
+	//   string for this attribute — when there is no alternate CD we pass the
+	//   SHA256 of the primary CD instead of SHA256(empty).
+	const bool bHasAlternate = !strAltnateCodeDirectorySlot.empty();
+
 	jvalue jvHashes;
 	string strCDHashesPlist;
-	string strCodeDirectorySlotSHA1;
-	string strAltnateCodeDirectorySlot256;
+	string strCodeDirectorySlotSHA1;   // SHA1 of primary CD (used by CMS detached content & dual-hash plist[0])
+	string strPrimaryCD_SHA256;        // SHA256 of primary CD (used in SHA256-only mode)
+	string strAltnateCD_SHA256;        // SHA256 of alternate CD (dual-hash mode only)
 	ZSHA::SHA1(strCodeDirectorySlot, strCodeDirectorySlotSHA1);
-	ZSHA::SHA256(strAltnateCodeDirectorySlot, strAltnateCodeDirectorySlot256);
+	ZSHA::SHA256(strCodeDirectorySlot, strPrimaryCD_SHA256);
+	if (bHasAlternate) {
+		ZSHA::SHA256(strAltnateCodeDirectorySlot, strAltnateCD_SHA256);
+	}
 
-	size_t cdHashSize = strCodeDirectorySlotSHA1.size();
-	jvHashes["cdhashes"][0].assign_data(strCodeDirectorySlotSHA1.data(), cdHashSize);
-	jvHashes["cdhashes"][1].assign_data(strAltnateCodeDirectorySlot256.data(), cdHashSize);
+	// 20-byte (truncated) hashes for the CDHashes plist.
+	const size_t kPlistHashLen = 20;
+	if (bHasAlternate) {
+		jvHashes["cdhashes"][0].assign_data(strCodeDirectorySlotSHA1.data(), kPlistHashLen);
+		jvHashes["cdhashes"][1].assign_data(strAltnateCD_SHA256.data(), kPlistHashLen);
+	} else {
+		// SHA256-only: single CD, use its SHA256 truncated to 20 bytes.
+		jvHashes["cdhashes"][0].assign_data(strPrimaryCD_SHA256.data(), kPlistHashLen);
+	}
 	jvHashes.style_write_plist(strCDHashesPlist);
 
+	// Full SHA256 hash to embed in the CDHashes2 signed attribute. In SHA256-only
+	// mode this must be the SHA256 of the primary CD, not SHA256 of an empty
+	// alternate — the latter is rejected by Apple's verifier.
+	const string& strCDHashes2 = bHasAlternate ? strAltnateCD_SHA256 : strPrimaryCD_SHA256;
+
 	string strCMSData;
-	if (!pSignAsset->GenerateCMS(strCodeDirectorySlot, strCDHashesPlist, strCodeDirectorySlotSHA1, strAltnateCodeDirectorySlot256, strCMSData)) {
+	if (!pSignAsset->GenerateCMS(strCodeDirectorySlot, strCDHashesPlist, strCodeDirectorySlotSHA1, strCDHashes2, strCMSData)) {
 		return false;
 	}
 

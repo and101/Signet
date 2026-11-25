@@ -511,4 +511,93 @@ final class SigningPipelineTests: XCTestCase {
                        ["TESTTEAM01.com.example.fixture", "TESTTEAM01.com.example.shared"])
         XCTAssertNil(entitlements["com.apple.security.application-groups"], "not granted by the profile")
     }
+
+    // MARK: - Real signatures
+
+    /// Signs the fixture app and returns the code signature blobs of its executable, by slot number.
+    private func signatureBlobs(p12: String = "test.p12", entitlements: [String: Any]? = nil) async throws -> [UInt32: Data] {
+        let fm = FileManager.default
+        let work = try Paths.newTempDirectory()
+        let source = try AppImporter.importIPA(at: fixture("Fixture.ipa"))
+        let cert = try CertificateImporter.importCertificate(
+            p12: fixture(p12), profile: fixture("test.mobileprovision"), password: "fixture", nickname: "")
+        defer {
+            try? fm.removeItem(at: work)
+            try? fm.removeItem(at: source.directory)
+            try? fm.removeItem(at: cert.directory)
+            Keychain.delete(cert.id.uuidString)
+        }
+        var options = SigningOptions()
+        if let entitlements {
+            let file = work.appendingPathComponent("custom.plist")
+            try PropertyListSerialization.data(fromPropertyList: entitlements, format: .xml, options: 0).write(to: file)
+            options.entitlementsFile = file
+        }
+        let signed = try await Signer.shared.sign(source, with: cert, options: options) { _ in }
+        defer { try? fm.removeItem(at: signed.directory) }
+        try fm.unzipItem(at: signed.ipaURL, to: work)
+        let data = try Data(contentsOf: work.appendingPathComponent("Payload/Fixture.app/Fixture"))
+        func word(_ offset: Int) -> Int { data[offset..<(offset + 4)].reduce(0) { $0 << 8 | Int($1) } }
+        // The signature is last in the file; find its header (0xfade0cc0).
+        let start = try XCTUnwrap(data.range(of: Data([0xfa, 0xde, 0x0c, 0xc0]), options: .backwards)?.lowerBound)
+        var blobs: [UInt32: Data] = [:]
+        for index in 0..<word(start + 8) {
+            let entry = start + 12 + index * 8
+            let blob = start + word(entry + 4)
+            blobs[UInt32(word(entry))] = data.subdata(in: (blob + 8)..<(blob + word(blob + 4)))
+        }
+        return blobs
+    }
+
+    func testSignedAppsCarryACertificateSignature() async throws {
+        let blobs = try await signatureBlobs()
+        let cms = try XCTUnwrap(blobs[0x10000], "no CMS signature")
+        XCTAssertNotNil(cms.range(of: Data("Apple Development: Fixture".utf8)), "the signing certificate")
+        XCTAssertNotNil(cms.range(of: Data("Fixture Intermediate".utf8)), "the issuer from the p12")
+        XCTAssertNil(blobs[0x1000], "SHA-256 only, with no alternate code directory")
+    }
+
+    func testCertificateWithUnknownIssuerFailsInsteadOfSucceeding() async throws {
+        do {
+            _ = try await signatureBlobs(p12: "test-nochain.p12")
+            XCTFail("an app that couldn't get a signature must not count as signed")
+        } catch let error as AppError {
+            XCTAssertTrue(error.message.hasPrefix("Signing failed"), error.message)
+        }
+    }
+
+    /// Expected bytes are from Apple's codesign for the same entitlements.
+    func testIntegerEntitlementsAreEncodedLikeCodesign() async throws {
+        for (value, expected) in [
+            (0, "700d020101b0083006 0c016e 020100"), (5, "700d020101b0083006 0c016e 020105"),
+            (128, "700e020101b0093007 0c016e 02020080"), (300, "700e020101b0093007 0c016e 0202012c"),
+            (-1, "700d020101b0083006 0c016e 0201ff"),
+        ] {
+            let der = try await signatureBlobs(entitlements: ["n": value])[7]
+            XCTAssertEqual(der?.map { String(format: "%02x", $0) }.joined(), expected.replacingOccurrences(of: " ", with: ""), "\(value)")
+        }
+    }
+
+    func testWildcardEntitlementsWithoutKeychainGroupsStayWithoutThem() async throws {
+        let blobs = try await signatureBlobs(entitlements: ["application-identifier": "TESTTEAM01.*"])
+        let xml = try XCTUnwrap(blobs[5])
+        let entitlements = try PropertyListSerialization.propertyList(from: xml, format: nil) as? [String: Any]
+        XCTAssertEqual(entitlements as? [String: String], ["application-identifier": "TESTTEAM01.com.example.fixture"])
+    }
+
+    func testRevocationCheckFindsTheIssuerInTheP12() async throws {
+        func check(_ p12: String) async throws -> String? {
+            let cert = try CertificateImporter.importCertificate(
+                p12: fixture(p12), profile: fixture("test.mobileprovision"), password: "fixture", nickname: "")
+            defer {
+                try? FileManager.default.removeItem(at: cert.directory)
+                Keychain.delete(cert.id.uuidString)
+            }
+            return await CertificateImporter.checkRevocation(cert).1
+        }
+        // The fixture names no status server, so finding the issuer gets as far as looking for one.
+        let chained = try await check("test.p12"), unchained = try await check("test-nochain.p12")
+        XCTAssertEqual(chained, "No AIA (OCSP) extension found in certificate")
+        XCTAssertEqual(unchained?.hasPrefix("Unable to determine issuer"), true, unchained ?? "nil")
+    }
 }

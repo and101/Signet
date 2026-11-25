@@ -1,5 +1,5 @@
 #!/bin/sh
-# Generates throwaway signing fixtures for the unit tests: a self-signed "developer" certificate,
+# Generates throwaway signing fixtures for the unit tests: a "developer" certificate issued by its own small CA,
 # a CMS-signed provisioning profile for it, and a small IPA. Nothing here is a real Apple identity.
 set -eu
 cd "$(dirname "$0")/.."
@@ -9,14 +9,28 @@ WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 mkdir -p "$OUT"
 
-"$OPENSSL" req -x509 -newkey rsa:2048 -nodes -days 30 \
-  -subj "/CN=Apple Development: Fixture (TESTTEAM01)/OU=TESTTEAM01/O=Fixture/C=US" \
-  -keyout "$WORK/key.pem" -out "$WORK/cert.pem" 2>/dev/null
-"$OPENSSL" pkcs12 -export -inkey "$WORK/key.pem" -in "$WORK/cert.pem" -passout pass:fixture -out "$OUT/test.p12"
+# Root, intermediate and leaf, as Apple issues them: signing needs the leaf's issuer, which the p12 carries.
+"$OPENSSL" req -x509 -newkey rsa:2048 -nodes -days 3650 -subj "/CN=Fixture Root" \
+  -keyout "$WORK/root.key" -out "$WORK/root.pem" 2>/dev/null
+"$OPENSSL" req -newkey rsa:2048 -nodes -subj "/CN=Fixture Intermediate" \
+  -keyout "$WORK/ca.key" -out "$WORK/ca.csr" 2>/dev/null
+printf 'basicConstraints=critical,CA:TRUE\nkeyUsage=critical,keyCertSign\nsubjectKeyIdentifier=hash\n' > "$WORK/ca.ext"
+"$OPENSSL" x509 -req -in "$WORK/ca.csr" -CA "$WORK/root.pem" -CAkey "$WORK/root.key" -CAcreateserial \
+  -days 3650 -extfile "$WORK/ca.ext" -out "$WORK/ca.pem" 2>/dev/null
+"$OPENSSL" req -newkey rsa:2048 -nodes -subj "/CN=Apple Development: Fixture (TESTTEAM01)/OU=TESTTEAM01/O=Fixture/C=US" \
+  -keyout "$WORK/key.pem" -out "$WORK/cert.csr" 2>/dev/null
+printf 'basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature\nextendedKeyUsage=critical,codeSigning\n' > "$WORK/cert.ext"
+"$OPENSSL" x509 -req -in "$WORK/cert.csr" -CA "$WORK/ca.pem" -CAkey "$WORK/ca.key" -CAcreateserial \
+  -days 3650 -extfile "$WORK/cert.ext" -out "$WORK/cert.pem" 2>/dev/null
+cat "$WORK/ca.pem" "$WORK/root.pem" > "$WORK/chain.pem"
+"$OPENSSL" pkcs12 -export -inkey "$WORK/key.pem" -in "$WORK/cert.pem" -certfile "$WORK/chain.pem" \
+  -passout pass:fixture -out "$OUT/test.p12"
+# The same identity without its issuer, which can't be signed with.
+"$OPENSSL" pkcs12 -export -inkey "$WORK/key.pem" -in "$WORK/cert.pem" -passout pass:fixture -out "$OUT/test-nochain.p12"
 
 CERT_B64=$("$OPENSSL" x509 -in "$WORK/cert.pem" -outform DER | base64 | tr -d '\n')
 NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-LATER=$(date -u -v+30d +%Y-%m-%dT%H:%M:%SZ)
+LATER=$(date -u -v+3650d +%Y-%m-%dT%H:%M:%SZ)
 cat > "$WORK/profile.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -49,7 +63,7 @@ sed 's|<string>TESTTEAM01\.\*</string>|<string>TESTTEAM01.com.example.exact</str
   -in "$WORK/exact-profile.plist" -out "$OUT/test-exact.mobileprovision"
 
 # TLS identity for the install-server test (CN=localhost).
-"$OPENSSL" req -x509 -newkey rsa:2048 -nodes -days 30 -subj "/CN=localhost" \
+"$OPENSSL" req -x509 -newkey rsa:2048 -nodes -days 800 -subj "/CN=localhost" \
   -addext "subjectAltName=DNS:localhost" -keyout "$OUT/server.pem" -out "$OUT/server.crt" 2>/dev/null
 
 # A minimal app bundle: Info.plist, an icon, and a tiny arm64 iOS executable.
